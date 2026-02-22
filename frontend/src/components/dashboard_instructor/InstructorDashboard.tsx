@@ -44,7 +44,7 @@ const InstructorDashboard = () => {
         fetch(`${API_URL}/dashboard?cedula=${storedCedula}`)
             .then(res => res.json())
             .then(data => {
-                // Validación de seguridad para evitar errores de propiedad
+                // Validación de seguridad para evitar errores de propiedad en caso de respuesta inesperada
                 if (data && !data.error) {
                     setDashboardData(data);
                 }
