@@ -1,0 +1,241 @@
+/* src/components/AsignarProyecto.css */
+
+/* --- CONTENEDOR PRINCIPAL --- */
+.assign-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+/* --- BUSCADOR PRINCIPAL --- */
+.search-bar-container {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+    border: 1px solid #f0f0f0;
+}
+
+.search-bar-container label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-wrapper input {
+    width: 100%;
+    padding: 12px 40px 12px 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.search-input-wrapper input:focus {
+    border-color: #39A900;
+    box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.1);
+}
+
+.search-icon {
+    position: absolute;
+    right: 15px;
+    color: #777;
+}
+
+/* --- TABLA PRINCIPAL --- */
+.table-card-assign {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+    overflow: hidden; 
+    border: 1px solid #f0f0f0;
+}
+
+.assign-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.assign-table th {
+    background-color: #00C853; /* Verde brillante SENA */
+    color: #000;
+    padding: 15px;
+    font-weight: 700;
+    text-align: left;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.assign-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #333;
+    vertical-align: middle;
+}
+
+/* Contenedor de botones en la celda */
+.actions-cell {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Botón Estilo Base (Ver mas y Asignar) */
+.btn-ver-mas, .btn-asignar-row {
+    color: #000;
+    border: none;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-transform: lowercase;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Variación específica para Ver Más */
+.btn-ver-mas {
+    background-color: #00C853;
+}
+
+/* Variación específica para Asignar (Igual al otro pero con su hover) */
+.btn-asignar-row {
+    background-color: #00C853;
+}
+
+.btn-ver-mas:hover, .btn-asignar-row:hover {
+    background-color: #009624;
+    color: white;
+}
+
+/* --- FOOTER (Paginación) --- */
+.assign-footer {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.pagination-wrapper {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.page-btn {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #333;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* =========================================
+   ESTILOS DEL MODAL 
+   ========================================= */
+
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    backdrop-filter: blur(3px);
+}
+
+.modal-content-large {
+    background: white;
+    width: 800px;
+    max-width: 95%;
+    max-height: 90vh;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.modal-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fafafa;
+}
+
+.modal-body {
+    padding: 25px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-search-bar {
+    position: relative;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+}
+
+.input-modal-search {
+    flex: 1;
+    border: none;
+    padding: 12px 0;
+    outline: none;
+}
+
+.btn-modal-next, .btn-modal-save {
+    background-color: #39A900;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.role-assignment-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}

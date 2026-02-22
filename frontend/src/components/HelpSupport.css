@@ -1,0 +1,215 @@
+/* src/components/HelpSupport.css */
+
+.help-page {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- CABECERA --- */
+.help-header {
+    background-color: #00bf38; /* Verde brillante de la imagen */
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.back-icon {
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.back-icon:hover {
+    transform: scale(1.1);
+}
+
+.header-logo {
+    height: 40px;
+    filter: brightness(0) invert(1); /* Vuelve blanco el logo si es negro */
+}
+
+.header-texts h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.header-texts p {
+    margin: 0;
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+/* --- CONTENIDO PRINCIPAL --- */
+.help-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    flex: 1;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Título Grande con Icono */
+.help-title-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 40px;
+}
+
+.help-main-icon {
+    color: #333;
+}
+
+.help-title-text {
+    font-size: 3rem;
+    font-family: 'Brush Script MT', cursive; /* Intento de simular la fuente de la imagen */
+    color: #333;
+    line-height: 1;
+}
+
+/* Sección Preguntas Frecuentes */
+.faq-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.blue-bar {
+    width: 6px;
+    height: 35px;
+    background-color: #5C9DFF; /* Azul de la barra */
+    border-radius: 2px;
+}
+
+.faq-section-title h2 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin: 0;
+    color: #000;
+}
+
+/* --- LAYOUT DE DOS COLUMNAS --- */
+.faq-layout {
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+}
+
+/* Columna Izquierda: Botones */
+.questions-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.question-btn {
+    background-color: #ccc; /* Gris de fondo botones */
+    border: none;
+    padding: 15px 20px;
+    text-align: left;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    color: #333;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.question-btn:hover {
+    background-color: #bbb;
+    transform: translateX(5px);
+}
+
+.question-btn.active {
+    background-color: #39A900; /* Verde al estar activo */
+    color: white;
+}
+
+.triangle-icon {
+    font-size: 0.8rem;
+}
+
+/* Columna Derecha: Respuesta */
+.answer-panel {
+    flex: 1;
+    background-color: #f0f0f0;
+    padding: 30px;
+    border-radius: 10px;
+    min-height: 250px;
+    border-left: 5px solid #39A900;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.answer-panel h3 {
+    margin-top: 0;
+    color: #39A900;
+    margin-bottom: 15px;
+}
+
+.answer-text {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #444;
+}
+
+.empty-state {
+    color: #888;
+    text-align: center;
+    font-style: italic;
+}
+
+/* --- FOOTER --- */
+.help-footer {
+    padding: 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.copyright {
+    text-align: right;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* Responsivo para móviles */
+@media (max-width: 768px) {
+    .faq-layout {
+        flex-direction: column;
+    }
+    .help-title-text {
+        font-size: 2.5rem;
+    }
+}

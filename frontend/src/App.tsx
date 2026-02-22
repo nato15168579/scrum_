@@ -1,0 +1,32 @@
+// src/App.tsx
+import { Routes, Route, Navigate } from 'react-router-dom';
+import LoginScreen from './components/login/LoginScreen';
+import InstructorDashboard from './components/dashboard_instructor/InstructorDashboard';
+import ListaAprendices from './components/lista_aprendices/ListaAprendices';
+import CrearProyecto from './components/crear_proyecto/CrearProyecto';
+import AsignarProyecto from './components/asignar_proyecto/AsignarProyecto';
+import VerMasProyecto from './components/asignar_proyecto/asignar_proyecto_vermas/VerMasProyecto';
+import VerProyectos from './components/ver_proyectos/VerProyectos';
+function App() {
+  return (
+    <Routes>
+      {/* 1. ruta del login */}
+      <Route path="/" element={<LoginScreen />} />
+      {/* 2. ruta del dashboard del instructor */}
+      <Route path="/dashboard" element={<InstructorDashboard />} />
+      {/* 3. ruta de la lista de aprendices */}
+      <Route path="/lista-aprendices" element={<ListaAprendices />} />
+      {/* 4. ruta de crear proyecto */}
+      <Route path="/crear-proyecto" element={<CrearProyecto />} />
+      {/* 5. ruta de asignar proyecto */}
+      <Route path="/asignar-proyectos" element={<AsignarProyecto />} />
+      {/* 5.1. ruta de asignar proyecto a ver mas */}
+      <Route path="/asignar-proyectos-vermas/:id" element={<VerMasProyecto />} />
+      {/* 6. ruta de asignar proyecto a ver mas */}
+      <Route path="/ver-proyectos" element={<VerProyectos />} />
+      {/* error: si la ruta falla te manda al login */}
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
+}
+export default App;

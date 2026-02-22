@@ -1,0 +1,274 @@
+/* ========================================================== */
+/* ESTILOS DE LA VISTA DE DETALLE (DetalleProyecto.css) */
+/* INCLUYENDO LA BARRA LATERAL PARA VISTAS COMPLETAS */
+/* ========================================================== */
+
+/* --- 1. BARRA LATERAL (SIDEBAR - CÓDIGO COPIADO DE Dashboard.css) --- */
+.dashboard-page {
+    display: flex; /* Contenedor principal para Sidebar + Content */
+}
+
+.side-card {
+    width: 260px; 
+    height: 100vh; 
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    background-color: #ffffff;
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    padding: 30px 20px;
+    overflow-y: auto;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.03);
+}
+
+.brand-block {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.logo-lg {
+    width: 70px;
+    margin-bottom: 15px;
+}
+
+.brand-block h2 {
+    font-size: 0.9rem;
+    color: #333;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0;
+}
+
+.menu-title {
+    font-size: 0.75rem;
+    color: #999;
+    margin-bottom: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding-left: 10px;
+    text-transform: uppercase;
+}
+
+.menu ul, .settings ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 40px 0;
+}
+
+.menu li, .settings li {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    color: #555;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.menu li:hover, .settings li:hover {
+    background-color: #f8f9fa;
+    color: #39A900;
+    transform: translateX(5px);
+}
+
+.menu li.active {
+    background-color: #e8f5e9;
+    color: #39A900;
+    font-weight: 700;
+    border-left: 4px solid #39A900;
+    border-radius: 4px 8px 8px 4px;
+}
+
+/* --- 2. ÁREA DE CONTENIDO PRINCIPAL --- */
+.main-content-area {
+  /* Espacio necesario para la barra lateral */
+  margin-left: 260px; 
+  width: calc(100% - 260px);
+  min-height: 100vh;
+  padding: 30px 40px; 
+}
+
+
+/* --- 3. ESTILOS ESPECÍFICOS DE LA VISTA DE DETALLE (Tarjetas/Botones) --- */
+
+.page-title-bar {
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 25px;
+}
+
+.page-title-bar h1 {
+  font-size: 1.5rem;
+  font-weight: 300;
+  color: #333;
+}
+
+.page-title-bar .current-page {
+  font-weight: 600;
+  color: #39A900;
+}
+
+.action-buttons-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.btn-action {
+  background-color: #39A900;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+}
+
+.btn-action:hover {
+  background-color: #2e8b00;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.card-info {
+  background: white;
+  border-radius: 10px;
+  padding: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0f0f0;
+}
+
+.card-info h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.info-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px dashed #f0f0f0;
+  align-items: center;
+}
+
+.info-detail-row:last-child {
+  border-bottom: none;
+}
+
+.info-detail-row label {
+  font-weight: 400;
+  color: #666;
+  width: 45%; 
+}
+
+.info-detail-row span {
+  font-weight: 500;
+  color: #333;
+  text-align: right;
+  width: 50%;
+}
+
+.status-active {
+  color: #39A900;
+  font-weight: bold;
+}
+
+.objetivo-general-section {
+  padding: 25px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0f0f0;
+}
+
+.objetivo-general-section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.objetivo-general-section p {
+  line-height: 1.8;
+  color: #555;
+  text-align: justify;
+  margin-bottom: 15px;
+}
+
+.loading-overlay, .error-msg {
+    text-align: center;
+    padding: 50px;
+    font-size: 1.2rem;
+    color: #39A900;
+}
+
+/* --- 4. RESPONSIVE --- */
+@media (max-width: 900px) {
+  .side-card {
+    /* Ocultar barra lateral en móvil/tablet */
+    display: none; 
+  }
+  .main-content-area {
+    /* Ocupar todo el ancho cuando la barra lateral está oculta */
+    margin-left: 0;
+    width: 100%;
+    padding: 20px;
+  }
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+/* --- Añadir a DetalleProyecto.css --- */
+
+/* Contenedor Flex para el botón y el título */
+.detail-title-container {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Espacio entre el botón y el título */
+}
+
+.btn-back {
+    background: none;
+    border: 1px solid #ccc;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #555;
+    display: flex; /* Para centrar el icono */
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.btn-back:hover {
+    background-color: #f0f0f0;
+    border-color: #999;
+}
+
+/* Ajuste para que el título no sea muy grande en la fila */
+.detail-title-container h1 {
+    font-size: 1.5rem; /* Asegura que el tamaño sea manejable */
+    margin: 0;
+}

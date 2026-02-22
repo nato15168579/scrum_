@@ -1,0 +1,156 @@
+/* src/components/CrearProyecto.css */
+
+/* --- Contenedor Principal del Formulario --- */
+.create-project-card {
+    background: white;
+    padding: 30px 40px;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    width: 100%;
+    max-width: 900px; /* Limita el ancho del formulario */
+    margin-top: 20px;
+    border: 1px solid #f0f0f0;
+}
+
+.create-project-card h2 {
+    font-size: 1.8rem;
+    color: #111827;
+    margin-top: 0;
+    margin-bottom: 25px;
+    font-weight: 800;
+}
+
+/* --- Grupos de Formulario --- */
+.form-group {
+    margin-bottom: 30px;
+    width: 100%;
+}
+
+.form-group label {
+    display: block;
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.form-group label .required {
+    color: #ff4500; 
+    margin-left: 4px;
+}
+
+/* --- Estilos Comunes de Inputs --- */
+.input-field, 
+.textarea-field,
+.date-field-group input,
+.creator-field {
+    width: 100%;
+    padding: 14px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background-color: #fafafa;
+    color: #333;
+}
+
+/* Foco de Inputs y Textareas */
+.input-field:focus, 
+.textarea-field:focus,
+.date-field-group input:focus {
+    border-color: #39A900;
+    box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.1);
+    background-color: white;
+}
+
+/* Textarea para Objetivo */
+.textarea-field {
+    min-height: 120px;
+    resize: vertical;
+}
+
+/* Campos de fecha y creador (alineados en una fila) */
+.date-creator-row {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.date-creator-row > div {
+    flex: 1;
+    min-width: 0; 
+}
+
+/* Campo de fecha con icono */
+.date-field-group {
+    display: flex;
+    align-items: center;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 0;
+    background-color: #fafafa;
+}
+
+.date-field-group input {
+    border: none;
+    padding: 14px 15px;
+    background-color: transparent;
+}
+
+.date-field-group input:focus {
+    box-shadow: none; 
+}
+
+.date-icon {
+    padding: 0 10px;
+    color: #777;
+    flex-shrink: 0;
+}
+
+/* Campo "Creado por" (Solo lectura/deshabilitado) */
+.creator-field {
+    background-color: #e9ecef; 
+    color: #6c757d;
+    cursor: default;
+    pointer-events: none;
+}
+
+/* --- Botón Crear Proyecto --- */
+.submit-button {
+    width: 200px;
+    padding: 14px 25px;
+    background-color: #39A900; 
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    float: right; 
+}
+
+.submit-button:hover {
+    background-color: #2b7a00;
+}
+
+.submit-button:active {
+    transform: scale(0.98);
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .create-project-card {
+        padding: 20px;
+    }
+    .date-creator-row {
+        flex-direction: column;
+        gap: 20px;
+    }
+    .submit-button {
+        width: 100%;
+        float: none;
+        margin-top: 20px;
+    }
+}

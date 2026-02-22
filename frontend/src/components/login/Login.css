@@ -1,0 +1,133 @@
+/* src/components/LoginScreen.css */
+
+/* Fondo general de la página */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #f4f6f9; /* Gris muy suave, profesional */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Contenedor principal que centra la tarjeta */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* Tarjeta de Login (Blanca) */
+.login-card {
+    background-color: #ffffff;
+    width: 100%;
+    max-width: 400px;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08); /* Sombra suave */
+    text-align: center;
+}
+
+/* Header del Login (Logo y Títulos) */
+.login-header {
+    margin-bottom: 30px;
+}
+
+.sena-logo {
+    width: 70px; /* Tamaño del logo SENA */
+    height: auto;
+    margin-bottom: 15px;
+}
+
+.login-header h2 {
+    margin: 0;
+    color: #333;
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+.login-subtitle {
+    margin: 5px 0 0 0;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+/* Formulario */
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #444;
+    font-size: 0.9rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    box-sizing: border-box; /* Para que el padding no rompa el ancho */
+    transition: border-color 0.3s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #39A900; /* Verde SENA al enfocar */
+}
+
+/* Enlace de "Olvidaste contraseña" */
+.forgot-password {
+    text-align: right;
+    margin-bottom: 25px;
+}
+
+.forgot-password a {
+    color: #39A900;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.forgot-password a:hover {
+    text-decoration: underline;
+}
+
+/* Botón de Ingresar */
+.btn-login {
+    width: 100%;
+    padding: 14px;
+    background-color: #39A900; /* Verde SENA */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-login:hover {
+    background-color: #2e8b00; /* Verde más oscuro al pasar el mouse */
+}
+
+/* Mensajes de error */
+.error-message {
+    color: #d32f2f;
+    background-color: #ffebee;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    border: 1px solid #ffcdd2;
+}

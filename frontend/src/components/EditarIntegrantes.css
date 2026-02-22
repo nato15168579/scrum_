@@ -1,0 +1,353 @@
+/* ==========================================================
+   ESTILOS DE LA VISTA EDITAR INTEGRANTES
+   ========================================================== */
+
+/* --- CONTENEDOR PRINCIPAL --- */
+.editar-container {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    margin-top: 20px;
+}
+
+.editar-container h2 {
+    font-size: 1.5rem;
+    color: #333;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+/* --- BUSCADOR (ARREGLADO: Lupa no pisa texto) --- */
+.search-bar-container {
+    display: flex;
+    justify-content: flex-end; /* Alinea a la derecha */
+    margin-bottom: 20px;
+}
+
+.search-input-wrapper {
+    position: relative;
+    width: 300px;
+}
+
+.search-input {
+    width: 100%;
+    /* Padding izquierdo de 40px deja espacio para el icono */
+    padding: 10px 10px 10px 40px; 
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.search-input:focus {
+    border-color: #39A900;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+    pointer-events: none; /* Permite clickear a través del icono */
+}
+
+/* --- TABLAS (Estilo Verde SENA) --- */
+.table-green-header {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.table-green-header thead {
+    background-color: #00C853; /* Verde Brillante */
+}
+
+.table-green-header th {
+    color: white;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.table-green-header td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    color: #333;
+    font-size: 0.9rem;
+    vertical-align: middle;
+}
+
+.table-green-header tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* Checkboxes Personalizados */
+.custom-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #39A900; /* Color del check nativo */
+}
+
+/* --- BOTONES DE PIE DE PÁGINA --- */
+.footer-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+    padding-top: 10px;
+}
+
+.btn-danger {
+    background-color: #FF0000; /* Rojo */
+    color: white;
+    padding: 12px 30px;
+    border-radius: 25px;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(255, 0, 0, 0.2);
+    transition: transform 0.2s;
+}
+
+.btn-danger:hover {
+    background-color: #cc0000;
+}
+
+.btn-disabled {
+    background-color: #e0e0e0;
+    color: #999;
+    padding: 12px 30px;
+    border-radius: 25px;
+    border: none;
+    font-weight: 700;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.btn-success {
+    background-color: #00E676; /* Verde Neón */
+    color: #000;
+    padding: 12px 30px;
+    border-radius: 25px;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 230, 118, 0.3);
+    transition: transform 0.2s;
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+}
+
+/* ==========================================================
+   ESTILOS DE LOS MODALES
+   ========================================================== */
+
+/* Fondo Oscuro para todos los modales */
+.modal-overlay-large, .modal-alert-overlay {
+    position: fixed;
+    top: 0; 
+    left: 0;
+    width: 100vw; 
+    height: 100vh;
+    background-color: rgba(0,0,0,0.5); /* Fondo semi-transparente */
+    backdrop-filter: blur(2px); /* Efecto borroso de fondo */
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* --- MODAL AGREGAR APRENDIZ (Grande Blanco) --- */
+.modal-content-large {
+    background: white;
+    width: 85%;
+    max-width: 950px;
+    height: 85vh; /* Ocupa buena parte de la altura */
+    border-radius: 10px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: slideUp 0.3s ease;
+}
+
+.modal-header-large {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+.modal-header-large h2 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.4rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.2s;
+}
+
+.close-btn:hover {
+    color: #FF0000;
+}
+
+/* Título Azul centrado */
+.modal-subtitle {
+    text-align: center;
+    color: #4a6ee0;
+    font-weight: 700;
+    margin: 15px 0;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+}
+
+/* Scroll para la tabla dentro del modal */
+.modal-body-scroll {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 5px;
+}
+
+/* Tabla dentro del modal (estilo limpio) */
+.table-modal {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-modal th {
+    background-color: #fff;
+    color: #000;
+    padding: 15px;
+    text-align: left;
+    font-weight: 700;
+    border-bottom: 2px solid #f0f0f0;
+    position: sticky; /* Encabezado fijo al hacer scroll */
+    top: 0;
+    z-index: 10;
+}
+
+.table-modal td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #f9f9f9;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.btn-guardar-azul {
+    background-color: #4a6ee0; /* Azul */
+    color: white;
+    padding: 10px 40px;
+    border-radius: 5px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(74, 110, 224, 0.3);
+}
+
+.btn-guardar-azul:hover {
+    background-color: #3b5bc0;
+}
+
+
+/* --- MODAL ALERTA (Confirmación Pequeña) --- */
+.modal-alert-content {
+    background: white;
+    width: 420px;
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+    animation: popIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.alert-icon-circle {
+    width: 80px; 
+    height: 80px;
+    background-color: #FF0000;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 25px auto;
+    box-shadow: 0 10px 20px rgba(255, 0, 0, 0.2);
+}
+
+.alert-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #333;
+    margin: 0 0 15px 0;
+}
+
+.alert-text {
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.alert-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+/* Botones dentro de la alerta */
+.btn-alert-confirm {
+    background-color: #FF0000; 
+    color: white;
+    padding: 12px 0;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    flex: 1;
+    cursor: pointer;
+}
+
+.btn-alert-cancel {
+    background-color: #f0f0f0;
+    color: #333;
+    padding: 12px 0;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    flex: 1;
+    cursor: pointer;
+}
+
+.btn-alert-cancel:hover {
+    background-color: #e0e0e0;
+}
+
+/* Animaciones */
+@keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slideUp {
+    0% { transform: translateY(50px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}

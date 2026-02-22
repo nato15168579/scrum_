@@ -1,0 +1,237 @@
+/* ========================================================= */
+/* ESTILOS GLOBALES BASE */
+/* ========================================================= */
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f3f4f6; /* Fondo por defecto para el Dashboard */
+    min-height: 100vh;
+}
+
+/* ------------------------------------- */
+/* I. ESTILOS DEL LOGIN (ENCAPSULADOS) */
+/* ------------------------------------- */
+
+/* Contenedor que solo afecta a la página de login */
+.login-page-container {
+    --sena-green: #1dbf00; 
+    --sena-green-hover: #18a600;
+    --card-gray: #d9d9d9; 
+    --link-blue: #1a4bff; 
+    --text-color: #333;
+    --border-radius: 20px;
+    
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh; 
+    width: 100%;
+    position: relative;
+    box-sizing: border-box;
+    padding: 20px;
+}
+
+.login-page-container .back-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-size: 30px;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.login-page-container .login-container-card {
+    width: 100%; 
+    max-width: 350px; 
+    background: var(--card-gray);
+    padding: 40px 30px;
+    border-radius: var(--border-radius);
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+}
+
+.login-page-container .logo { width: 120px; }
+.login-page-container .title {
+    margin-top: 10px; font-size: 17px; font-weight: bold; color: var(--text-color); margin-bottom: 25px;
+}
+.login-page-container label {
+    display: block; text-align: left; margin: 15px 0 5px 2px; font-size: 14px; font-weight: bold; color: var(--text-color);
+}
+.login-page-container input {
+    width: 100%; padding: 10px; border: 1px solid #555; border-radius: 8px; font-size: 14px; box-sizing: border-box; 
+}
+.login-page-container .password-field { position: relative; width: 100%; }
+.login-page-container .eye {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px; color: #555;
+}
+.login-page-container .btn-ingresar {
+    width: 100%; padding: 12px; margin-top: 25px; background: var(--sena-green); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: background 0.3s;
+}
+.login-page-container .btn-ingresar:hover { background: var(--sena-green-hover); }
+.login-page-container .forgot {
+    display: block; margin-top: 20px; font-size: 13px; color: var(--link-blue); text-decoration: none; font-weight: bold;
+}
+.login-page-container .error-message {
+    color: red; font-size: 0.9em; margin-top: 10px; text-align: center;
+}
+
+/* ------------------------------------- */
+/* II. ESTILOS DEL DASHBOARD (INSTRUCTOR) */
+/* ------------------------------------- */
+
+.dashboard-page {
+    background: #f3f4f6;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+}
+
+.container-dashboard {
+    display: flex;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* SIDEBAR */
+.side-card {
+    width: 250px;
+    min-width: 250px; 
+    background: white;
+    border-radius: 20px;
+    padding: 25px 20px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    border: 1px solid #ececec;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: fit-content; 
+}
+
+.brand-block {
+    display: flex; align-items: center; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;
+}
+.logo-lg { width: 40px; height: 40px; }
+.brand-block h2 { font-size: 14px; font-weight: 700; }
+
+/* MENU */
+.menu-title {
+    font-size: 12px; color: #999; margin-bottom: 8px; margin-left: 8px; font-weight: bold;
+}
+.menu ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.menu li {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; font-size: 14px; color: #666; cursor: pointer; transition: background 0.2s;
+}
+.menu li:hover { background: #f0f0f0; }
+.menu li.active {
+    background: linear-gradient(90deg, #0ea100, #12b213);
+    color: white;
+    border-left: 5px solid rgba(255, 255, 255, 0.6);
+}
+.ico { width: 22px; text-align: center; }
+.settings { margin-top: auto; border-top: 1px solid #f2f2f2; padding-top: 10px; }
+
+/* CONTENIDO PRINCIPAL */
+.content {
+    flex: 1; padding-left: 25px; box-sizing: border-box;
+}
+
+/* NAV SUPERIOR */
+.nav-top {
+    display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 25px; border-radius: 20px; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.07); margin-bottom: 25px;
+}
+
+/* PROFILE DROPDOWN (SOLUCIÓN DEL BUG DE HOVER) */
+.profile-menu {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    /* 🔑 Esto define el área que mantiene el menú visible */
+}
+
+.profile-img { width: 40px; height: 40px; border-radius: 50%; }
+.profile-name { font-size: 14px; font-weight: bold; }
+
+/* 🔑 La visibilidad es controlada por React (isMenuOpen), no por CSS :hover */
+.dropdown-profile { 
+    position: absolute;
+    top: 50px;
+    right: 0;
+    background: white;
+    list-style: none;
+    padding: 10px 0;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    width: 160px;
+    z-index: 100;
+    /* La propiedad 'display: none/block' es ahora gestionada por el estado de React */
+}
+
+.dropdown-profile li {
+    padding: 10px 15px; cursor: pointer; font-size: 14px; color: #666;
+}
+.dropdown-profile li.logout { color: red; font-weight: bold; }
+
+/* CARDS SUPERIORES */
+.basic-cards {
+    display: flex; gap: 20px; flex-wrap: wrap; 
+}
+.card-stat { 
+    flex: 1; min-width: 180px; background: white; padding: 20px; border-radius: 20px; text-align: center; box-shadow: 0 5px 25px rgba(0, 0, 0, 0.07);
+}
+.number { font-size: 28px; color: #0ea100; font-weight: bold; }
+
+/* RESUMEN + PORCENTAJE */
+.resume-section {
+    display: flex; gap: 25px; margin-top: 25px; flex-wrap: wrap; 
+}
+.resume-card {
+    flex: 2; min-width: 300px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 5px 25px rgba(0, 0, 0, 0.07); box-sizing: border-box;
+}
+.resume-card h2 { font-size: 18px; margin-top: 0; }
+.resume-text { color: #666; line-height: 1.5; margin-bottom: 25px; }
+.resume-stats { display: flex; gap: 30px; flex-wrap: wrap; }
+.stat h3 { color: #0ea100; font-size: 28px; margin: 0; }
+.stat span { color: #666; font-size: 14px; }
+
+.percentage-card {
+    flex: 1; min-width: 250px; background: white; border-radius: 20px; padding: 30px; text-align: center; box-shadow: 0 5px 25px rgba(0, 0, 0, 0.07); box-sizing: border-box;
+}
+
+.circle {
+    width: 150px; height: 150px; margin: auto; border-radius: 50%; background: conic-gradient(#0ea100 0% 75%, #e5e5e5 75% 100%); 
+    display: flex; justify-content: center; align-items: center;
+}
+.circle .inner {
+    width: 110px; height: 110px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: #0ea100;
+}
+.percentage-card h2 { margin-top: 20px; margin-bottom: 5px; }
+.percentage-card p { margin: 0; }
+
+/* ------------------------------------- */
+/* III. MEDIA QUERIES (ADAPTABILIDAD) */
+/* ------------------------------------- */
+
+@media (max-width: 768px) {
+    .container-dashboard {
+        flex-direction: column;
+        padding: 10px;
+    }
+    .side-card {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    .content {
+        padding-left: 0;
+    }
+    .resume-section, .basic-cards {
+        flex-direction: column;
+    }
+    .card-stat, .resume-card, .percentage-card {
+        min-width: 100%;
+    }
+}
