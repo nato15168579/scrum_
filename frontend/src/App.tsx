@@ -2,7 +2,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginScreen from './components/login/LoginScreen';
 import InstructorDashboard from './components/dashboard_instructor/InstructorDashboard';
-import StudentDashboard from './components/StudentDashboard';
+import StudentDashboard from './components/StudentsDashboard/StudentDashboard';
 import ListaAprendices from './components/lista_aprendices/ListaAprendices';
 import CrearProyecto from './components/crear_proyecto/CrearProyecto';
 import AsignarProyecto from './components/asignar_proyecto/AsignarProyecto';
