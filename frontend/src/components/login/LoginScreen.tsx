@@ -23,6 +23,8 @@ const LoginScreen = () => {
     }
 
     try {
+      console.log('Iniciando login con cédula:', credentials.cedula);
+      
       const response = await fetch(`${API_LOGIN}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -32,42 +34,53 @@ const LoginScreen = () => {
         }),
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Error response:', errorData);
         throw new Error('Cédula o contraseña incorrectas');
       }
 
       const data = await response.json();
-      console.log("Datos recibidos del servidor:", data);
+      console.log("✅ Datos recibidos del servidor:", data);
 
-      // --- MODIFICACIONES AQUÍ ---
-      // Usamos los nombres que TypeORM generó automáticamente (camelCase)
-      // Añadimos una validación opcional (?.) y valores por defecto para evitar el error .toString()
-      
+      // Validar que tenemos los datos necesarios
+      if (!data.usuCedula) {
+        console.error("❌ El servidor no envió usuCedula");
+        setError("Error: El servidor no devolvió los datos del usuario");
+        return;
+      }
+
       const cedulaStr = data.usuCedula?.toString() || "";
       const roleIdStr = data.rolSisIdFk?.toString() || "";
       const fullNombre = `${data.usuNombres || ''} ${data.usuApellidos || ''}`.trim();
 
-      if (!cedulaStr) {
-        console.error("Error: El servidor no envió la cédula correctamente");
-        setError("Error en los datos del servidor");
-        return;
-      }
+      console.log('📋 Datos parseados:', { cedulaStr, roleIdStr, fullNombre });
 
       // Guardar en LocalStorage
       localStorage.setItem('userCedula', cedulaStr);
       localStorage.setItem('userRoleId', roleIdStr);
       localStorage.setItem('userName', fullNombre);
 
-      // 4. REDIRECCIÓN según rolSisIdFk (2 = Instructor)
-      if (parseInt(roleIdStr) === 2) {
-          navigate('/dashboard'); 
-      } else {
-          navigate('/mi-proyecto'); // modificar cuando este lista la vista de aprendiz
-      }
+      console.log('✅ Datos guardados en localStorage');
 
-    } catch (err: any) {
-      console.error("Error en Login:", err);
-      setError(err.message || 'Error al conectar con el servidor');
+      // REDIRECCIÓN según rolSisIdFk (2 = Instructor)
+      const roleNum = parseInt(roleIdStr) || 0;
+      console.log('🔍 ID de rol numérico:', roleNum);
+      
+      if (roleNum === 2) {
+          console.log('🎯 Rol es Instructor (2) - Redirigiendo a /dashboard-instructor');
+          navigate('/dashboard-instructor'); 
+      } else {
+          console.log('🎯 Rol es Aprendiz - Redirigiendo a /student-dashboard');
+          navigate('/student-dashboard');
+      }
+      
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error("❌ Error en Login:", error);
+      setError(error.message || 'Error al conectar con el servidor');
     }
   };
 

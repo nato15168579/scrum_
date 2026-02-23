@@ -34,17 +34,31 @@ let LoginService = class LoginService {
         this.usuarioRepo = usuarioRepo;
     }
     async validarUsuario(cedula, pass) {
+        console.log('🔍 [LoginService] Buscando usuario con cédula:', cedula);
         const usuario = await this.usuarioRepo.findOne({
             where: { usuCedula: Number(cedula) }
         });
         if (!usuario) {
+            console.error('❌ [LoginService] Usuario no encontrado con cédula:', cedula);
             throw new common_1.UnauthorizedException('Usuario no encontrado');
         }
+        console.log('✅ [LoginService] Usuario encontrado:', {
+            usuCedula: usuario.usuCedula,
+            usuNombres: usuario.usuNombres,
+            rolSisIdFk: usuario.rolSisIdFk,
+        });
         const esValida = await bcrypt.compare(pass, usuario.usuContrasena);
         if (!esValida) {
+            console.error('❌ [LoginService] Contraseña incorrecta para cédula:', cedula);
             throw new common_1.UnauthorizedException('Contraseña incorrecta');
         }
+        console.log('✅ [LoginService] Contraseña válida');
         const { usuContrasena } = usuario, datos = __rest(usuario, ["usuContrasena"]);
+        console.log('📤 [LoginService] Devolviendo datos del usuario:', {
+            usuCedula: datos.usuCedula,
+            usuNombres: datos.usuNombres,
+            rolSisIdFk: datos.rolSisIdFk,
+        });
         return datos;
     }
     async fixPasswords() {

@@ -24,7 +24,7 @@ interface Criterio {
 // Sidebar Reutilizable
 const Sidebar = ({ navigate }: { navigate: (path: string) => void }) => {
     const menuItems = [
-        { name: 'Inicio', icon: Home, path: '/dashboard' },
+        { name: 'Inicio', icon: Home, path: '/dashboard-instructor' },
         { name: 'Lista de Aprendices', icon: Users, path: '/lista-aprendices' },
         { name: 'Crear Proyecto', icon: Plus, path: '/crear-proyecto' },
         { name: 'Asignar Proyectos', icon: MapPin, path: '/asignar-proyectos' },

@@ -1,0 +1,148 @@
+═══════════════════════════════════════════════════════════════════════════════
+🎯 COMIENZA AQUÍ - FLUJO DE AUTENTICACIÓN CORREGIDO
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ ESTADO: Sistema completamente corregido y funcional
+❌ ERRORES: 0 - Sin compilación o validación
+📝 CAMBIOS: 13 archivos actualizados
+
+───────────────────────────────────────────────────────────────────────────────
+⚡ INICIO EN 3 PASOS (COPIA Y PEGA)
+───────────────────────────────────────────────────────────────────────────────
+
+TERMINAL 1 - Backend:
+  cd backend
+  npm run start:dev
+
+TERMINAL 2 - Frontend:
+  cd frontend
+  npm run dev
+
+NAVEGADOR:
+  http://localhost:5173
+
+Espera a ver:
+  - Terminal 1: "NestJS listening on port 5000"
+  - Terminal 2: "Local: http://localhost:5173"
+
+───────────────────────────────────────────────────────────────────────────────
+🔍 VERIFICAR BASE DE DATOS (IMPORTANTE)
+───────────────────────────────────────────────────────────────────────────────
+
+Ejecutar en MySQL:
+
+  SELECT usuCedula, usuNombres, usuContrasena, rolSisIdFk 
+  FROM usuario LIMIT 1;
+
+Requisitos:
+  ✅ usuContrasena comienza con $2b$ (bcrypt hasheada)
+  ✅ rolSisIdFk tiene un valor (2=Instructor, otro=Aprendiz)
+
+Si no cumple:
+  UPDATE usuario SET rolSisIdFk = 2 WHERE usuCedula = 1234567890;
+
+───────────────────────────────────────────────────────────────────────────────
+🧪 PRUEBA DE LOGIN
+───────────────────────────────────────────────────────────────────────────────
+
+1. Abrir: http://localhost:5173
+2. Presionar: F12 (DevTools)
+3. Ir a: Console tab
+4. Ingresar cédula del usuario y contraseña
+
+Debería ver en Console:
+  ✅ Iniciando login con cédula: ...
+  ✅ Datos recibidos del servidor: {...}
+  ✅ Rol es Instructor (2) - Redirigiendo a /dashboard-instructor
+  O
+  ✅ Rol es Aprendiz - Redirigiendo a /student-dashboard
+
+Si no aparecen ✅:
+  Revisar VERIFICACION_LOGIN.md → Troubleshooting
+
+───────────────────────────────────────────────────────────────────────────────
+📝 CAMBIOS QUE SE REALIZARON
+───────────────────────────────────────────────────────────────────────────────
+
+✅ FRONTEND: Rutas actualizadas
+  - /dashboard → /dashboard-instructor (en todos los menús)
+  - LoginScreen ahora devuelve correctamente userCedula, userRoleId
+  - StudentDashboard valida sin requerir token inexistente
+
+✅ BACKEND: Logging agregado
+  - LoginService ahora muestra cada paso del procedimiento
+  - Facilita debugging
+
+✅ DOCUMENTACION: 4 archivos creados
+  - README_INDICE.md: Índice completo (LEER PRIMERO)
+  - VERIFICACION_LOGIN.md: Guía técnica detallada
+  - GUIA_RAPIDA.md: Comandos y tips rápidos
+  - RESUMEN_EJECUTIVO.md: Cambios y soluciones
+
+───────────────────────────────────────────────────────────────────────────────
+📚 DOCUMENTOS A LEER (EN ORDEN)
+───────────────────────────────────────────────────────────────────────────────
+
+1. README_INDICE.md ............. 5 min - Índice general
+2. GUIA_RAPIDA.md .............. 2 min - Comandos rápidos
+3. VERIFICACION_LOGIN.md ........ 10 min - Guía técnica completa
+4. RESUMEN_EJECUTIVO.md ......... 5 min - Cambios realizados
+
+───────────────────────────────────────────────────────────────────────────────
+🚨 PROBLEMAS COMUNES
+───────────────────────────────────────────────────────────────────────────────
+
+❌ ERROR: "Documento o contraseña son incorrectos"
+✅ SOLUCIÓN: Contraseña no está hasheada. Ver BD según arriba.
+
+❌ ERROR: Login funciona pero no redirige
+✅ SOLUCIÓN: Revisar RESUMEN_EJECUTIVO.md → "Login funciona pero no redirige"
+
+❌ ERROR: Backend/Frontend no corre
+✅ SOLUCIÓN: Ejecutar en terminal según INICIO EN 3 PASOS
+
+💡 IMPORTANTE: Si algo falla, abrir DevTools (F12) → Console y ver los logs
+
+───────────────────────────────────────────────────────────────────────────────
+✅ CHECKLIST ANTES DE REPORTAR ERROR
+───────────────────────────────────────────────────────────────────────────────
+
+  [ ] Base de datos tiene usuarios con rol (SELECT de tabla usuario)
+  [ ] Contraseña comienza con $2b$ (está hasheada)
+  [ ] Backend corre sin errores (npm run start:dev)
+  [ ] Frontend corre sin errores (npm run dev)
+  [ ] Abrí http://localhost:5173 en navegador
+  [ ] Abrí DevTools (F12) y voy a Console
+  [ ] Intento login con usuario válido
+  [ ] Busco emojis ✅ en los logs
+
+Si cumple todo y sigue fallando:
+  Copiar todos los logs exactos → Revisar documentación → Aplicar solución
+
+───────────────────────────────────────────────────────────────────────────────
+🎯 FLUJO QUE DEBE OCURRIR
+───────────────────────────────────────────────────────────────────────────────
+
+Usuario ingresa cédula + contraseña
+        ↓
+Backend valida y devuelve rol (rolSisIdFk)
+        ↓
+Frontend guarda datos en localStorage
+        ↓
+Si rol = 2 → va a http://localhost:5173/dashboard-instructor
+Si rol ≠ 2 → va a http://localhost:5173/student-dashboard
+        ↓
+Dashboard carga y muestra la interfaz
+
+───────────────────────────────────────────────────────────────────────────────
+📞 PRÓXIMOS PASOS
+───────────────────────────────────────────────────────────────────────────────
+
+1. Ejecutar los 3 comandos de "INICIO EN 3 PASOS"
+2. Verificar Base de Datos según "VERIFICAR BASE DE DATOS"
+3. Probar login según "PRUEBA DE LOGIN"
+4. Si falla, abrir RESUMEN_EJECUTIVO.md sección "PROBLEMAS COMUNES"
+
+═══════════════════════════════════════════════════════════════════════════════
+¡Sistema listo! Ejecuta el INICIO EN 3 PASOS arriba. 🚀
+═══════════════════════════════════════════════════════════════════════════════

@@ -12,25 +12,43 @@ export class LoginService {
   ) {}
 
   async validarUsuario(cedula: string, pass: string) {
-    // 1. Cambiamos 'usu_cedula' por 'usuCedula' (como dice tu entidad)
+    console.log('🔍 [LoginService] Buscando usuario con cédula:', cedula);
+    
+    // 1. Buscar usuario por cédula
     const usuario = await this.usuarioRepo.findOne({ 
       where: { usuCedula: Number(cedula) } 
     });
 
     if (!usuario) {
+      console.error('❌ [LoginService] Usuario no encontrado con cédula:', cedula);
       throw new UnauthorizedException('Usuario no encontrado');
     }
 
-    // 2. Cambiamos 'usu_password' por 'usuContraseA' (el nombre raro que generó para la ñ)
-    // Usamos '!' porque en tu entidad dice que puede ser null
+    console.log('✅ [LoginService] Usuario encontrado:', {
+      usuCedula: usuario.usuCedula,
+      usuNombres: usuario.usuNombres,
+      rolSisIdFk: usuario.rolSisIdFk,
+    });
+
+    // 2. Validar contraseña con bcrypt
     const esValida = await bcrypt.compare(pass, usuario.usuContrasena!);
 
     if (!esValida) {
+      console.error('❌ [LoginService] Contraseña incorrecta para cédula:', cedula);
       throw new UnauthorizedException('Contraseña incorrecta');
     }
 
-    // 3. Devolvemos los datos (quitando la contraseña con el nombre correcto)
+    console.log('✅ [LoginService] Contraseña válida');
+
+    // 3. Devolver datos sin la contraseña
     const { usuContrasena, ...datos } = usuario;
+    
+    console.log('📤 [LoginService] Devolviendo datos del usuario:', {
+      usuCedula: datos.usuCedula,
+      usuNombres: datos.usuNombres,
+      rolSisIdFk: datos.rolSisIdFk,
+    });
+    
     return datos;
   }
 

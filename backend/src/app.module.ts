@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoginModule } from './login/login.module';
 import { DashboardModule } from './dashboard_Instructor/dashboard.modules';
+import { DashboardModule as DashboardStudentModule } from './dashboard_Students/dashboard.module';
 import { ListaModule } from './lista_aprendices/lista.modules';
 import { CrearproModule } from './crear_proyecto/crearpro.modules';
 import { AsigProyectoModule } from './asignar_proyecto/asigproyecto.modules'
@@ -23,6 +24,7 @@ import { Proyecto } from './entities/Proyecto';
     }),
     LoginModule,
     DashboardModule,
+    DashboardStudentModule,
     ListaModule,
     CrearproModule,
     AsigProyectoModule,

@@ -32,7 +32,7 @@ const CrearProyecto = () => {
 
     // Menú sin la opción de Ayuda (porque irá en el footer)
     const menuItems = [
-        { name: 'Inicio', icon: Home, path: '/dashboard' },
+        { name: 'Inicio', icon: Home, path: '/dashboard-instructor' },
         { name: 'Lista de Aprendices', icon: Users, path: '/lista-aprendices' },
         { name: 'Crear Proyecto', icon: Plus, path: '/crear-proyecto' },
         { name: 'Asignar Proyectos', icon: MapPin, path: '/asignar-proyectos' },
