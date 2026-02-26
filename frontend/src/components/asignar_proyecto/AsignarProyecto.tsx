@@ -34,7 +34,7 @@ const AsignarProyecto = () => {
             .then(res => res.json())
             .then(data => setProyectos(data));
 
-        fetch(`${API_URL}/dashboard?cedula=${cedula}`)
+        fetch(`${API_URL}/dashboard-instructor?cedula=${cedula}`)
             .then(res => res.json())
             .then(data => setInstructorName(data?.instructor || "Instructor SENA"));
     }, [navigate]);

@@ -66,11 +66,15 @@ const LoginScreen = () => {
 
       console.log("✅ Datos guardados en localStorage");
 
-      // REDIRECCIÓN según rolSisIdFk (2 = Instructor)
+      // REDIRECCIÓN según rolSisIdFk
       const roleNum = parseInt(roleIdStr) || 0;
       console.log("🔍 ID de rol numérico:", roleNum);
 
-      if (roleNum === 2) {
+      // 3 = coordinador/administrador, 2 = Instructor, 1 = Aprendiz
+      if (roleNum === 3) {
+        console.log("🎯 Rol es Administrador (3) - Redirigiendo a /dashboard-administrador");
+        navigate("/dashboard-administrador");
+      } else if (roleNum === 2) {
         console.log(
           "🎯 Rol es Instructor (2) - Redirigiendo a /dashboard-instructor",
         );

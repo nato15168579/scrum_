@@ -32,7 +32,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], DashboardController.prototype, "getDashboardData", null);
 exports.DashboardController = DashboardController = __decorate([
-    (0, common_1.Controller)('dashboard'),
+    (0, common_1.Controller)('dashboard-instructor'),
     __metadata("design:paramtypes", [dashboard_service_1.DashboardService])
 ], DashboardController);
 //# sourceMappingURL=dashboard.controller.js.map

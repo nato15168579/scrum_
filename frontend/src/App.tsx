@@ -2,6 +2,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginScreen from './components/login/LoginScreen';
 import InstructorDashboard from './components/dashboard_instructor/InstructorDashboard';
+import DashboardAdministrador from './components/dashboard_admin/dashboard_admin';
 import StudentDashboard from './components/StudentsDashboard/StudentDashboard';
 import ListaAprendices from './components/lista_aprendices/ListaAprendices';
 import CrearProyecto from './components/crear_proyecto/CrearProyecto';
@@ -16,6 +17,8 @@ function App() {
       <Route path="/" element={<LoginScreen />} />
       {/* 2. ruta del dashboard del instructor */}
       <Route path="/dashboard-instructor" element={<InstructorDashboard />} />
+      {/* 2.5. ruta del dashboard del administrador */}
+      <Route path="/dashboard-administrador" element={<DashboardAdministrador />} />
       {/* 2.1. ruta del dashboard del estudiante */}
       <Route path="/student-dashboard" element={<StudentDashboard />} />
       {/* 3. ruta de la lista de aprendices */}

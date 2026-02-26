@@ -86,7 +86,7 @@ const ListaAprendices = () => {
             .finally(() => setLoading(false));
         
         // 2. Cargar perfil (Solución al error data.instructor)
-        fetch(`${API_URL}/dashboard?cedula=${cedula}`)
+        fetch(`${API_URL}/dashboard-instructor?cedula=${cedula}`)
             .then(res => res.json())
             .then(data => {
                 // Verificamos si la propiedad existe antes de asignarla

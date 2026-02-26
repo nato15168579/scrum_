@@ -15,8 +15,8 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import senaLogo from "../assets/sena.png";
-import "/dashboard_instructor/Dashboard.css";
+import senaLogo from "../../assets/sena.png";
+import "../dashboard_instructor/Dashboard.css";
 import { API_URL } from "../../config/api";
 
 // ==================== INTERFACES ====================
@@ -33,7 +33,7 @@ interface ProyectosInfo {
 }
 
 interface DashboardData {
-  instructor: string;
+  displayName: string;
   correo: string;
   description: string;
   stats: Stat[];
@@ -62,7 +62,7 @@ const StudentDashboard: React.FC = () => {
 
   // --- CONFIGURACIÓN DEL MENÚ (Unificado con tus otras vistas) ---
   const menuItems = [
-    { name: "Inicio", icon: Home, path: "/dashboard" },
+    { name: "Inicio", icon: Home, path: "/student-dashboard" },
     { name: "Mis Proyectos", icon: Briefcase, path: "/mis-proyectos" },
     { name: "Historias de Usuario", icon: List, path: "/ver-tareas" },
     { name: "Criterios de Aceptación", icon: Calendar, path: "/reuniones" },
@@ -80,12 +80,24 @@ const StudentDashboard: React.FC = () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     // Usamos la misma ruta de API que tus otras vistas
-    fetch(`${API_URL}/dashboard?cedula=${cedula}`)
+    fetch(`${API_URL}/dashboard-student?cedula=${cedula}`)
       .then((res) => res.json())
       .then((data) => {
+        console.log("[StudentDashboard] response:", data);
+        if (data && data.error) {
+          console.error("[StudentDashboard] API error:", data);
+          localStorage.clear();
+          navigate("/");
+          return;
+        }
         // Adaptamos la respuesta de la API a nuestra interfaz
+        const displayName =
+          data.displayName || data.administrador || data.instructor || data.student ||
+          `${data.usuNombres || ""} ${data.usuApellidos || ""}`.trim() ||
+          "Usuario";
+
         setDashboardData({
-          instructor: data.instructor || "Estudiante SENA",
+          displayName,
           correo: data.correo || "",
           description:
             data.description ||
@@ -198,11 +210,11 @@ const StudentDashboard: React.FC = () => {
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             <img
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(dashboardData.instructor)}&background=39A900&color=fff`}
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(dashboardData.displayName)}&background=39A900&color=fff`}
               className="profile-img"
               alt="Avatar"
             />
-            <span className="profile-name">{dashboardData.instructor}</span>
+            <span className="profile-name">{dashboardData.displayName}</span>
             <ChevronDown size={18} />
 
             {isMenuOpen && (
@@ -221,7 +233,7 @@ const StudentDashboard: React.FC = () => {
 
         <div className="dashboard-content">
           <div className="welcome-section">
-            <h2>Bienvenido, {dashboardData.instructor}</h2>
+            <h2>Bienvenido, {dashboardData.displayName}</h2>
             <p>Monitorea tus avances y los de tu equipo en tiempo real.</p>
           </div>
 

@@ -48,7 +48,7 @@ const VerMasProyecto = () => {
 
         // 2. Obtener nombre del instructor
         if (cedula) {
-            fetch(`${API_URL}/dashboard?cedula=${cedula}`, { 
+            fetch(`${API_URL}/dashboard-instructor?cedula=${cedula}`, { 
                 headers: { 'Authorization': `Bearer ${token}` }
             })
             .then(res => res.json())

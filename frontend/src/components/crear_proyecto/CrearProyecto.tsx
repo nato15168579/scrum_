@@ -49,7 +49,7 @@ const CrearProyecto = () => {
         const cedula = localStorage.getItem('userCedula');
         if (!cedula) { navigate('/'); return; }
         setLoading(true);
-        fetch(`${API_URL}/dashboard?cedula=${cedula}`)
+        fetch(`${API_URL}/dashboard-instructor?cedula=${cedula}`)
             .then(res => res.json())
             .then(data => {
                 setInstructorName(data?.instructor || "Instructor SENA");

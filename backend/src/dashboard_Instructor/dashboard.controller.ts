@@ -1,7 +1,8 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 
-@Controller('dashboard')
+// Ruta específica para instructores
+@Controller('dashboard-instructor')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 

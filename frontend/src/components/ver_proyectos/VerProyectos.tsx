@@ -89,7 +89,7 @@ const VerProyectos = () => {
             .catch(err => console.error("Error proyectos:", err))
             .finally(() => setLoading(false));
 
-        fetch(`${API_URL}/dashboard?cedula=${cedula}`)
+        fetch(`${API_URL}/dashboard-instructor?cedula=${cedula}`)
             .then(res => res.json())
             .then(data => {
                 if (data?.instructor) setInstructorName(data.instructor);
