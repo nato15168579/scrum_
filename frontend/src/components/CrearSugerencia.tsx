@@ -14,7 +14,7 @@ const API_BASE_URL = 'http://localhost:5000/dashboard';
 // --- SIDEBAR (Reutilizable) ---
 const Sidebar = ({ navigate }: { navigate: (path: string) => void }) => {
     const menuItems = [
-        { name: 'Inicio', icon: Home, path: '/dashboard-instructor' },
+        { name: 'Inicio', icon: Home, path: '/dashboard' },
         { name: 'Lista de Aprendices', icon: Users, path: '/lista-aprendices' },
         { name: 'Crear Proyecto', icon: Plus, path: '/crear-proyecto' },
         { name: 'Asignar Proyectos', icon: MapPin, path: '/asignar-proyectos' },

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
     Home, Users, Plus, MapPin, Eye, List, 
-    ChevronDown, LogOut, ArrowLeft, HelpCircle, AlertTriangle
+    ChevronDown, LogOut, ArrowLeft, AlertTriangle
 } from 'lucide-react'; 
 import { useNavigate, useParams } from 'react-router-dom';
 import senaLogo from '../../../assets/sena.png'; 
@@ -9,11 +9,21 @@ import '../../dashboard_instructor/Dashboard.css';
 import './VerMasProyecto.css'; 
 import { API_URL } from '../../../config/api';
 
+interface ProyectoDetalle {
+    [key: string]: string | number | null | undefined;
+    pro_id?: string | number;
+    pro_nombre?: string;
+    pro_fecha_inicio?: string;
+    estado_nombre?: string;
+    pro_descripcion?: string;
+    pro_objetivo_general?: string;
+}
+
 const VerMasProyecto = () => {
     const navigate = useNavigate();
     const { id } = useParams(); 
     
-    const [proyecto, setProyecto] = useState<any>(null);
+    const [proyecto, setProyecto] = useState<ProyectoDetalle | null>(null);
     const [instructorName, setInstructorName] = useState('Instructor'); 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -36,9 +46,18 @@ const VerMasProyecto = () => {
             // IMPORTANTE: Tu código normaliza las llaves a minúsculas
             const raw = Array.isArray(data) ? data[0] : data;
 
-            if (raw) {
-                const normalizedData = Object.keys(raw).reduce((acc: any, key) => {
-                    acc[key.toLowerCase()] = raw[key];
+            if (raw && typeof raw === 'object') {
+                const source = raw as Record<string, unknown>;
+                const normalizedData = Object.keys(source).reduce<ProyectoDetalle>((acc, key) => {
+                    const value = source[key];
+                    if (
+                        typeof value === 'string' ||
+                        typeof value === 'number' ||
+                        value === null ||
+                        value === undefined
+                    ) {
+                        acc[key.toLowerCase()] = value;
+                    }
                     return acc;
                 }, {});
                 setProyecto(normalizedData);
@@ -48,7 +67,7 @@ const VerMasProyecto = () => {
 
         // 2. Obtener nombre del instructor
         if (cedula) {
-            fetch(`${API_URL}/dashboard-instructor?cedula=${cedula}`, { 
+            fetch(`${API_URL}/dashboard?cedula=${cedula}`, { 
                 headers: { 'Authorization': `Bearer ${token}` }
             })
             .then(res => res.json())
@@ -57,7 +76,7 @@ const VerMasProyecto = () => {
     }, [id]);
 
     const menuItems = [
-        { name: 'Inicio', icon: Home, path: '/dashboard-instructor' },
+        { name: 'Inicio', icon: Home, path: '/dashboard' },
         { name: 'Lista de Aprendices', icon: Users, path: '/lista-aprendices' },
         { name: 'Crear Proyecto', icon: Plus, path: '/crear-proyecto' },
         { name: 'Asignar Proyectos', icon: MapPin, path: '/asignar-proyectos' },

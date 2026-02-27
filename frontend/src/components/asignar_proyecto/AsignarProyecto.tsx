@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
     Home, Users, Plus, MapPin, Eye, List, 
     ChevronDown, LogOut, Search, UserPlus, 
@@ -10,11 +10,17 @@ import '../dashboard_instructor/Dashboard.css';
 import './AsignarProyecto.css'; 
 import { API_URL } from '../../config/api';
 
+interface ProyectoAsignado {
+    pro_ID: number;
+    pro_nombre: string;
+    pro_fecha_inicio?: string | null;
+}
+
 const AsignarProyecto = () => {
     const navigate = useNavigate();
     const location = useLocation();
     
-    const [proyectos, setProyectos] = useState([]);
+    const [proyectos, setProyectos] = useState<ProyectoAsignado[]>([]);
     const [instructorName, setInstructorName] = useState('Instructor'); 
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -32,14 +38,14 @@ const AsignarProyecto = () => {
 
         fetch(`${API_URL}/proyectos?cedula=${cedula}`)
             .then(res => res.json())
-            .then(data => setProyectos(data));
+            .then(data => setProyectos(Array.isArray(data) ? data : []));
 
-        fetch(`${API_URL}/dashboard-instructor?cedula=${cedula}`)
+        fetch(`${API_URL}/dashboard?cedula=${cedula}`)
             .then(res => res.json())
             .then(data => setInstructorName(data?.instructor || "Instructor SENA"));
     }, [navigate]);
 
-    const filtered = proyectos.filter((p: any) => 
+    const filtered = proyectos.filter((p) => 
         p.pro_nombre.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -47,7 +53,7 @@ const AsignarProyecto = () => {
     const currentItems = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     const menuItems = [
-        { name: 'Inicio', icon: Home, path: '/dashboard-instructor' },
+        { name: 'Inicio', icon: Home, path: '/dashboard' },
         { name: 'Lista de Aprendices', icon: Users, path: '/lista-aprendices' },
         { name: 'Crear Proyecto', icon: Plus, path: '/crear-proyecto' },
         { name: 'Asignar Proyectos', icon: MapPin, path: '/asignar-proyectos' },
@@ -124,7 +130,7 @@ const AsignarProyecto = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {currentItems.map((p: any) => (
+                                {currentItems.map((p) => (
                                     <tr key={p.pro_ID}>
                                         <td>{p.pro_nombre}</td>
                                         <td>{p.pro_fecha_inicio ? new Date(p.pro_fecha_inicio).toLocaleDateString() : 'N/A'}</td>

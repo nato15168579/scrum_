@@ -60,15 +60,26 @@ const InstructorDashboard = () => {
 
   useEffect(() => {
     const storedCedula = localStorage.getItem("userCedula");
+    const storedRoleId = localStorage.getItem("userRoleId");
+
     if (!storedCedula) {
       navigate("/");
+      return;
+    }
+
+    if (storedRoleId === "3") {
+      navigate("/dashboard-administrador");
+      return;
+    }
+
+    if (storedRoleId && storedRoleId !== "2") {
+      navigate("/student-dashboard");
       return;
     }
 
     fetch(`${API_URL}/dashboard?cedula=${storedCedula}`)
       .then((res) => res.json())
       .then((data) => {
-        // Validación de seguridad para evitar errores de propiedad en caso de respuesta inesperada holaaa
         if (data && !data.error) {
           setDashboardData(data);
         }
@@ -103,11 +114,11 @@ const InstructorDashboard = () => {
         <aside className="side-card">
           <div className="brand-block">
             <img src={senaLogo} alt="Logo SENA" className="logo-lg" />
-            <h2>Gestión de proyectos</h2>
+            <h2>Gestion de proyectos</h2>
           </div>
 
           <nav className="menu">
-            <p className="menu-title">MENÚ</p>
+            <p className="menu-title">MENU</p>
             <ul>
               {menuItems.map((item) => (
                 <li
@@ -122,7 +133,6 @@ const InstructorDashboard = () => {
             </ul>
           </nav>
 
-          {/* SECCIÓN CORREGIDA: Ajustada para ser igual a los otros archivos */}
           <div
             className="settings-footer"
             style={{ marginTop: "auto", padding: "10px 0" }}
@@ -179,7 +189,7 @@ const InstructorDashboard = () => {
                     }}
                   >
                     <LogOut size={16} style={{ marginRight: "8px" }} /> Cerrar
-                    Sesión
+                    Sesion
                   </li>
                 </ul>
               )}
@@ -189,7 +199,7 @@ const InstructorDashboard = () => {
           <section className="dashboard-content">
             <h2>Bienvenido, {dashboardData.instructor}</h2>
             <p className="welcome-subtitle">
-              Consulta la información de tu proyecto y su avance global.
+              Consulta la informacion de tu proyecto y su avance global.
             </p>
 
             <section className="basic-cards">
@@ -231,7 +241,7 @@ const InstructorDashboard = () => {
                   color="#39A900"
                   style={{ marginRight: "10px" }}
                 />
-                <h3>Propósito del Sistema</h3>
+                <h3>Proposito del Sistema</h3>
               </div>
               <p className="desc-text">{dashboardData.description}</p>
             </section>
@@ -294,7 +304,7 @@ const InstructorDashboard = () => {
             <div className="warning-icon-container">
               <AlertTriangle size={45} color="white" strokeWidth={3} />
             </div>
-            <h2 className="modal-title">¿Estás seguro?</h2>
+            <h2 className="modal-title">Estas seguro?</h2>
             <div className="modal-buttons">
               <button className="btn-confirm-logout" onClick={confirmLogout}>
                 Si, Cerrar

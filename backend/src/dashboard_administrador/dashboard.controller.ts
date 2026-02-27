@@ -1,8 +1,8 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 
-// Ruta específica para instructores
-@Controller('dashboard-instructor')
+// Endpoint genérico para dashboard (entorno administrador)
+@Controller('dashboard')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 

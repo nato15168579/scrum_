@@ -29,6 +29,11 @@ const PasswordRecovery = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const getErrorMessage = (err: unknown) => {
+        if (err instanceof Error) return err.message;
+        return 'Error inesperado.';
+    };
+
     // --- LÓGICA DE PASOS ---
     const handleStep1 = (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,8 +54,8 @@ const PasswordRecovery = () => {
             });
             if (!response.ok) throw new Error("El correo no coincide.");
             setStep(3);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError(getErrorMessage(err));
         } finally {
             setIsLoading(false);
         }
@@ -67,8 +72,8 @@ const PasswordRecovery = () => {
             });
             if (!response.ok) throw new Error("Código incorrecto.");
             setStep(4);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError(getErrorMessage(err));
         }
     };
 
@@ -85,8 +90,8 @@ const PasswordRecovery = () => {
             if (!response.ok) throw new Error("Error al actualizar.");
             alert("¡Contraseña restablecida con éxito!");
             navigate('/'); 
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError(getErrorMessage(err));
         }
     };
 

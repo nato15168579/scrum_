@@ -24,7 +24,7 @@ interface Criterio {
 // Sidebar Reutilizable
 const Sidebar = ({ navigate }: { navigate: (path: string) => void }) => {
     const menuItems = [
-        { name: 'Inicio', icon: Home, path: '/dashboard-instructor' },
+        { name: 'Inicio', icon: Home, path: '/dashboard' },
         { name: 'Lista de Aprendices', icon: Users, path: '/lista-aprendices' },
         { name: 'Crear Proyecto', icon: Plus, path: '/crear-proyecto' },
         { name: 'Asignar Proyectos', icon: MapPin, path: '/asignar-proyectos' },
@@ -67,23 +67,7 @@ const CriteriosAceptacion: React.FC = () => {
     const [instructorName, setInstructorName] = useState('Cargando...');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    useEffect(() => {
-        const token = localStorage.getItem('userToken');
-        const cedula = localStorage.getItem('userCedula');
-
-        if (!token || !cedula) { navigate('/'); return; }
-
-        // 1. Cargar Perfil
-        axios.get(`${API_BASE_URL}/stats?cedula=${cedula}`, { headers: { 'Authorization': `Bearer ${token}` } })
-            .then(res => setInstructorName(res.data.instructor || "Instructor"))
-            .catch(() => setInstructorName("Usuario"));
-
-        // 2. Cargar Criterios
-        cargarCriterios();
-        
-    }, [id, navigate]);
-
-    const cargarCriterios = () => {
+    function cargarCriterios() {
         setLoading(true);
         // MOCK DATA: Simulando los datos de tu imagen
         setTimeout(() => {
@@ -101,7 +85,24 @@ const CriteriosAceptacion: React.FC = () => {
             setCriterios(dataMock);
             setLoading(false);
         }, 600);
-    };
+    }
+
+    useEffect(() => {
+        const token = localStorage.getItem('userToken');
+        const cedula = localStorage.getItem('userCedula');
+
+        if (!token || !cedula) { navigate('/'); return; }
+
+        // 1. Cargar Perfil
+        axios.get(`${API_BASE_URL}/stats?cedula=${cedula}`, { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(res => setInstructorName(res.data.instructor || "Instructor"))
+            .catch(() => setInstructorName("Usuario"));
+
+        // 2. Cargar Criterios
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        cargarCriterios();
+        
+    }, [id, navigate]);
 
     // --- Lógica Paginación ---
     const indexOfLastItem = currentPage * itemsPerPage;

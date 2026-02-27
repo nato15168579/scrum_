@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
     Home, Users, Plus, MapPin, Eye, List, 
     ChevronDown, LogOut, Filter, ChevronLeft, ChevronRight, AlertTriangle, HelpCircle 
@@ -19,6 +19,16 @@ interface Proyecto {
     status: string; 
 }
 
+interface ProyectoApi {
+    detParIdFk?: number;
+    proId?: number;
+    proNombre?: string;
+    proDescription?: string;
+    proObjetivoGeneral?: string;
+    proFechaInicio?: string;
+    proFechaFin?: string;
+}
+
 const ITEMS_PER_PAGE = 8;
 
 const VerProyectos = () => {
@@ -36,7 +46,7 @@ const VerProyectos = () => {
     const menuRef = useRef<HTMLDivElement>(null);
 
     const menuItems = [
-        { name: 'Inicio', icon: Home, path: '/dashboard-instructor' },
+        { name: 'Inicio', icon: Home, path: '/dashboard' },
         { name: 'Lista de Aprendices', icon: Users, path: '/lista-aprendices' },
         { name: 'Crear Proyecto', icon: Plus, path: '/crear-proyecto' },
         { name: 'Asignar Proyectos', icon: MapPin, path: '/asignar-proyectos' },
@@ -54,13 +64,11 @@ const VerProyectos = () => {
         const cedula = localStorage.getItem('userCedula');
         if (!cedula) { navigate('/'); return; }
 
-        setLoading(true);
-
         fetch(`${API_URL}/verpro`)
             .then(res => res.ok ? res.json() : [])
             .then(data => {
                 const validData = Array.isArray(data) ? data : [];
-                const formatted = validData.map((item: any) => {
+                const formatted = (validData as ProyectoApi[]).map((item) => {
                     
                     // LÓGICA DE ESTADOS SEGÚN TU SOLICITUD:
                     // 1 = POR HACER, 2 = EN PROGRESO, 3 = HECHO
@@ -76,7 +84,7 @@ const VerProyectos = () => {
                     }
 
                     return {
-                        id: item.proId, 
+                        id: item.proId ?? 0, 
                         nombre: item.proNombre || 'Sin nombre',
                         descripcion: item.proDescription || item.proObjetivoGeneral || 'Sin descripción',
                         fechaInicio: item.proFechaInicio ? new Date(item.proFechaInicio).toLocaleDateString('es-ES') : '--/--/--',
@@ -89,7 +97,7 @@ const VerProyectos = () => {
             .catch(err => console.error("Error proyectos:", err))
             .finally(() => setLoading(false));
 
-        fetch(`${API_URL}/dashboard-instructor?cedula=${cedula}`)
+        fetch(`${API_URL}/dashboard?cedula=${cedula}`)
             .then(res => res.json())
             .then(data => {
                 if (data?.instructor) setInstructorName(data.instructor);

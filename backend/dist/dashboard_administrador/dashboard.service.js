@@ -30,15 +30,15 @@ let DashboardService = DashboardService_1 = class DashboardService {
         try {
             const cedula = Number(cedulaInput);
             const usuario = await this.usuarioRepository.findOneBy({
-                usuCedula: cedula
+                usuCedula: cedula,
             });
             if (!usuario) {
                 this.logger.warn(`Usuario con cédula ${cedula} no encontrado`);
-                return { error: 'Usuario no encontrado' };
+                return { error: "Usuario no encontrado" };
             }
             let reunionesCount = 0;
             try {
-                const queryResult = await this.dataSource.query('SELECT COUNT(*) as total FROM usu_asis WHERE usu_cedula = ?', [cedula]);
+                const queryResult = await this.dataSource.query("SELECT COUNT(*) as total FROM usu_asis WHERE usu_cedula = ?", [cedula]);
                 reunionesCount = parseInt(queryResult[0].total) || 0;
             }
             catch (e) {
@@ -48,33 +48,35 @@ let DashboardService = DashboardService_1 = class DashboardService {
             try {
                 const usuariosConFicha = await this.usuarioRepository.find({
                     where: { usuFicha: (0, typeorm_2.Not)((0, typeorm_2.IsNull)()) },
-                    select: ["usuFicha"]
+                    select: ["usuFicha"],
                 });
-                const fichasUnicas = [...new Set(usuariosConFicha.map(u => u.usuFicha))];
-                totalFichasSena = fichasUnicas.filter(f => f).length;
+                const fichasUnicas = [
+                    ...new Set(usuariosConFicha.map((u) => u.usuFicha)),
+                ];
+                totalFichasSena = fichasUnicas.filter((f) => f).length;
             }
             catch (e) {
                 this.logger.error("Error al calcular fichas:", e.message);
             }
             let proyectos = await this.proyectoRepository.find();
-            const porHacer = proyectos.filter(p => Number(p.detParIdFk || p.det_par_id_fk) === 1).length;
-            const enProgreso = proyectos.filter(p => Number(p.detParIdFk || p.det_par_id_fk) === 2).length;
-            const hecho = proyectos.filter(p => Number(p.detParIdFk || p.det_par_id_fk) === 3).length;
+            const porHacer = proyectos.filter((p) => Number(p.detParIdFk || p.det_par_id_fk) === 1).length;
+            const enProgreso = proyectos.filter((p) => Number(p.detParIdFk || p.det_par_id_fk) === 2).length;
+            const hecho = proyectos.filter((p) => Number(p.detParIdFk || p.det_par_id_fk) === 3).length;
             return {
-                instructor: `${usuario.usuNombres || ''} ${usuario.usuApellidos || ''}`.trim(),
-                correo: usuario.usuCorreo || 'Sin correo',
-                description: "Facilitar la gestión, administración y monitoreo de los proyectos desarrollados por los aprendices del SENA.",
+                instructor: `${usuario.usuNombres || ""} ${usuario.usuApellidos || ""}`.trim(),
+                correo: usuario.usuCorreo || "Sin correo",
+                description: "Bienvenido al centro de administración del sistema. Desde aquí puedes supervisar el estado general de la plataforma, gestionar usuarios, monitorear proyectos y dar seguimiento a reportes en tiempo real.Este panel te ofrece una visión estratégica del rendimiento, crecimiento y actividad del sistema, permitiéndote tomar decisiones informadas y mantener el control operativo en todo momento.Utiliza el menú lateral para acceder a cada módulo y administrar los recursos de forma eficiente.",
                 stats: [
                     { label: "Cantidad de fichas", value: totalFichasSena },
                     { label: "Reuniones observadas", value: reunionesCount },
-                    { label: "Proyectos (Global)", value: proyectos.length }
+                    { label: "Proyectos (Global)", value: proyectos.length },
                 ],
                 proyectosData: {
                     total: proyectos.length,
                     porHacer,
                     enProgreso,
-                    hecho
-                }
+                    hecho,
+                },
             };
         }
         catch (error) {

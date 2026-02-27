@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoginModule } from './login/login.module';
-import { DashboardModule } from './dashboard_Instructor/dashboard.modules';
-import { DashboardModule as DashboardAdminModule } from './dashboard_admin/dashboard.modules';
+import { DashboardModule } from './dashboard_administrador/dashboard.modules';
 import { DashboardModule as DashboardStudentModule } from './dashboard_Students/dashboard.module';
 import { ListaModule } from './lista_aprendices/lista.modules';
 import { CrearproModule } from './crear_proyecto/crearpro.modules';
@@ -24,9 +23,8 @@ import { Proyecto } from './entities/Proyecto';
       synchronize: false,
     }),
     LoginModule,
-    // importamos los tres tipos de dashboards
-    DashboardModule,        // instructor
-    DashboardAdminModule,   // administrador
+    // importamos únicamente el dashboard principal y el de estudiantes
+    DashboardModule,   // administrador (unidad única)
     DashboardStudentModule,
     ListaModule,
     CrearproModule,

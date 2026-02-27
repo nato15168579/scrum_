@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
-    Home, Users, Plus, MapPin, Eye, List, FileText, 
+    Home, Users, Plus, MapPin, Eye, List, 
     Search, Filter, User, ChevronDown, LogOut, AlertTriangle, 
     ChevronLeft, ChevronRight, HelpCircle 
 } from 'lucide-react'; 
@@ -29,7 +29,6 @@ const ListaAprendices = () => {
     
     // Estados de datos
     const [aprendices, setAprendices] = useState<Aprendiz[]>([]);
-    const [filteredData, setFilteredData] = useState<Aprendiz[]>([]); 
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     
@@ -49,7 +48,7 @@ const ListaAprendices = () => {
 
     // --- CONFIGURACIÓN DEL MENÚ ---
     const menuItems = [
-        { name: 'Inicio', icon: Home, path: '/dashboard-instructor' },
+        { name: 'Inicio', icon: Home, path: '/dashboard' },
         { name: 'Lista de Aprendices', icon: Users, path: '/lista-aprendices' },
         { name: 'Crear Proyecto', icon: Plus, path: '/crear-proyecto' },
         { name: 'Asignar Proyectos', icon: MapPin, path: '/asignar-proyectos' },
@@ -72,21 +71,18 @@ const ListaAprendices = () => {
             return;
         }
 
-        setLoading(true);
-
         // 1. Cargar lista de aprendices
         fetch(`${API_URL}/aprendices?cedula=${cedula}`)
             .then(res => res.ok ? res.json() : [])
             .then(data => {
                 const validData = Array.isArray(data) ? data : [];
                 setAprendices(validData);
-                setFilteredData(validData);
             })
             .catch(err => console.error("Error aprendices:", err))
             .finally(() => setLoading(false));
         
         // 2. Cargar perfil (Solución al error data.instructor)
-        fetch(`${API_URL}/dashboard-instructor?cedula=${cedula}`)
+        fetch(`${API_URL}/dashboard?cedula=${cedula}`)
             .then(res => res.json())
             .then(data => {
                 // Verificamos si la propiedad existe antes de asignarla
@@ -104,8 +100,8 @@ const ListaAprendices = () => {
     }, [navigate]);
 
     // --- LÓGICA DE FILTRADO ---
-    useEffect(() => {
-        const resultado = aprendices.filter(item => {
+    const filteredData = useMemo(() => {
+        return aprendices.filter(item => {
             return (
                 (item.documento || '').toString().toLowerCase().includes(filters.documento.toLowerCase()) &&
                 (item.nombre || '').toLowerCase().includes(filters.nombre.toLowerCase()) &&
@@ -113,12 +109,11 @@ const ListaAprendices = () => {
                 (item.ficha || '').toLowerCase().includes(filters.ficha.toLowerCase())
             );
         });
-        setFilteredData(resultado);
-        setCurrentPage(1);
     }, [filters, aprendices]);
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
+        setCurrentPage(1);
     };
     
     // Cerrar dropdown al hacer clic fuera

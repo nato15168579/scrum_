@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
     ChevronLeft, Home, Users, Plus, MapPin, Eye, List, 
-    LogOut, ChevronDown, Calendar, Search 
+    LogOut, ChevronDown, Search 
 } from 'lucide-react';
 import senaLogo from '../assets/sena.png'; 
 import './DetalleProyecto.css'; 
@@ -12,10 +12,29 @@ import './CriteriosAceptacion.css'; // Estilos de tabla
 
 const API_BASE_URL = 'http://localhost:5000/dashboard'; 
 
+interface ReunionRow {
+    [key: string]: string | number | null | undefined;
+    idSprint?: string | number;
+    fecha?: string | number;
+    idHU?: string | number;
+    objetivo?: string;
+    entrega?: string;
+    duracion?: string | number;
+    id?: string | number;
+    descripcion?: string;
+    rol?: string;
+    pregunta?: string;
+    master?: string;
+    bien?: string;
+    mejorar?: string;
+    acciones?: string;
+    responsable?: string;
+}
+
 // Sidebar (Igual que siempre)
 const Sidebar = ({ navigate }: { navigate: (path: string) => void }) => {
     const menuItems = [
-        { name: 'Inicio', icon: Home, path: '/dashboard-instructor' },
+        { name: 'Inicio', icon: Home, path: '/dashboard' },
         { name: 'Lista de Aprendices', icon: Users, path: '/lista-aprendices' },
         { name: 'Crear Proyecto', icon: Plus, path: '/crear-proyecto' },
         { name: 'Asignar Proyectos', icon: MapPin, path: '/asignar-proyectos' },
@@ -36,7 +55,7 @@ const ReunionDetalle: React.FC = () => {
     
     // Estados
     const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<any[]>([]);
+    const [data, setData] = useState<ReunionRow[]>([]);
     const [instructorName, setInstructorName] = useState('Cargando...');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -62,7 +81,6 @@ const ReunionDetalle: React.FC = () => {
             .catch(() => setInstructorName("Usuario"));
 
         // 2. Cargar Datos REALES de la BD
-        setLoading(true);
         axios.get(`${API_BASE_URL}/proyectos/${id}/reuniones/${type}`, { headers: { 'Authorization': `Bearer ${token}` } })
             .then(res => {
                 setData(res.data);
@@ -98,7 +116,7 @@ const ReunionDetalle: React.FC = () => {
                         {data.map((row, i) => (
                             <tr key={i}>
                                 <td>{row.idSprint}</td>
-                                <td>{new Date(row.fecha).toLocaleDateString()}</td>
+                                <td>{row.fecha ? new Date(String(row.fecha)).toLocaleDateString() : '--'}</td>
                                 <td>{row.idHU || 'Sin historias'}</td>
                                 <td>{row.objetivo}</td>
                                 <td>{row.entrega}</td>
@@ -157,7 +175,7 @@ const ReunionDetalle: React.FC = () => {
                         {data.map((row, i) => (
                             <tr key={i}>
                                 <td>{row.rol}</td>
-                                <td>{new Date(row.fecha).toLocaleDateString()}</td>
+                                <td>{row.fecha ? new Date(String(row.fecha)).toLocaleDateString() : '--'}</td>
                                 <td style={{maxWidth:'300px'}}>{row.pregunta}</td>
                                 <td style={{color:'#ccc'}}>--</td>
                                 <td style={{color:'#ccc'}}>--</td>
@@ -189,7 +207,7 @@ const ReunionDetalle: React.FC = () => {
                     {data.map((row, i) => (
                         <tr key={i}>
                             <td>{row.idSprint}</td>
-                            <td>{new Date(row.fecha).toLocaleDateString()}</td>
+                            <td>{row.fecha ? new Date(String(row.fecha)).toLocaleDateString() : '--'}</td>
                             <td>{row.master}</td>
                             <td>{row.bien}</td>
                             <td>{row.mejorar}</td>

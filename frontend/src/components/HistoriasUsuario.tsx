@@ -23,7 +23,7 @@ interface Historia {
 // Sidebar Reutilizable
 const Sidebar = ({ navigate }: { navigate: (path: string) => void }) => {
     const menuItems = [
-        { name: 'Inicio', icon: Home, path: '/dashboard-instructor' },
+        { name: 'Inicio', icon: Home, path: '/dashboard' },
         { name: 'Lista de Aprendices', icon: Users, path: '/lista-aprendices' },
         { name: 'Crear Proyecto', icon: Plus, path: '/crear-proyecto' },
         { name: 'Asignar Proyectos', icon: MapPin, path: '/asignar-proyectos' },
@@ -66,23 +66,7 @@ const HistoriasUsuario: React.FC = () => {
     const [instructorName, setInstructorName] = useState('Cargando...');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    useEffect(() => {
-        const token = localStorage.getItem('userToken');
-        const cedula = localStorage.getItem('userCedula');
-
-        if (!token || !cedula) { navigate('/'); return; }
-
-        // 1. Cargar Nombre Instructor
-        axios.get(`${API_BASE_URL}/stats?cedula=${cedula}`, { headers: { 'Authorization': `Bearer ${token}` } })
-            .then(res => setInstructorName(res.data.instructor || "Instructor"))
-            .catch(() => setInstructorName("Usuario"));
-
-        // 2. Cargar Historias
-        cargarHistorias();
-        
-    }, [id, navigate]);
-
-    const cargarHistorias = () => {
+    function cargarHistorias() {
         // MOCK DATA: Generamos más datos para probar la paginación
         setTimeout(() => {
             const dataMock = [
@@ -98,7 +82,23 @@ const HistoriasUsuario: React.FC = () => {
             setHistorias(dataMock);
             setLoading(false);
         }, 500);
-    };
+    }
+
+    useEffect(() => {
+        const token = localStorage.getItem('userToken');
+        const cedula = localStorage.getItem('userCedula');
+
+        if (!token || !cedula) { navigate('/'); return; }
+
+        // 1. Cargar Nombre Instructor
+        axios.get(`${API_BASE_URL}/stats?cedula=${cedula}`, { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(res => setInstructorName(res.data.instructor || "Instructor"))
+            .catch(() => setInstructorName("Usuario"));
+
+        // 2. Cargar Historias
+        cargarHistorias();
+        
+    }, [id, navigate]);
 
     // --- LÓGICA DE PAGINACIÓN ---
     const indexOfLastItem = currentPage * itemsPerPage;

@@ -1,6 +1,6 @@
-import { Repository, DataSource } from 'typeorm';
-import { Usuario } from '../entities/Usuario';
-import { Proyecto } from '../entities/Proyecto';
+import { Repository, DataSource } from "typeorm";
+import { Usuario } from "../entities/Usuario";
+import { Proyecto } from "../entities/Proyecto";
 export declare class DashboardService {
     private readonly usuarioRepository;
     private readonly proyectoRepository;

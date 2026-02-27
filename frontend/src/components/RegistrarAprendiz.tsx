@@ -17,12 +17,11 @@ import {
 } from "lucide-react";
 import senaLogo from "../assets/sena.png";
 import "./RegistrarAprendiz.css";
+import { API_URL } from "../config/api";
 
-// --- CORRECCIÓN DE NOMBRES DE CONSTANTES ---
-const API_USERS_URL = "http://localhost:5000/users"; // Ahora coincide con el uso abajo
-const API_STATS_URL = "http://localhost:5000/dashboard/stats";
+const API_USERS_URL = `${API_URL}/users`;
+const API_STATS_URL = `${API_URL}/stats`;
 
-// --- SIDEBAR ---
 const Sidebar = ({ navigate }: { navigate: (path: string) => void }) => {
   const menuItems = [
     { name: "Inicio", icon: Home, path: "/dashboard" },
@@ -30,7 +29,6 @@ const Sidebar = ({ navigate }: { navigate: (path: string) => void }) => {
     { name: "Crear Proyecto", icon: Plus, path: "/crear-proyecto" },
     { name: "Asignar Proyectos", icon: MapPin, path: "/asignar-proyectos" },
     { name: "Ver Proyectos", icon: Eye, path: "/ver-proyectos" },
-
     {
       name: "Registrar Aprendiz",
       icon: List,
@@ -38,11 +36,12 @@ const Sidebar = ({ navigate }: { navigate: (path: string) => void }) => {
       path: "/registrar-aprendiz",
     },
   ];
+
   return (
     <aside className="side-card">
       <div className="brand-block">
         <img src={senaLogo} alt="Logo" className="logo-lg" />
-        <h2>Gestión de proyectos</h2>
+        <h2>Gestion de proyectos</h2>
       </div>
       <nav className="menu">
         <p className="menu-title">MENU</p>
@@ -75,7 +74,6 @@ const Sidebar = ({ navigate }: { navigate: (path: string) => void }) => {
 const RegistrarAprendiz: React.FC = () => {
   const navigate = useNavigate();
 
-  // Perfil
   const [instructorName, setInstructorName] = useState("Instructor");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -83,8 +81,10 @@ const RegistrarAprendiz: React.FC = () => {
     null,
   );
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(
+    "Verifica los datos o intenta mas tarde.",
+  );
 
-  // Formulario
   const [formData, setFormData] = useState({
     nombre: "",
     apellido: "",
@@ -94,21 +94,18 @@ const RegistrarAprendiz: React.FC = () => {
     correo: "",
     telefono: "",
     sexo: "Hombre",
-    password: "", // Obligatoria
+    password: "",
   });
 
   useEffect(() => {
-    const token = localStorage.getItem("userToken");
     const cedula = localStorage.getItem("userCedula");
-    if (!token) {
+    if (!cedula) {
       navigate("/");
       return;
     }
 
     axios
-      .get(`${API_STATS_URL}?cedula=${cedula}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      .get(`${API_STATS_URL}?cedula=${cedula}`)
       .then((res) => setInstructorName(res.data.instructor || "Usuario"))
       .catch(() => setInstructorName("Usuario"));
 
@@ -129,7 +126,6 @@ const RegistrarAprendiz: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validación de campos
     if (
       !formData.nombre ||
       !formData.apellido ||
@@ -157,12 +153,23 @@ const RegistrarAprendiz: React.FC = () => {
         password: formData.password,
       };
 
-      // ✅ AHORA SÍ USA LA CONSTANTE CORRECTA
       await axios.post(API_USERS_URL, payload);
 
       setModalStatus("success");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error registrando:", error);
+      if (axios.isAxiosError(error)) {
+        const responseMessage = error.response?.data?.message;
+        if (Array.isArray(responseMessage)) {
+          setErrorMessage(responseMessage.join(", "));
+        } else if (typeof responseMessage === "string") {
+          setErrorMessage(responseMessage);
+        } else {
+          setErrorMessage("Verifica los datos o intenta mas tarde.");
+        }
+      } else {
+        setErrorMessage("Verifica los datos o intenta mas tarde.");
+      }
       setModalStatus("error");
     } finally {
       setLoading(false);
@@ -171,6 +178,7 @@ const RegistrarAprendiz: React.FC = () => {
 
   const closeAndReset = () => {
     setModalStatus(null);
+    setErrorMessage("Verifica los datos o intenta mas tarde.");
     if (modalStatus === "success") {
       setFormData({
         nombre: "",
@@ -192,7 +200,6 @@ const RegistrarAprendiz: React.FC = () => {
 
       <div className="main-content-area">
         <div className="content-wrapper">
-          {/* Header Blanco */}
           <header className="top-white-bar">
             <h1 className="header-title">Registro de cuentas</h1>
 
@@ -221,14 +228,13 @@ const RegistrarAprendiz: React.FC = () => {
                     }}
                     style={{ color: "red" }}
                   >
-                    <LogOut size={16} /> Cerrar Sesión
+                    <LogOut size={16} /> Cerrar Sesion
                   </li>
                 </ul>
               )}
             </div>
           </header>
 
-          {/* Tarjeta del Formulario */}
           <div className="form-card">
             <div className="form-header-internal">
               <h2>Datos del Aprendiz:</h2>
@@ -236,7 +242,6 @@ const RegistrarAprendiz: React.FC = () => {
 
             <form onSubmit={handleSubmit}>
               <div className="form-grid">
-                {/* Columna Izquierda */}
                 <div
                   style={{
                     display: "flex",
@@ -284,9 +289,9 @@ const RegistrarAprendiz: React.FC = () => {
                       value={formData.tipoDocumento}
                       onChange={handleChange}
                     >
-                      <option value="CC">CC - Cédula de Ciudadanía</option>
+                      <option value="CC">CC - Cedula de Ciudadania</option>
                       <option value="TI">TI - Tarjeta de Identidad</option>
-                      <option value="CE">CE - Cédula de Extranjería</option>
+                      <option value="CE">CE - Cedula de Extranjeria</option>
                       <option value="PEP">PEP - Permiso Especial</option>
                     </select>
                   </div>
@@ -308,7 +313,7 @@ const RegistrarAprendiz: React.FC = () => {
 
                   <div className="input-block">
                     <label className="label-text">
-                      Contraseña <span className="required-mark">*</span>
+                      Contrasena <span className="required-mark">*</span>
                     </label>
                     <input
                       type="password"
@@ -317,12 +322,11 @@ const RegistrarAprendiz: React.FC = () => {
                       value={formData.password}
                       onChange={handleChange}
                       required
-                      placeholder="Crea una contraseña segura"
+                      placeholder="Crea una contrasena segura"
                     />
                   </div>
                 </div>
 
-                {/* Columna Derecha */}
                 <div
                   style={{
                     display: "flex",
@@ -361,7 +365,7 @@ const RegistrarAprendiz: React.FC = () => {
                   </div>
 
                   <div className="input-block">
-                    <label className="label-text">Teléfono</label>
+                    <label className="label-text">Telefono</label>
                     <input
                       type="number"
                       name="telefono"
@@ -398,7 +402,6 @@ const RegistrarAprendiz: React.FC = () => {
         </div>
       </div>
 
-      {/* Modales */}
       {modalStatus === "success" && (
         <div className="modal-overlay">
           <div className="modal-card">
@@ -437,7 +440,7 @@ const RegistrarAprendiz: React.FC = () => {
                 marginBottom: "20px",
               }}
             >
-              Verifica los datos o intenta más tarde.
+              {errorMessage}
             </p>
             <button
               type="button"

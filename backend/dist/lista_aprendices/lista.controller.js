@@ -25,6 +25,9 @@ let ListaController = class ListaController {
     async getStats(cedula) {
         return await this.listaService.getInstructorStats(cedula);
     }
+    async createAprendiz(payload) {
+        return await this.listaService.createAprendiz(payload);
+    }
 };
 exports.ListaController = ListaController;
 __decorate([
@@ -40,6 +43,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "getStats", null);
+__decorate([
+    (0, common_1.Post)('users'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "createAprendiz", null);
 exports.ListaController = ListaController = __decorate([
     (0, common_1.Controller)(),
     __metadata("design:paramtypes", [lista_service_1.ListaService])

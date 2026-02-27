@@ -10,8 +10,7 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const login_module_1 = require("./login/login.module");
-const dashboard_modules_1 = require("./dashboard_Instructor/dashboard.modules");
-const dashboard_modules_2 = require("./dashboard_admin/dashboard.modules");
+const dashboard_modules_1 = require("./dashboard_administrador/dashboard.modules");
 const dashboard_module_1 = require("./dashboard_Students/dashboard.module");
 const lista_modules_1 = require("./lista_aprendices/lista.modules");
 const crearpro_modules_1 = require("./crear_proyecto/crearpro.modules");
@@ -36,7 +35,6 @@ exports.AppModule = AppModule = __decorate([
             }),
             login_module_1.LoginModule,
             dashboard_modules_1.DashboardModule,
-            dashboard_modules_2.DashboardModule,
             dashboard_module_1.DashboardModule,
             lista_modules_1.ListaModule,
             crearpro_modules_1.CrearproModule,

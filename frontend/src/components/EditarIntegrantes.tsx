@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
-    ChevronLeft, Search, User, LogOut, ChevronDown, 
+    ChevronLeft, Search, LogOut, ChevronDown, 
     AlertTriangle, X, Home, Users, Plus, MapPin, Eye, List 
 } from 'lucide-react';
 import senaLogo from '../assets/sena.png'; 
@@ -25,9 +25,13 @@ interface RolScrum {
     det_par_descripcion: string;
 }
 
+type IntegranteApi = Omit<Integrante, 'documento'> & {
+    documento: string | number;
+};
+
 const Sidebar = ({ navigate }: { navigate: (path: string) => void }) => {
     const menuItems = [
-        { name: 'Inicio', icon: Home, path: '/dashboard-instructor' },
+        { name: 'Inicio', icon: Home, path: '/dashboard' },
         { name: 'Lista de Aprendices', icon: Users, path: '/lista-aprendices' },
         { name: 'Crear Proyecto', icon: Plus, path: '/crear-proyecto' },
         { name: 'Asignar Proyectos', icon: MapPin, path: '/asignar-proyectos' },
@@ -79,6 +83,18 @@ const EditarIntegrantes: React.FC = () => {
     const [instructorName, setInstructorName] = useState('Cargando...');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+    async function cargarDatosProyecto() {
+        try {
+            const res = await axios.get(`${API_BASE_URL}/integrantes/${id}`);
+            setIntegrantes(
+                (res.data as IntegranteApi[]).map((item) => ({
+                    ...item,
+                    documento: Number(item.documento),
+                }))
+            );
+        } catch (error) { console.error(error); }
+    }
+
     useEffect(() => {
         const token = localStorage.getItem('userToken');
         const cedula = localStorage.getItem('userCedula');
@@ -99,28 +115,23 @@ const EditarIntegrantes: React.FC = () => {
             .catch(err => console.error("Error cargando roles", err));
 
         if (id) cargarDatosProyecto();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, navigate]);
 
-    const cargarDatosProyecto = async () => {
-        try {
-            const res = await axios.get(`${API_BASE_URL}/integrantes/${id}`);
-            setIntegrantes(
-                res.data.map((item: any) => ({ ...item, documento: Number(item.documento) }))
-            );
-        } catch (error) { console.error(error); }
-    };
-
-    const cargarDisponibles = async () => {
+    async function cargarDisponibles() {
         try {
             const res = await axios.get(`${API_BASE_URL}/aprendices-disponibles/${id}`);
             setDisponibles(
-                res.data.map((item: any) => ({ ...item, documento: Number(item.documento) }))
+                (res.data as IntegranteApi[]).map((item) => ({
+                    ...item,
+                    documento: Number(item.documento),
+                }))
             );
             // Resetear selecciones al abrir el modal
             setSelectedToAdd(null);
             setSelectedRole('');
         } catch (error) { console.error(error); }
-    };
+    }
 
     const handleEliminarConfirmado = async () => {
         if (!selectedToDelete) return;
@@ -133,7 +144,7 @@ const EditarIntegrantes: React.FC = () => {
             setSelectedToDelete(null);
             cargarDatosProyecto();
             alert("Integrante eliminado correctamente.");
-        } catch (error) { alert("Error al eliminar"); }
+        } catch { alert("Error al eliminar"); }
     };
 
     const handleAgregarConfirmado = async () => {
@@ -156,7 +167,7 @@ const EditarIntegrantes: React.FC = () => {
             setSelectedRole('');
             cargarDatosProyecto();
             alert("Aprendiz agregado exitosamente.");
-        } catch (error) { alert("Error al agregar"); }
+        } catch { alert("Error al agregar"); }
     };
 
     const filterData = (data: Integrante[], term: string) =>

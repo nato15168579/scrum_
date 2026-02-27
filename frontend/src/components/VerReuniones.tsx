@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
     ChevronLeft, Home, Users, Plus, MapPin, Eye, List, 
-    LogOut, ChevronDown, Calendar, RefreshCw, Clock, MessageSquare 
+    LogOut, ChevronDown, RefreshCw, Clock, MessageSquare 
 } from 'lucide-react';
 import senaLogo from '../assets/sena.png'; 
 import './DetalleProyecto.css'; 
@@ -14,7 +14,7 @@ const API_BASE_URL = 'http://localhost:5000/dashboard';
 // Sidebar Reutilizable
 const Sidebar = ({ navigate }: { navigate: (path: string) => void }) => {
     const menuItems = [
-        { name: 'Inicio', icon: Home, path: '/dashboard-instructor' },
+        { name: 'Inicio', icon: Home, path: '/dashboard' },
         { name: 'Lista de Aprendices', icon: Users, path: '/lista-aprendices' },
         { name: 'Crear Proyecto', icon: Plus, path: '/crear-proyecto' },
         { name: 'Asignar Proyectos', icon: MapPin, path: '/asignar-proyectos' },
