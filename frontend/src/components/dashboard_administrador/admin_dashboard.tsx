@@ -42,6 +42,21 @@ interface Aprendiz {
   fecha?: string;
 }
 
+interface Instructor {
+  documento: string;
+  ficha: string;
+  nombre: string;
+  apellido: string;
+  telefono: string;
+  email: string;
+  fechaInscripcion?: string;
+  fechaRegistro?: string;
+  fecha_registro?: string;
+  createdAt?: string;
+  created_at?: string;
+  fecha?: string;
+}
+
 interface DashboardData {
   instructor: string;
   correo: string;
@@ -49,12 +64,18 @@ interface DashboardData {
   stats: Stat[];
 }
 
-type PeriodKey = "dia" | "semana" | "mes";
+type PeriodKey = "dia" | "semana" | "mes" | "anio";
+type RegistroKey = "aprendices" | "instructores";
 
 interface PeriodOption {
   key: PeriodKey;
   label: string;
   color: string;
+}
+
+interface RegistroOption {
+  key: RegistroKey;
+  label: string;
 }
 
 interface ChartRow {
@@ -67,12 +88,19 @@ const PERIOD_OPTIONS: PeriodOption[] = [
   { key: "dia", label: "Por dia", color: "#39A900" },
   { key: "semana", label: "Por semana", color: "#0EA5E9" },
   { key: "mes", label: "Por mes", color: "#F59E0B" },
+  { key: "anio", label: "Por año", color: "#EF4444" },
+];
+
+const REGISTRO_OPTIONS: RegistroOption[] = [
+  { key: "aprendices", label: "Aprendices" },
+  { key: "instructores", label: "Instructores" },
 ];
 
 const CHART_LIMIT: Record<PeriodKey, number> = {
   dia: 14,
   semana: 12,
   mes: 12,
+  anio: 8,
 };
 
 const twoDigits = (value: number) => String(value).padStart(2, "0");
@@ -82,6 +110,23 @@ const toDayKey = (date: Date) =>
 
 const toMonthKey = (date: Date) =>
   `${date.getFullYear()}-${twoDigits(date.getMonth() + 1)}`;
+
+const toYearKey = (date: Date) => `${date.getFullYear()}`;
+
+const CURRENT_YEAR = new Date().getFullYear();
+
+const formatDayLabel = (date: Date) => {
+  const options: Intl.DateTimeFormatOptions = {
+    day: "2-digit",
+    month: "short",
+  };
+
+  if (date.getFullYear() !== CURRENT_YEAR) {
+    options.year = "numeric";
+  }
+
+  return date.toLocaleDateString("es-CO", options);
+};
 
 const getWeekStart = (date: Date) => {
   const start = new Date(date);
@@ -125,10 +170,7 @@ const buildRowsByPeriod = (dates: Date[], period: PeriodKey): ChartRow[] => {
   const grouped = dates.reduce<Record<string, ChartRow>>((acc, date) => {
     if (period === "dia") {
       const key = toDayKey(date);
-      const label = date.toLocaleDateString("es-CO", {
-        day: "2-digit",
-        month: "short",
-      });
+      const label = formatDayLabel(date);
 
       if (!acc[key]) {
         acc[key] = {
@@ -145,16 +187,29 @@ const buildRowsByPeriod = (dates: Date[], period: PeriodKey): ChartRow[] => {
     if (period === "semana") {
       const weekStart = getWeekStart(date);
       const key = toDayKey(weekStart);
-      const label = `Sem ${weekStart.toLocaleDateString("es-CO", {
-        day: "2-digit",
-        month: "short",
-      })}`;
+      const label = `Sem ${formatDayLabel(weekStart)}`;
 
       if (!acc[key]) {
         acc[key] = {
           periodo: label,
           inscritos: 0,
           order: weekStart.getTime(),
+        };
+      }
+
+      acc[key].inscritos += 1;
+      return acc;
+    }
+
+    if (period === "anio") {
+      const key = toYearKey(date);
+      const yearDate = new Date(date.getFullYear(), 0, 1);
+
+      if (!acc[key]) {
+        acc[key] = {
+          periodo: key,
+          inscritos: 0,
+          order: yearDate.getTime(),
         };
       }
 
@@ -198,6 +253,11 @@ const getCurrentBucketCount = (dates: Date[], period: PeriodKey) => {
       .length;
   }
 
+  if (period === "anio") {
+    const yearKey = toYearKey(now);
+    return dates.filter((date) => toYearKey(date) === yearKey).length;
+  }
+
   const monthKey = toMonthKey(now);
   return dates.filter((date) => toMonthKey(date) === monthKey).length;
 };
@@ -205,6 +265,7 @@ const getCurrentBucketCount = (dates: Date[], period: PeriodKey) => {
 const getCurrentBucketLabel = (period: PeriodKey) => {
   if (period === "dia") return "hoy";
   if (period === "semana") return "esta semana";
+  if (period === "anio") return "este año";
   return "este mes";
 };
 
@@ -213,6 +274,9 @@ const AdminDashboard = () => {
     null,
   );
   const [aprendices, setAprendices] = useState<Aprendiz[]>([]);
+  const [instructores, setInstructores] = useState<Instructor[]>([]);
+  const [activeRegistro, setActiveRegistro] =
+    useState<RegistroKey>("aprendices");
   const [activePeriod, setActivePeriod] = useState<PeriodKey>("dia");
   const [isLoading, setIsLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -242,9 +306,11 @@ const AdminDashboard = () => {
 
     const fetchDashboardData = async () => {
       try {
-        const [dashboardResponse, aprendicesResponse] = await Promise.all([
+        const [dashboardResponse, aprendicesResponse, instructoresResponse] =
+          await Promise.all([
           fetch(`${API_URL}/dashboard?cedula=${storedCedula}`),
           fetch(`${API_URL}/aprendices?cedula=${storedCedula}`),
+          fetch(`${API_URL}/instructores?cedula=${storedCedula}`),
         ]);
 
         const dashboardPayload = await dashboardResponse.json();
@@ -258,6 +324,14 @@ const AdminDashboard = () => {
 
         setAprendices(
           Array.isArray(aprendicesPayload) ? aprendicesPayload : [],
+        );
+
+        const instructoresPayload = instructoresResponse.ok
+          ? await instructoresResponse.json()
+          : [];
+
+        setInstructores(
+          Array.isArray(instructoresPayload) ? instructoresPayload : [],
         );
       } catch (err) {
         console.error("Error al cargar datos:", err);
@@ -277,22 +351,52 @@ const AdminDashboard = () => {
     [aprendices],
   );
 
-  const rowsByPeriod = useMemo(
+  const fechasInscripcionInstructores = useMemo(
+    () =>
+      instructores
+        .map(parseInscripcionDate)
+        .filter((date): date is Date => date !== null),
+    [instructores],
+  );
+
+  const rowsByPeriodAprendices = useMemo(
     () => ({
       dia: buildRowsByPeriod(fechasInscripcion, "dia"),
       semana: buildRowsByPeriod(fechasInscripcion, "semana"),
       mes: buildRowsByPeriod(fechasInscripcion, "mes"),
+      anio: buildRowsByPeriod(fechasInscripcion, "anio"),
     }),
     [fechasInscripcion],
   );
 
-  const currentBucketTotals = useMemo(
+  const rowsByPeriodInstructores = useMemo(
+    () => ({
+      dia: buildRowsByPeriod(fechasInscripcionInstructores, "dia"),
+      semana: buildRowsByPeriod(fechasInscripcionInstructores, "semana"),
+      mes: buildRowsByPeriod(fechasInscripcionInstructores, "mes"),
+      anio: buildRowsByPeriod(fechasInscripcionInstructores, "anio"),
+    }),
+    [fechasInscripcionInstructores],
+  );
+
+  const currentBucketTotalsAprendices = useMemo(
     () => ({
       dia: getCurrentBucketCount(fechasInscripcion, "dia"),
       semana: getCurrentBucketCount(fechasInscripcion, "semana"),
       mes: getCurrentBucketCount(fechasInscripcion, "mes"),
+      anio: getCurrentBucketCount(fechasInscripcion, "anio"),
     }),
     [fechasInscripcion],
+  );
+
+  const currentBucketTotalsInstructores = useMemo(
+    () => ({
+      dia: getCurrentBucketCount(fechasInscripcionInstructores, "dia"),
+      semana: getCurrentBucketCount(fechasInscripcionInstructores, "semana"),
+      mes: getCurrentBucketCount(fechasInscripcionInstructores, "mes"),
+      anio: getCurrentBucketCount(fechasInscripcionInstructores, "anio"),
+    }),
+    [fechasInscripcionInstructores],
   );
 
   if (isLoading || !dashboardData)
@@ -302,12 +406,29 @@ const AdminDashboard = () => {
     PERIOD_OPTIONS.find((period) => period.key === activePeriod) ||
     PERIOD_OPTIONS[0];
 
-  const activeRows = rowsByPeriod[activePeriodOption.key].slice(
+  const activeRowsByPeriod =
+    activeRegistro === "aprendices"
+      ? rowsByPeriodAprendices
+      : rowsByPeriodInstructores;
+  const activeBucketTotals =
+    activeRegistro === "aprendices"
+      ? currentBucketTotalsAprendices
+      : currentBucketTotalsInstructores;
+
+  const activeRows = activeRowsByPeriod[activePeriodOption.key].slice(
     -CHART_LIMIT[activePeriodOption.key],
   );
 
-  const totalInscritos = aprendices.length;
-  const inscritosConFecha = fechasInscripcion.length;
+  const totalInscritos =
+    activeRegistro === "aprendices" ? aprendices.length : instructores.length;
+  const inscritosConFecha =
+    activeRegistro === "aprendices"
+      ? fechasInscripcion.length
+      : fechasInscripcionInstructores.length;
+  const registroLabel =
+    activeRegistro === "aprendices" ? "aprendices" : "instructores";
+  const registroLabelSingular =
+    activeRegistro === "aprendices" ? "Aprendices" : "Instructores";
 
   const confirmLogout = () => {
     localStorage.clear();
@@ -378,7 +499,7 @@ const AdminDashboard = () => {
         <main className="content">
           <nav className="nav-top">
             <div className="title-section">
-              <h1>Dashboard Principal. holas</h1>
+              <h1>Panel Admin</h1>
             </div>
             <div
               className="profile-menu"
@@ -438,12 +559,24 @@ const AdminDashboard = () => {
                 >
                   <div className="students-card-copy">
                     <h3 className="card-title students-card-title">
-                      Inscripcion de aprendices por tiempo
+                      Inscripcion de {registroLabel} por tiempo
                     </h3>
                     <p className="card-description students-card-description">
                       Total inscritos: {totalInscritos.toLocaleString()} | con
                       fecha: {inscritosConFecha.toLocaleString()}
                     </p>
+                    <div className="students-entity-toggle">
+                      {REGISTRO_OPTIONS.map((registro) => (
+                        <button
+                          key={registro.key}
+                          type="button"
+                          className={`entity-toggle-button ${activeRegistro === registro.key ? "active" : ""}`}
+                          onClick={() => setActiveRegistro(registro.key)}
+                        >
+                          {registro.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="students-metric-tabs">
@@ -455,7 +588,7 @@ const AdminDashboard = () => {
                       >
                         <span className="metric-tab-label">{period.label}</span>
                         <span className="metric-tab-value">
-                          {currentBucketTotals[period.key].toLocaleString()}
+                          {activeBucketTotals[period.key].toLocaleString()}
                         </span>
                         <span className="metric-tab-meta">
                           {getCurrentBucketLabel(period.key)}
@@ -506,7 +639,7 @@ const AdminDashboard = () => {
                             formatter={(value: number | string) =>
                               [
                                 `${Number(value).toLocaleString()} inscritos`,
-                                "Aprendices",
+                                registroLabelSingular,
                               ] as [string, string]
                             }
                             labelFormatter={(label: unknown) =>
@@ -523,8 +656,8 @@ const AdminDashboard = () => {
                     </div>
                   ) : (
                     <div className="empty-chart-state">
-                      No hay fechas de inscripcion disponibles para graficar por
-                      dia, semana o mes.
+                      No hay fechas de inscripcion de {registroLabel} disponibles
+                      para graficar por dia, semana, mes o año.
                     </div>
                   )}
                 </div>
