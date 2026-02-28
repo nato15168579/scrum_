@@ -15,8 +15,10 @@ export declare class ListaService {
     private readonly usuarioRepository;
     private readonly dataSource;
     constructor(usuarioRepository: Repository<Usuario>, dataSource: DataSource);
+    private columnExists;
     private ensureRegistroTable;
     findAllAprendices(): Promise<any>;
+    findAllInstructores(): Promise<any>;
     createAprendiz(payload: CreateAprendizDto): Promise<{
         ok: boolean;
         mensaje: string;

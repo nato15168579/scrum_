@@ -22,6 +22,9 @@ let ListaController = class ListaController {
     async getAprendices() {
         return await this.listaService.findAllAprendices();
     }
+    async getInstructores() {
+        return await this.listaService.findAllInstructores();
+    }
     async getStats(cedula) {
         return await this.listaService.getInstructorStats(cedula);
     }
@@ -36,6 +39,12 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "getAprendices", null);
+__decorate([
+    (0, common_1.Get)('instructores'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "getInstructores", null);
 __decorate([
     (0, common_1.Get)('stats'),
     __param(0, (0, common_1.Query)('cedula')),

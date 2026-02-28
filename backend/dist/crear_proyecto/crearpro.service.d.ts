@@ -1,5 +1,5 @@
 import { Repository } from 'typeorm';
-import { Proyecto } from '../entities/proyecto';
+import { Proyecto } from '../entities/Proyecto';
 import { UsuProDetPar } from '../entities/UsuProDetPar';
 export declare class CrearproService {
     private readonly proyectoRepository;

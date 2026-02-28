@@ -10,6 +10,11 @@ export class ListaController {
     return await this.listaService.findAllAprendices();
   }
 
+  @Get('instructores')
+  async getInstructores() {
+    return await this.listaService.findAllInstructores();
+  }
+
   @Get('stats')
   async getStats(@Query('cedula') cedula: string) {
     return await this.listaService.getInstructorStats(cedula);

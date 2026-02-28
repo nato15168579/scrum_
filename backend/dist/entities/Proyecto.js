@@ -28,13 +28,21 @@ __decorate([
     __metadata("design:type", String)
 ], Proyecto.prototype, "proNombre", void 0);
 __decorate([
-    (0, typeorm_1.Column)("varchar", { name: "pro_objetivo_general", nullable: true, length: 255 }),
+    (0, typeorm_1.Column)("varchar", {
+        name: "pro_objetivo_general",
+        nullable: true,
+        length: 500,
+    }),
     __metadata("design:type", String)
 ], Proyecto.prototype, "proObjetivoGeneral", void 0);
 __decorate([
-    (0, typeorm_1.Column)("varchar", { name: "por_objetivos_especificos", nullable: true, length: 255 }),
+    (0, typeorm_1.Column)("varchar", {
+        name: "pro_objetivos_especificos",
+        nullable: true,
+        length: 500,
+    }),
     __metadata("design:type", String)
-], Proyecto.prototype, "porObjetivosEspecificos", void 0);
+], Proyecto.prototype, "proObjetivosEspecificos", void 0);
 __decorate([
     (0, typeorm_1.Column)("varchar", { name: "pro_descripcion", nullable: true, length: 200 }),
     __metadata("design:type", String)
@@ -48,11 +56,7 @@ __decorate([
     __metadata("design:type", String)
 ], Proyecto.prototype, "proFechaFin", void 0);
 __decorate([
-    (0, typeorm_1.Column)("varchar", { name: "pro_duracion_sprint", nullable: true, length: 50 }),
-    __metadata("design:type", String)
-], Proyecto.prototype, "proDuracionSprint", void 0);
-__decorate([
-    (0, typeorm_1.Column)("varchar", { name: "pro_justificacion", nullable: true, length: 255 }),
+    (0, typeorm_1.Column)("varchar", { name: "pro_justificacion", nullable: true, length: 500 }),
     __metadata("design:type", String)
 ], Proyecto.prototype, "proJustificacion", void 0);
 __decorate([
@@ -82,6 +86,6 @@ __decorate([
 ], Proyecto.prototype, "usuProDetPars", void 0);
 exports.Proyecto = Proyecto = __decorate([
     (0, typeorm_1.Index)("det_par_ID_FK", ["detParIdFk"], {}),
-    (0, typeorm_1.Entity)("proyecto", { schema: "pro_scrum" })
+    (0, typeorm_1.Entity)(" proyecto", { schema: "pro_scrum" })
 ], Proyecto);
 //# sourceMappingURL=Proyecto.js.map

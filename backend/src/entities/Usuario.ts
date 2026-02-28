@@ -25,7 +25,7 @@ export class Usuario {
   usuCedula: number;
 
   @Column("varchar", {
-    name: "usu_tipo_documento",
+    name: "usu_tipodedocumento",
     nullable: true,
     length: 20,
     default: () => "'CC'",
@@ -63,9 +63,6 @@ export class Usuario {
     length: 20,
   })
   usuTelefono: string | null;
-
-  @Column("varchar", { name: "usu_sexo", nullable: true, length: 20 })
-  usuSexo: string | null;
 
   @Column("varchar", {
     name: "usu_contraseña",

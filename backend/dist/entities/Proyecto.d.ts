@@ -7,11 +7,10 @@ export declare class Proyecto {
     proId: number;
     proNombre: string | null;
     proObjetivoGeneral: string | null;
-    porObjetivosEspecificos: string | null;
+    proObjetivosEspecificos: string | null;
     proDescription: string | null;
     proFechaInicio: string | null;
     proFechaFin: string | null;
-    proDuracionSprint: string | null;
     proJustificacion: string | null;
     detParIdFk: number | null;
     historiaUsuarios: HistoriaUsuario[];

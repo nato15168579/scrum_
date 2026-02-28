@@ -2,7 +2,6 @@ import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, Not, IsNull, DataSource } from "typeorm";
 import { Usuario } from "../entities/Usuario";
-import { Proyecto } from "../entities/Proyecto";
 
 @Injectable()
 export class DashboardService {
@@ -11,10 +10,93 @@ export class DashboardService {
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
-    @InjectRepository(Proyecto)
-    private readonly proyectoRepository: Repository<Proyecto>,
     private dataSource: DataSource,
   ) {}
+
+  private wrapIdentifier(identifier: string) {
+    return `\`${identifier.replace(/`/g, "``")}\``;
+  }
+
+  private async tableExists(tableName: string) {
+    const [row] = await this.dataSource.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+      `,
+      [tableName],
+    );
+
+    return Number(row?.total || 0) > 0;
+  }
+
+  private async columnExists(tableName: string, columnName: string) {
+    const [row] = await this.dataSource.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+      `,
+      [tableName, columnName],
+    );
+
+    return Number(row?.total || 0) > 0;
+  }
+
+  private async getProyectoStats() {
+    const tableCandidates = ["proyecto", " proyecto"];
+    let proyectoTable: string | null = null;
+
+    for (const candidate of tableCandidates) {
+      if (await this.tableExists(candidate)) {
+        proyectoTable = candidate;
+        break;
+      }
+    }
+
+    if (!proyectoTable) {
+      return { total: 0, porHacer: 0, enProgreso: 0, hecho: 0 };
+    }
+
+    const tableRef = this.wrapIdentifier(proyectoTable);
+
+    const [totalRow] = await this.dataSource.query(
+      `SELECT COUNT(*) AS total FROM ${tableRef}`,
+    );
+    const total = Number(totalRow?.total || 0);
+
+    const statusCandidates = ["det_par_ID_FK", "det_par_id_fk"];
+    let statusColumn: string | null = null;
+
+    for (const candidate of statusCandidates) {
+      if (await this.columnExists(proyectoTable, candidate)) {
+        statusColumn = candidate;
+        break;
+      }
+    }
+
+    if (!statusColumn) {
+      return { total, porHacer: 0, enProgreso: 0, hecho: 0 };
+    }
+
+    const statusRef = this.wrapIdentifier(statusColumn);
+    const statusRows = await this.dataSource.query(
+      `SELECT ${statusRef} AS estado FROM ${tableRef}`,
+    );
+
+    const porHacer = statusRows.filter((row: any) => Number(row.estado) === 1)
+      .length;
+    const enProgreso = statusRows.filter(
+      (row: any) => Number(row.estado) === 2,
+    ).length;
+    const hecho = statusRows.filter((row: any) => Number(row.estado) === 3)
+      .length;
+
+    return { total, porHacer, enProgreso, hecho };
+  }
 
   async obtenerDatosDashboard(cedulaInput: any) {
     try {
@@ -62,18 +144,13 @@ export class DashboardService {
         this.logger.error("Error al calcular fichas:", e.message);
       }
 
-      // 4. PROCESAMIENTO DE PROYECTOS
-      let proyectos = await this.proyectoRepository.find();
-
-      const porHacer = proyectos.filter(
-        (p) => Number((p as any).detParIdFk || (p as any).det_par_id_fk) === 1,
-      ).length;
-      const enProgreso = proyectos.filter(
-        (p) => Number((p as any).detParIdFk || (p as any).det_par_id_fk) === 2,
-      ).length;
-      const hecho = proyectos.filter(
-        (p) => Number((p as any).detParIdFk || (p as any).det_par_id_fk) === 3,
-      ).length;
+      // 4. PROCESAMIENTO DE PROYECTOS (tolerante a esquemas de BD distintos)
+      let proyectosStats = { total: 0, porHacer: 0, enProgreso: 0, hecho: 0 };
+      try {
+        proyectosStats = await this.getProyectoStats();
+      } catch (e) {
+        this.logger.error("Error al calcular proyectos:", e.message);
+      }
 
       // 5. RESPUESTA PARA EL FRONTEND
       // Aquí usamos los nombres EXACTOS de tu Usuario.ts
@@ -86,13 +163,13 @@ export class DashboardService {
         stats: [
           { label: "Cantidad de fichas", value: totalFichasSena },
           { label: "Reuniones observadas", value: reunionesCount },
-          { label: "Proyectos (Global)", value: proyectos.length },
+          { label: "Proyectos (Global)", value: proyectosStats.total },
         ],
         proyectosData: {
-          total: proyectos.length,
-          porHacer,
-          enProgreso,
-          hecho,
+          total: proyectosStats.total,
+          porHacer: proyectosStats.porHacer,
+          enProgreso: proyectosStats.enProgreso,
+          hecho: proyectosStats.hecho,
         },
       };
     } catch (error) {

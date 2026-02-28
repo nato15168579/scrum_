@@ -1,13 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Home,
-  Users,
-  Plus,
-  MapPin,
-  Eye,
-  List,
   Search,
-  Filter,
   User,
   ChevronDown,
   LogOut,
@@ -17,15 +10,14 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import senaLogo from "../../assets/sena.png";
-import "../dashboard_instructor/Dashboard.css";
-import "./ListaAprendices.css";
-import { API_URL } from "../../config/api";
+import senaLogo from "../../../assets/sena.png";
+import "./ListaInstructores.css";
+import { API_URL } from "../../../config/api";
+import { ADMIN_MENU_ITEMS } from "../adminMenuItems";
 
-interface Aprendiz {
+interface Instructor {
   documento: string;
   ficha: string;
-  programa: string;
   nombre: string;
   apellido: string;
   telefono: string;
@@ -33,12 +25,23 @@ interface Aprendiz {
   fechaInscripcion?: string | null;
 }
 
-type EstadoAprendiz = "Activo" | "Inactivo";
-
 const ITEMS_PER_PAGE = 10;
 const INACTIVE_DOCUMENT = "1047043541";
 
-const getDefaultEstado = (documento: string): EstadoAprendiz =>
+type EstadoInstructor = "Activo" | "Inactivo";
+
+type FilterKey =
+  | "todos"
+  | "documento"
+  | "ficha"
+  | "nombre"
+  | "apellido"
+  | "telefono"
+  | "email"
+  | "fechaRegistro"
+  | "estado";
+
+const getDefaultEstado = (documento: string): EstadoInstructor =>
   documento === INACTIVE_DOCUMENT ? "Inactivo" : "Activo";
 
 const formatFechaRegistro = (value?: string | null) => {
@@ -54,38 +57,49 @@ const formatFechaRegistro = (value?: string | null) => {
   });
 };
 
-const ListaAprendices = () => {
+const FILTER_OPTIONS: { key: FilterKey; label: string; placeholder: string }[] = [
+  {
+    key: "todos",
+    label: "Todos los campos",
+    placeholder:
+      "Buscar en documento, ficha, nombre, apellido, telefono, email o estado",
+  },
+  {
+    key: "documento",
+    label: "Documento",
+    placeholder: "Buscar por documento",
+  },
+  { key: "ficha", label: "Ficha", placeholder: "Buscar por ficha" },
+  { key: "nombre", label: "Nombre", placeholder: "Buscar por nombre" },
+  { key: "apellido", label: "Apellido", placeholder: "Buscar por apellido" },
+  { key: "telefono", label: "Telefono", placeholder: "Buscar por telefono" },
+  { key: "email", label: "Email", placeholder: "Buscar por email" },
+  {
+    key: "fechaRegistro",
+    label: "Fecha de registro",
+    placeholder: "Buscar por fecha de registro",
+  },
+  { key: "estado", label: "Estado", placeholder: "Buscar Activo/Inactivo" },
+];
+
+const ListaInstructoresAdmin = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [aprendices, setAprendices] = useState<Aprendiz[]>([]);
+  const [instructores, setInstructores] = useState<Instructor[]>([]);
   const [estadoPorDocumento, setEstadoPorDocumento] = useState<
-    Record<string, EstadoAprendiz>
+    Record<string, EstadoInstructor>
   >({});
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [instructorName, setInstructorName] = useState("Instructor");
+  const [adminName, setAdminName] = useState("Admin");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const [filters, setFilters] = useState({
-    documento: "",
-    ficha: "",
-    programa: "",
-    nombre: "",
-    apellido: "",
-  });
-
-  const menuItems = [
-    { name: "Inicio", icon: Home, path: "/dashboard" },
-    { name: "Lista de Aprendices", icon: Users, path: "/lista-aprendices" },
-    { name: "Crear Proyecto", icon: Plus, path: "/crear-proyecto" },
-    { name: "Asignar Proyectos", icon: MapPin, path: "/asignar-proyectos" },
-    { name: "Ver Proyectos", icon: Eye, path: "/ver-proyectos" },
-    { name: "Registrar Aprendiz", icon: List, path: "/registrar-aprendiz" },
-  ];
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilter, setActiveFilter] = useState<FilterKey>("todos");
 
   const confirmLogout = () => {
     localStorage.clear();
@@ -101,87 +115,45 @@ const ListaAprendices = () => {
       return;
     }
 
-    if (roleId === "3") {
-      navigate("/dashboard-administrador");
+    if (roleId === "2") {
+      navigate("/dashboard-instructor");
       return;
     }
 
-    if (roleId && roleId !== "2") {
+    if (roleId && roleId !== "3") {
       navigate("/student-dashboard");
       return;
     }
 
-    fetch(`${API_URL}/aprendices?cedula=${cedula}`)
+    fetch(`${API_URL}/instructores?cedula=${cedula}`)
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
         const validData = Array.isArray(data) ? data : [];
-        setAprendices(validData);
+        setInstructores(validData);
         setEstadoPorDocumento(
-          validData.reduce<Record<string, EstadoAprendiz>>((acc, item) => {
+          validData.reduce<Record<string, EstadoInstructor>>((acc, item) => {
             acc[item.documento] = getDefaultEstado(item.documento);
             return acc;
           }, {}),
         );
       })
-      .catch((err) => console.error("Error aprendices:", err))
+      .catch((err) => console.error("Error instructores:", err))
       .finally(() => setLoading(false));
 
     fetch(`${API_URL}/dashboard?cedula=${cedula}`)
       .then((res) => res.json())
       .then((data) => {
         if (data && data.instructor) {
-          setInstructorName(data.instructor);
+          setAdminName(data.instructor);
         } else {
-          setInstructorName("Instructor SENA");
+          setAdminName("Administrador SENA");
         }
       })
       .catch((err) => {
         console.error("Error perfil:", err);
-        setInstructorName("Instructor SENA");
+        setAdminName("Administrador SENA");
       });
   }, [navigate]);
-
-  const filteredData = useMemo(() => {
-    return aprendices.filter((item) => {
-      return (
-        (item.documento || "")
-          .toString()
-          .toLowerCase()
-          .includes(filters.documento.toLowerCase()) &&
-        (item.ficha || "").toLowerCase().includes(filters.ficha.toLowerCase()) &&
-        (item.programa || "")
-          .toLowerCase()
-          .includes(filters.programa.toLowerCase()) &&
-        (item.nombre || "").toLowerCase().includes(filters.nombre.toLowerCase()) &&
-        (item.apellido || "")
-          .toLowerCase()
-          .includes(filters.apellido.toLowerCase())
-      );
-    });
-  }, [filters, aprendices]);
-
-  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
-    setCurrentPage(1);
-  };
-
-  const handleToggleEstado = (documento: string) => {
-    const shouldUpdate = window.confirm(
-      "¿Está seguro de que desea cambiar el estado de este estudiante?",
-    );
-    if (!shouldUpdate) return;
-
-    setEstadoPorDocumento((previousState) => {
-      const currentState = previousState[documento] || getDefaultEstado(documento);
-      const nextState: EstadoAprendiz =
-        currentState === "Activo" ? "Inactivo" : "Activo";
-
-      return {
-        ...previousState,
-        [documento]: nextState,
-      };
-    });
-  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -193,6 +165,56 @@ const ListaAprendices = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleToggleEstado = (documento: string) => {
+    const shouldUpdate = window.confirm(
+      "¿Está seguro de que desea cambiar el estado de este instructor?",
+    );
+    if (!shouldUpdate) return;
+
+    setEstadoPorDocumento((previousState) => {
+      const currentState = previousState[documento] || getDefaultEstado(documento);
+      const nextState: EstadoInstructor =
+        currentState === "Activo" ? "Inactivo" : "Activo";
+
+      return {
+        ...previousState,
+        [documento]: nextState,
+      };
+    });
+  };
+
+  const filteredData = useMemo(() => {
+    const searchableFields: Record<
+      Exclude<FilterKey, "todos">,
+      (item: Instructor) => string
+    > = {
+      documento: (item) => (item.documento || "").toString().toLowerCase(),
+      ficha: (item) => (item.ficha || "").toLowerCase(),
+      nombre: (item) => (item.nombre || "").toLowerCase(),
+      apellido: (item) => (item.apellido || "").toLowerCase(),
+      telefono: (item) => (item.telefono || "").toLowerCase(),
+      email: (item) => (item.email || "").toLowerCase(),
+      fechaRegistro: (item) =>
+        formatFechaRegistro(item.fechaInscripcion).toLowerCase(),
+      estado: (item) =>
+        (estadoPorDocumento[item.documento] || getDefaultEstado(item.documento))
+          .toLowerCase(),
+    };
+
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return instructores;
+
+    return instructores.filter((item) => {
+      if (activeFilter === "todos") {
+        return Object.values(searchableFields).some((getter) =>
+          getter(item).includes(query),
+        );
+      }
+
+      return searchableFields[activeFilter](item).includes(query);
+    });
+  }, [instructores, searchTerm, activeFilter, estadoPorDocumento]);
+
   const totalItems = filteredData.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
   const displayData = filteredData.slice(
@@ -200,7 +222,13 @@ const ListaAprendices = () => {
     currentPage * ITEMS_PER_PAGE,
   );
 
-  if (loading) return <div className="loading-screen">Cargando lista...</div>;
+  const activeFilterOption =
+    FILTER_OPTIONS.find((option) => option.key === activeFilter) ||
+    FILTER_OPTIONS[0];
+
+  if (loading) {
+    return <div className="loading-screen">Cargando lista de instructores...</div>;
+  }
 
   return (
     <div className="dashboard-page">
@@ -212,7 +240,7 @@ const ListaAprendices = () => {
         <nav className="menu">
           <p className="menu-title">MENU</p>
           <ul>
-            {menuItems.map((item) => (
+            {ADMIN_MENU_ITEMS.map((item) => (
               <li
                 key={item.name}
                 className={location.pathname === item.path ? "active" : ""}
@@ -252,7 +280,7 @@ const ListaAprendices = () => {
       <main className="content">
         <nav className="nav-top">
           <div className="title-section">
-            <h1>Lista de Aprendices</h1>
+            <h1>Lista de Instructores</h1>
           </div>
 
           <div
@@ -261,11 +289,11 @@ const ListaAprendices = () => {
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             <img
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(instructorName)}&background=39A900&color=fff`}
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(adminName)}&background=39A900&color=fff`}
               className="profile-img"
               alt="Avatar"
             />
-            <span className="profile-name">{instructorName}</span>
+            <span className="profile-name">{adminName}</span>
             <ChevronDown size={18} />
 
             {isMenuOpen && (
@@ -285,10 +313,49 @@ const ListaAprendices = () => {
         <div className="lista-container">
           <section className="table-card">
             <div className="table-header">
-              <h2>Aprendices Registrados</h2>
-              <span className="table-subtitle">
-                Listado oficial de aprendices registrados en el sistema.
-              </span>
+              <div className="table-header-top">
+                <div>
+                  <h2>Instructores Registrados</h2>
+                  <span className="table-subtitle">
+                    Listado oficial de instructores registrados en el sistema.
+                  </span>
+                </div>
+
+                <div className="minimal-search">
+                  <div className="minimal-search-input-wrapper">
+                    <Search size={15} className="minimal-search-icon" />
+                    <input
+                      type="text"
+                      className="minimal-search-input"
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      placeholder={activeFilterOption.placeholder}
+                    />
+                  </div>
+
+                  <div className="minimal-select-wrapper">
+                    <select
+                      className="minimal-filter-select"
+                      value={activeFilter}
+                      onChange={(e) => {
+                        setActiveFilter(e.target.value as FilterKey);
+                        setCurrentPage(1);
+                      }}
+                      aria-label="Opciones de filtrado"
+                    >
+                      {FILTER_OPTIONS.map((option) => (
+                        <option key={option.key} value={option.key}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="minimal-select-icon" />
+                  </div>
+                </div>
+              </div>
             </div>
 
             <table className="custom-table">
@@ -296,7 +363,6 @@ const ListaAprendices = () => {
                 <tr>
                   <th>Documento</th>
                   <th>Ficha</th>
-                  <th>Programa</th>
                   <th>Nombre</th>
                   <th>Apellido</th>
                   <th>Telefono</th>
@@ -316,7 +382,6 @@ const ListaAprendices = () => {
                       <tr key={index}>
                         <td>{row.documento}</td>
                         <td>{row.ficha}</td>
-                        <td>{row.programa || "Sin programa"}</td>
                         <td>{row.nombre}</td>
                         <td>{row.apellido}</td>
                         <td>{row.telefono}</td>
@@ -337,14 +402,14 @@ const ListaAprendices = () => {
                 ) : (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={8}
                       style={{
                         textAlign: "center",
                         padding: "30px",
                         color: "#777",
                       }}
                     >
-                      No se encontraron aprendices con estos filtros.
+                      No se encontraron instructores con este filtro.
                     </td>
                   </tr>
                 )}
@@ -373,73 +438,6 @@ const ListaAprendices = () => {
               </div>
             )}
           </section>
-
-          <aside className="filter-card">
-            <div className="filter-header">
-              <h3>
-                <Filter size={18} style={{ marginRight: "8px" }} /> Filtros
-              </h3>
-            </div>
-            <div className="filter-group">
-              <label>Documento</label>
-              <input
-                type="text"
-                name="documento"
-                className="input-filter"
-                value={filters.documento}
-                onChange={handleFilterChange}
-                placeholder="Buscar..."
-              />
-            </div>
-            <div className="filter-group">
-              <label>Ficha</label>
-              <input
-                type="text"
-                name="ficha"
-                className="input-filter"
-                value={filters.ficha}
-                onChange={handleFilterChange}
-                placeholder="Buscar..."
-              />
-            </div>
-            <div className="filter-group">
-              <label>Programa</label>
-              <input
-                type="text"
-                name="programa"
-                className="input-filter"
-                value={filters.programa}
-                onChange={handleFilterChange}
-                placeholder="Buscar..."
-              />
-            </div>
-            <div className="filter-group">
-              <label>Nombre</label>
-              <input
-                type="text"
-                name="nombre"
-                className="input-filter"
-                value={filters.nombre}
-                onChange={handleFilterChange}
-                placeholder="Buscar..."
-              />
-            </div>
-            <div className="filter-group">
-              <label>Apellido</label>
-              <input
-                type="text"
-                name="apellido"
-                className="input-filter"
-                value={filters.apellido}
-                onChange={handleFilterChange}
-                placeholder="Buscar..."
-              />
-            </div>
-            <div className="btn-search-indicator">
-              <Search size={16} style={{ marginRight: "5px" }} /> Registros:{" "}
-              {totalItems}
-            </div>
-          </aside>
         </div>
       </main>
 
@@ -468,4 +466,4 @@ const ListaAprendices = () => {
   );
 };
 
-export default ListaAprendices;
+export default ListaInstructoresAdmin;

@@ -12,20 +12,15 @@ import {
   LogOut,
   User,
   ChevronDown,
-  Users,
-  Home,
   PenTool,
   AlertTriangle,
   HelpCircle,
-  UserCheck,
-  Settings,
-  FolderOpen,
-  UserPlus,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import senaLogo from "../../assets/sena.png";
 import "./admin_dashboard.css";
 import { API_URL } from "../../config/api";
+import { ADMIN_MENU_ITEMS } from "./adminMenuItems";
 
 interface Stat {
   label: string;
@@ -226,19 +221,6 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const menuItems = [
-    { name: "Inicio", icon: Home, path: "/dashboard" },
-    { name: "Aprendices", icon: Users, path: "/lista-aprendices" },
-    { name: "Instructores", icon: UserCheck, path: "/crear-proyecto" },
-    { name: "Cambios Del sistema", icon: Settings, path: "/asignar-proyectos" },
-    { name: "Proyectos", icon: FolderOpen, path: "/ver-proyectos" },
-    {
-      name: "Registrar Instructor",
-      icon: UserPlus,
-      path: "/registrar-aprendiz",
-    },
-  ];
-
   useEffect(() => {
     const storedCedula = localStorage.getItem("userCedula");
     const storedRoleId = localStorage.getItem("userRoleId");
@@ -344,11 +326,21 @@ const AdminDashboard = () => {
           <nav className="menu">
             <p className="menu-title">MENU</p>
             <ul>
-              {menuItems.map((item) => (
+              {ADMIN_MENU_ITEMS.map((item) => (
                 <li
                   key={item.name}
                   onClick={() => navigate(item.path)}
-                  className={location.pathname === item.path ? "active" : ""}
+                  className={
+                    item.path === "/dashboard"
+                      ? ["/dashboard", "/dashboard-administrador"].includes(
+                          location.pathname,
+                        )
+                        ? "active"
+                        : ""
+                      : location.pathname === item.path
+                        ? "active"
+                        : ""
+                  }
                 >
                   <item.icon size={18} style={{ marginRight: "10px" }} />{" "}
                   {item.name}

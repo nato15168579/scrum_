@@ -18,13 +18,68 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const Usuario_1 = require("../entities/Usuario");
-const Proyecto_1 = require("../entities/Proyecto");
 let DashboardService = DashboardService_1 = class DashboardService {
-    constructor(usuarioRepository, proyectoRepository, dataSource) {
+    constructor(usuarioRepository, dataSource) {
         this.usuarioRepository = usuarioRepository;
-        this.proyectoRepository = proyectoRepository;
         this.dataSource = dataSource;
         this.logger = new common_1.Logger(DashboardService_1.name);
+    }
+    wrapIdentifier(identifier) {
+        return `\`${identifier.replace(/`/g, "``")}\``;
+    }
+    async tableExists(tableName) {
+        const [row] = await this.dataSource.query(`
+        SELECT COUNT(*) AS total
+        FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+      `, [tableName]);
+        return Number((row === null || row === void 0 ? void 0 : row.total) || 0) > 0;
+    }
+    async columnExists(tableName, columnName) {
+        const [row] = await this.dataSource.query(`
+        SELECT COUNT(*) AS total
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+      `, [tableName, columnName]);
+        return Number((row === null || row === void 0 ? void 0 : row.total) || 0) > 0;
+    }
+    async getProyectoStats() {
+        const tableCandidates = ["proyecto", " proyecto"];
+        let proyectoTable = null;
+        for (const candidate of tableCandidates) {
+            if (await this.tableExists(candidate)) {
+                proyectoTable = candidate;
+                break;
+            }
+        }
+        if (!proyectoTable) {
+            return { total: 0, porHacer: 0, enProgreso: 0, hecho: 0 };
+        }
+        const tableRef = this.wrapIdentifier(proyectoTable);
+        const [totalRow] = await this.dataSource.query(`SELECT COUNT(*) AS total FROM ${tableRef}`);
+        const total = Number((totalRow === null || totalRow === void 0 ? void 0 : totalRow.total) || 0);
+        const statusCandidates = ["det_par_ID_FK", "det_par_id_fk"];
+        let statusColumn = null;
+        for (const candidate of statusCandidates) {
+            if (await this.columnExists(proyectoTable, candidate)) {
+                statusColumn = candidate;
+                break;
+            }
+        }
+        if (!statusColumn) {
+            return { total, porHacer: 0, enProgreso: 0, hecho: 0 };
+        }
+        const statusRef = this.wrapIdentifier(statusColumn);
+        const statusRows = await this.dataSource.query(`SELECT ${statusRef} AS estado FROM ${tableRef}`);
+        const porHacer = statusRows.filter((row) => Number(row.estado) === 1)
+            .length;
+        const enProgreso = statusRows.filter((row) => Number(row.estado) === 2).length;
+        const hecho = statusRows.filter((row) => Number(row.estado) === 3)
+            .length;
+        return { total, porHacer, enProgreso, hecho };
     }
     async obtenerDatosDashboard(cedulaInput) {
         try {
@@ -58,10 +113,13 @@ let DashboardService = DashboardService_1 = class DashboardService {
             catch (e) {
                 this.logger.error("Error al calcular fichas:", e.message);
             }
-            let proyectos = await this.proyectoRepository.find();
-            const porHacer = proyectos.filter((p) => Number(p.detParIdFk || p.det_par_id_fk) === 1).length;
-            const enProgreso = proyectos.filter((p) => Number(p.detParIdFk || p.det_par_id_fk) === 2).length;
-            const hecho = proyectos.filter((p) => Number(p.detParIdFk || p.det_par_id_fk) === 3).length;
+            let proyectosStats = { total: 0, porHacer: 0, enProgreso: 0, hecho: 0 };
+            try {
+                proyectosStats = await this.getProyectoStats();
+            }
+            catch (e) {
+                this.logger.error("Error al calcular proyectos:", e.message);
+            }
             return {
                 instructor: `${usuario.usuNombres || ""} ${usuario.usuApellidos || ""}`.trim(),
                 correo: usuario.usuCorreo || "Sin correo",
@@ -69,13 +127,13 @@ let DashboardService = DashboardService_1 = class DashboardService {
                 stats: [
                     { label: "Cantidad de fichas", value: totalFichasSena },
                     { label: "Reuniones observadas", value: reunionesCount },
-                    { label: "Proyectos (Global)", value: proyectos.length },
+                    { label: "Proyectos (Global)", value: proyectosStats.total },
                 ],
                 proyectosData: {
-                    total: proyectos.length,
-                    porHacer,
-                    enProgreso,
-                    hecho,
+                    total: proyectosStats.total,
+                    porHacer: proyectosStats.porHacer,
+                    enProgreso: proyectosStats.enProgreso,
+                    hecho: proyectosStats.hecho,
                 },
             };
         }
@@ -89,9 +147,7 @@ exports.DashboardService = DashboardService;
 exports.DashboardService = DashboardService = DashboardService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(Usuario_1.Usuario)),
-    __param(1, (0, typeorm_1.InjectRepository)(Proyecto_1.Proyecto)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
-        typeorm_2.Repository,
         typeorm_2.DataSource])
 ], DashboardService);
 //# sourceMappingURL=dashboard.service.js.map

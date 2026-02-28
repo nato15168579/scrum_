@@ -29,7 +29,7 @@ __decorate([
 ], Usuario.prototype, "usuCedula", void 0);
 __decorate([
     (0, typeorm_1.Column)("varchar", {
-        name: "usu_tipo_documento",
+        name: "usu_tipodedocumento",
         nullable: true,
         length: 20,
         default: () => "'CC'",
@@ -72,10 +72,6 @@ __decorate([
     }),
     __metadata("design:type", String)
 ], Usuario.prototype, "usuTelefono", void 0);
-__decorate([
-    (0, typeorm_1.Column)("varchar", { name: "usu_sexo", nullable: true, length: 20 }),
-    __metadata("design:type", String)
-], Usuario.prototype, "usuSexo", void 0);
 __decorate([
     (0, typeorm_1.Column)("varchar", {
         name: "usu_contraseña",

@@ -30,8 +30,19 @@ export class LoginService {
       rolSisIdFk: usuario.rolSisIdFk,
     });
 
-    // 2. Validar contraseña con bcrypt
-    const esValida = await bcrypt.compare(pass, usuario.usuContrasena!);
+    // 2. Validar contraseña (bcrypt y soporte legacy texto plano)
+    const passwordGuardada = usuario.usuContrasena || '';
+    let esValida = false;
+
+    if (passwordGuardada.startsWith('$2')) {
+      esValida = await bcrypt.compare(pass, passwordGuardada);
+    } else {
+      esValida = pass === passwordGuardada;
+      if (esValida) {
+        usuario.usuContrasena = await bcrypt.hash(pass, 10);
+        await this.usuarioRepo.save(usuario);
+      }
+    }
 
     if (!esValida) {
       console.error('❌ [LoginService] Contraseña incorrecta para cédula:', cedula);

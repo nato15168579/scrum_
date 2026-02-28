@@ -5,6 +5,8 @@ import InstructorDashboard from './components/dashboard_instructor/InstructorDas
 import DashboardAdministrador from './components/dashboard_administrador/admin_dashboard';
 import StudentDashboard from './components/StudentsDashboard/StudentDashboard';
 import ListaAprendices from './components/lista_aprendices/ListaAprendices';
+import ListaAprendicesAdmin from './components/dashboard_administrador/lista_aprendices/ListaAprendices';
+import ListaInstructoresAdmin from './components/dashboard_administrador/lista_instructores/lista_instructoresAdmin';
 import CrearProyecto from './components/crear_proyecto/CrearProyecto';
 import AsignarProyecto from './components/asignar_proyecto/AsignarProyecto';
 import VerMasProyecto from './components/asignar_proyecto/asignar_proyecto_vermas/VerMasProyecto';
@@ -12,11 +14,14 @@ import VerProyectos from './components/ver_proyectos/VerProyectos';
 import RegistrarAprendiz from './components/RegistrarAprendiz';
 
 function DashboardByRole() {
-  const roleId = localStorage.getItem('userRoleId');
+  const roleId = (localStorage.getItem('userRoleId') || '').trim();
+  const cedula = localStorage.getItem('userCedula');
+
+  if (!cedula) return <Navigate to="/" replace />;
   if (roleId === '3') return <Navigate to="/dashboard-administrador" replace />;
   if (roleId === '2') return <Navigate to="/dashboard-instructor" replace />;
   if (roleId === '1') return <Navigate to="/student-dashboard" replace />;
-  return <Navigate to="/" replace />;
+  return <Navigate to="/dashboard-administrador" replace />;
 }
 
 function App() {
@@ -33,6 +38,8 @@ function App() {
       <Route path="/student-dashboard" element={<StudentDashboard />} />
       {/* 3. ruta de la lista de aprendices */}
       <Route path="/lista-aprendices" element={<ListaAprendices />} />
+      <Route path="/lista-aprendices-admin" element={<ListaAprendicesAdmin />} />
+      <Route path="/lista-instructores-admin" element={<ListaInstructoresAdmin />} />
       {/* 4. ruta de crear proyecto */}
       <Route path="/crear-proyecto" element={<CrearProyecto />} />
       {/* 5. ruta de asignar proyecto */}

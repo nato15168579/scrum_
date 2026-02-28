@@ -53,7 +53,16 @@ const LoginScreen = () => {
       }
 
       const cedulaStr = data.usuCedula?.toString() || "";
-      const roleIdStr = data.rolSisIdFk?.toString() || "";
+      const rawRoleId =
+        data.rolSisIdFk ??
+        data.rol_sis_ID_FK ??
+        data.rol_sis_id_fk ??
+        data.rolId ??
+        data.rol_id;
+      const roleIdStr =
+        rawRoleId === undefined || rawRoleId === null
+          ? ""
+          : String(rawRoleId).trim();
       const fullNombre =
         `${data.usuNombres || ""} ${data.usuApellidos || ""}`.trim();
 
@@ -81,9 +90,14 @@ const LoginScreen = () => {
           "🎯 Rol es Instructor (2) - Redirigiendo a /dashboard-instructor",
         );
         navigate("/dashboard-instructor");
-      } else {
+      } else if (roleNum === 1) {
         console.log("🎯 Rol es Aprendiz - Redirigiendo a /student-dashboard");
         navigate("/student-dashboard");
+      } else {
+        console.log(
+          "🎯 Rol no identificado, redirigiendo a /dashboard para resolver por contexto",
+        );
+        navigate("/dashboard");
       }
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));

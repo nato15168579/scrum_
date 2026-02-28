@@ -1,7 +1,7 @@
 import { Injectable, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Proyecto } from '../entities/proyecto'; 
+import { Proyecto } from '../entities/Proyecto';
 import { UsuProDetPar } from '../entities/UsuProDetPar';
 
 @Injectable()
@@ -48,9 +48,8 @@ export class CrearproService {
         detParIdFk: idParametroValido,
         proDescription: "Registro manual",
         proJustificacion: "N/A",
-        porObjetivosEspecificos: "N/A",
-        proDuracionSprint: "2 semanas",
-        proFechaFin: data.fecha
+        proObjetivosEspecificos: "N/A",
+        proFechaFin: data.fecha,
       });
 
       // 5. GUARDAR

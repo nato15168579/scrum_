@@ -10,7 +10,6 @@ export declare class Usuario {
     usuApellidos: string | null;
     usuCorreo: string | null;
     usuTelefono: string | null;
-    usuSexo: string | null;
     usuContrasena: string | null;
     rolSisIdFk: number | null;
     usuFicha: string | null;

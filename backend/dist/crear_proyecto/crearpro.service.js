@@ -16,7 +16,7 @@ exports.CrearproService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
-const proyecto_1 = require("../entities/proyecto");
+const Proyecto_1 = require("../entities/Proyecto");
 const UsuProDetPar_1 = require("../entities/UsuProDetPar");
 let CrearproService = class CrearproService {
     constructor(proyectoRepository, usuRepository) {
@@ -49,9 +49,8 @@ let CrearproService = class CrearproService {
                 detParIdFk: idParametroValido,
                 proDescription: "Registro manual",
                 proJustificacion: "N/A",
-                porObjetivosEspecificos: "N/A",
-                proDuracionSprint: "2 semanas",
-                proFechaFin: data.fecha
+                proObjetivosEspecificos: "N/A",
+                proFechaFin: data.fecha,
             });
             return await this.proyectoRepository.save(nuevoProyecto);
         }
@@ -64,7 +63,7 @@ let CrearproService = class CrearproService {
 exports.CrearproService = CrearproService;
 exports.CrearproService = CrearproService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_1.InjectRepository)(proyecto_1.Proyecto)),
+    __param(0, (0, typeorm_1.InjectRepository)(Proyecto_1.Proyecto)),
     __param(1, (0, typeorm_1.InjectRepository)(UsuProDetPar_1.UsuProDetPar)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository])

@@ -29,6 +29,21 @@ export class ListaService {
     private readonly dataSource: DataSource,
   ) {}
 
+  private async columnExists(tableName: string, columnName: string) {
+    const [result] = await this.dataSource.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+      `,
+      [tableName, columnName],
+    );
+
+    return Number(result?.total || 0) > 0;
+  }
+
   private async ensureRegistroTable() {
     await this.dataSource.query(`
       CREATE TABLE IF NOT EXISTS usuario_registro (
@@ -45,12 +60,15 @@ export class ListaService {
 
   async findAllAprendices() {
     await this.ensureRegistroTable();
+    const hasProgramaColumn = await this.columnExists('usuario', 'usu_programa');
+    const programaSelect = hasProgramaColumn ? 'u.usu_programa' : 'NULL';
 
     const aprendices = await this.dataSource.query(
       `
         SELECT
           u.usu_cedula AS documento,
           u.usu_ficha AS ficha,
+          ${programaSelect} AS programa,
           u.usu_nombres AS nombre,
           u.usu_apellidos AS apellido,
           u.usu_telefono AS telefono,
@@ -67,12 +85,47 @@ export class ListaService {
     return (aprendices || []).map((ap: any) => ({
       documento: String(ap.documento),
       ficha: ap.ficha || 'Sin ficha',
+      programa: ap.programa || 'Sin programa',
       nombre: ap.nombre || '',
       apellido: ap.apellido || '',
       telefono: ap.telefono || '',
       email: ap.email || '',
       fechaInscripcion: ap.fechaInscripcion
         ? new Date(ap.fechaInscripcion).toISOString()
+        : null,
+    }));
+  }
+
+  async findAllInstructores() {
+    await this.ensureRegistroTable();
+
+    const instructores = await this.dataSource.query(
+      `
+        SELECT
+          u.usu_cedula AS documento,
+          u.usu_ficha AS ficha,
+          u.usu_nombres AS nombre,
+          u.usu_apellidos AS apellido,
+          u.usu_telefono AS telefono,
+          u.usu_correo AS email,
+          r.fecha_registro AS fechaInscripcion
+        FROM usuario u
+        LEFT JOIN usuario_registro r
+          ON r.usu_cedula = u.usu_cedula
+        WHERE u.rol_sis_ID_FK = 2
+        ORDER BY r.fecha_registro DESC, u.usu_cedula DESC
+      `,
+    );
+
+    return (instructores || []).map((inst: any) => ({
+      documento: String(inst.documento),
+      ficha: inst.ficha || 'Sin ficha',
+      nombre: inst.nombre || '',
+      apellido: inst.apellido || '',
+      telefono: inst.telefono || '',
+      email: inst.email || '',
+      fechaInscripcion: inst.fechaInscripcion
+        ? new Date(inst.fechaInscripcion).toISOString()
         : null,
     }));
   }
@@ -104,7 +157,6 @@ export class ListaService {
       usuApellidos: payload.apellidos?.trim() || '',
       usuCorreo: payload.correo?.trim() || '',
       usuTelefono: payload.telefono?.trim() || null,
-      usuSexo: payload.sexo?.trim() || null,
       usuContrasena: hash,
       rolSisIdFk: 1,
       usuFicha: payload.ficha?.trim() || null,

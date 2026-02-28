@@ -1,0 +1,28 @@
+import {
+  FolderOpen,
+  Home,
+  Settings,
+  UserCheck,
+  UserPlus,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+
+export interface AdminMenuItem {
+  name: string;
+  icon: LucideIcon;
+  path: string;
+}
+
+export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
+  { name: "Inicio", icon: Home, path: "/dashboard" },
+  { name: "Aprendices", icon: Users, path: "/lista-aprendices-admin" },
+  { name: "Instructores", icon: UserCheck, path: "/lista-instructores-admin" },
+  { name: "Cambios Del sistema", icon: Settings, path: "/asignar-proyectos" },
+  { name: "Proyectos", icon: FolderOpen, path: "/ver-proyectos" },
+  {
+    name: "Registrar Instructor",
+    icon: UserPlus,
+    path: "/registrar-aprendiz",
+  },
+];

@@ -23,6 +23,16 @@ let ListaService = class ListaService {
         this.usuarioRepository = usuarioRepository;
         this.dataSource = dataSource;
     }
+    async columnExists(tableName, columnName) {
+        const [result] = await this.dataSource.query(`
+        SELECT COUNT(*) AS total
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+      `, [tableName, columnName]);
+        return Number((result === null || result === void 0 ? void 0 : result.total) || 0) > 0;
+    }
     async ensureRegistroTable() {
         await this.dataSource.query(`
       CREATE TABLE IF NOT EXISTS usuario_registro (
@@ -38,10 +48,13 @@ let ListaService = class ListaService {
     }
     async findAllAprendices() {
         await this.ensureRegistroTable();
+        const hasProgramaColumn = await this.columnExists('usuario', 'usu_programa');
+        const programaSelect = hasProgramaColumn ? 'u.usu_programa' : 'NULL';
         const aprendices = await this.dataSource.query(`
         SELECT
           u.usu_cedula AS documento,
           u.usu_ficha AS ficha,
+          ${programaSelect} AS programa,
           u.usu_nombres AS nombre,
           u.usu_apellidos AS apellido,
           u.usu_telefono AS telefono,
@@ -56,6 +69,7 @@ let ListaService = class ListaService {
         return (aprendices || []).map((ap) => ({
             documento: String(ap.documento),
             ficha: ap.ficha || 'Sin ficha',
+            programa: ap.programa || 'Sin programa',
             nombre: ap.nombre || '',
             apellido: ap.apellido || '',
             telefono: ap.telefono || '',
@@ -65,8 +79,37 @@ let ListaService = class ListaService {
                 : null,
         }));
     }
+    async findAllInstructores() {
+        await this.ensureRegistroTable();
+        const instructores = await this.dataSource.query(`
+        SELECT
+          u.usu_cedula AS documento,
+          u.usu_ficha AS ficha,
+          u.usu_nombres AS nombre,
+          u.usu_apellidos AS apellido,
+          u.usu_telefono AS telefono,
+          u.usu_correo AS email,
+          r.fecha_registro AS fechaInscripcion
+        FROM usuario u
+        LEFT JOIN usuario_registro r
+          ON r.usu_cedula = u.usu_cedula
+        WHERE u.rol_sis_ID_FK = 2
+        ORDER BY r.fecha_registro DESC, u.usu_cedula DESC
+      `);
+        return (instructores || []).map((inst) => ({
+            documento: String(inst.documento),
+            ficha: inst.ficha || 'Sin ficha',
+            nombre: inst.nombre || '',
+            apellido: inst.apellido || '',
+            telefono: inst.telefono || '',
+            email: inst.email || '',
+            fechaInscripcion: inst.fechaInscripcion
+                ? new Date(inst.fechaInscripcion).toISOString()
+                : null,
+        }));
+    }
     async createAprendiz(payload) {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e;
         const cedula = Number(payload.cedula);
         if (!cedula || Number.isNaN(cedula)) {
             throw new common_1.BadRequestException('La cedula es obligatoria y debe ser numerica.');
@@ -88,10 +131,9 @@ let ListaService = class ListaService {
             usuApellidos: ((_b = payload.apellidos) === null || _b === void 0 ? void 0 : _b.trim()) || '',
             usuCorreo: ((_c = payload.correo) === null || _c === void 0 ? void 0 : _c.trim()) || '',
             usuTelefono: ((_d = payload.telefono) === null || _d === void 0 ? void 0 : _d.trim()) || null,
-            usuSexo: ((_e = payload.sexo) === null || _e === void 0 ? void 0 : _e.trim()) || null,
             usuContrasena: hash,
             rolSisIdFk: 1,
-            usuFicha: ((_f = payload.ficha) === null || _f === void 0 ? void 0 : _f.trim()) || null,
+            usuFicha: ((_e = payload.ficha) === null || _e === void 0 ? void 0 : _e.trim()) || null,
         });
         try {
             await this.usuarioRepository.save(nuevoAprendiz);

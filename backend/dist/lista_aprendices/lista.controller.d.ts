@@ -3,6 +3,7 @@ export declare class ListaController {
     private readonly listaService;
     constructor(listaService: ListaService);
     getAprendices(): Promise<any>;
+    getInstructores(): Promise<any>;
     getStats(cedula: string): Promise<{
         instructor: string;
     }>;

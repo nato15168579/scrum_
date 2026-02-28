@@ -10,7 +10,6 @@ export declare class LoginService {
         usuApellidos: string | null;
         usuCorreo: string | null;
         usuTelefono: string | null;
-        usuSexo: string | null;
         rolSisIdFk: number | null;
         usuFicha: string | null;
         criteriosAceptacions: import("../entities/CriteriosAceptacion").CriteriosAceptacion[];

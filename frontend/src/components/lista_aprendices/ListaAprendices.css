@@ -126,6 +126,30 @@
     border-color: #39A900;
 }
 
+.status-badge {
+    border: none;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.status-badge:hover {
+    opacity: 0.85;
+}
+
+.status-active {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+}
+
+.status-inactive {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
 
 /* --- SECCIÓN DERECHA: FILTROS (Sticky) --- */
 .filter-card {

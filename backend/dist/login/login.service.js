@@ -47,7 +47,18 @@ let LoginService = class LoginService {
             usuNombres: usuario.usuNombres,
             rolSisIdFk: usuario.rolSisIdFk,
         });
-        const esValida = await bcrypt.compare(pass, usuario.usuContrasena);
+        const passwordGuardada = usuario.usuContrasena || '';
+        let esValida = false;
+        if (passwordGuardada.startsWith('$2')) {
+            esValida = await bcrypt.compare(pass, passwordGuardada);
+        }
+        else {
+            esValida = pass === passwordGuardada;
+            if (esValida) {
+                usuario.usuContrasena = await bcrypt.hash(pass, 10);
+                await this.usuarioRepo.save(usuario);
+            }
+        }
         if (!esValida) {
             console.error('❌ [LoginService] Contraseña incorrecta para cédula:', cedula);
             throw new common_1.UnauthorizedException('Contraseña incorrecta');
