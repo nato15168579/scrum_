@@ -378,7 +378,7 @@ const AdminDashboard = () => {
         <main className="content">
           <nav className="nav-top">
             <div className="title-section">
-              <h1>Dashboard Principal. hola</h1>
+              <h1>Dashboard Principal. holas</h1>
             </div>
             <div
               className="profile-menu"
