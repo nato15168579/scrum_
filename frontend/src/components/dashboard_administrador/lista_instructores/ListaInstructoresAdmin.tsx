@@ -41,10 +41,8 @@ type FilterKey =
   | "especializacion"
   | "nombre"
   | "apellido"
-  | "telefono"
   | "email"
-  | "fechaRegistro"
-  | "fichasCargo";
+  | "fechaRegistro";
 
 const ITEMS_PER_PAGE = 10;
 
