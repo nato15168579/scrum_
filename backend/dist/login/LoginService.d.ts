@@ -12,7 +12,7 @@ export declare class LoginService {
         usuTelefono: string | null;
         fechaRegistro: Date;
         rolSisIdFk: number | null;
-        usuFicha: string | null;
+        usuEstado: import("../entities/Usuario").EstadoUsuario | null;
         criteriosAceptacions: import("../entities/CriteriosAceptacion").CriteriosAceptacion[];
         observaciones: import("../entities/Observaciones").Observaciones[];
         rolSisIdFk2: import("../entities/RolSistema").RolSistema;

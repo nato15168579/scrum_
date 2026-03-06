@@ -12,6 +12,7 @@ import "../../dashboard_instructor/Dashboard.css";
 import "../../crear_proyecto/CrearProyecto.css";
 import { API_URL } from "../../../config/Api";
 import { ADMIN_MENU_ITEMS } from "../AdminMenuItems";
+import { resolveUserName } from "../../../utils/session";
 
 interface ErrorModalState {
   show: boolean;
@@ -30,7 +31,9 @@ const CrearProyectoAdmin = () => {
   const location = useLocation();
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const [adminName, setAdminName] = useState("Administrador");
+  const [adminName, setAdminName] = useState(() =>
+    resolveUserName(undefined, "Usuario"),
+  );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -76,10 +79,10 @@ const CrearProyectoAdmin = () => {
     fetch(`${API_URL}/dashboard?cedula=${cedula}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        setAdminName(data?.instructor || "Administrador SENA");
+        setAdminName(resolveUserName(data?.instructor, "Usuario"));
         setFormData((prev) => ({ ...prev, fechaCreacion: getCurrentLocalDate() }));
       })
-      .catch(() => setAdminName("Administrador SENA"));
+      .catch(() => setAdminName(resolveUserName(undefined, "Usuario")));
   }, [navigate]);
 
   useEffect(() => {

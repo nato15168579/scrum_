@@ -8,6 +8,7 @@ import senaLogo from '../../assets/sena.png';
 import '../dashboard_instructor/Dashboard.css'; 
 import './VerProyectos.css'; 
 import { API_URL } from '../../config/Api';
+import { resolveUserName } from '../../utils/session';
 
 // --- INTERFACES ---
 interface Proyecto {
@@ -40,7 +41,9 @@ const VerProyectos = () => {
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     
-    const [instructorName, setInstructorName] = useState('Instructor'); 
+    const [instructorName, setInstructorName] = useState(() =>
+        resolveUserName(undefined, 'Usuario'),
+    );
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -99,10 +102,8 @@ const VerProyectos = () => {
 
         fetch(`${API_URL}/dashboard?cedula=${cedula}`)
             .then(res => res.json())
-            .then(data => {
-                if (data?.instructor) setInstructorName(data.instructor);
-            })
-            .catch(() => setInstructorName("Instructor SENA"));
+            .then(data => setInstructorName(resolveUserName(data?.instructor, 'Usuario')))
+            .catch(() => setInstructorName(resolveUserName(undefined, 'Usuario')));
     }, [navigate]);
 
     // --- LÓGICA DE FILTRADO Y PAGINACIÓN ---

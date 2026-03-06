@@ -19,11 +19,17 @@ let ListaController = class ListaController {
     constructor(listaService) {
         this.listaService = listaService;
     }
-    async getAprendices() {
-        return await this.listaService.findAllAprendices();
+    async getAprendices(cedula) {
+        return await this.listaService.findAllAprendices(cedula);
     }
-    async getInstructores() {
-        return await this.listaService.findAllInstructores();
+    async updateAprendizEstado(cedula, payload) {
+        return await this.listaService.updateAprendizEstado(cedula, payload.estado);
+    }
+    async getInstructores(cedula) {
+        return await this.listaService.findAllInstructores(cedula);
+    }
+    async getFichas() {
+        return await this.listaService.findAllFichas();
     }
     async getStats(cedula) {
         return await this.listaService.getInstructorStats(cedula);
@@ -35,16 +41,32 @@ let ListaController = class ListaController {
 exports.ListaController = ListaController;
 __decorate([
     (0, common_1.Get)('aprendices'),
+    __param(0, (0, common_1.Query)('cedula')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "getAprendices", null);
 __decorate([
+    (0, common_1.Patch)('aprendices/:cedula/estado'),
+    __param(0, (0, common_1.Param)('cedula')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "updateAprendizEstado", null);
+__decorate([
     (0, common_1.Get)('instructores'),
+    __param(0, (0, common_1.Query)('cedula')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "getInstructores", null);
+__decorate([
+    (0, common_1.Get)('fichas'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
-], ListaController.prototype, "getInstructores", null);
+], ListaController.prototype, "getFichas", null);
 __decorate([
     (0, common_1.Get)('stats'),
     __param(0, (0, common_1.Query)('cedula')),

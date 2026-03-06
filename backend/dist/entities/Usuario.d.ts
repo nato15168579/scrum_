@@ -3,6 +3,7 @@ import { Observaciones } from "./Observaciones";
 import { RolSistema } from "./RolSistema";
 import { Reuniones } from "./Reuniones";
 import { UsuProDetPar } from "./UsuProDetPar";
+export type EstadoUsuario = "Activo" | "Inactivo";
 export declare class Usuario {
     usuCedula: number;
     usuTipoDocumento: string | null;
@@ -13,7 +14,7 @@ export declare class Usuario {
     usuContrasena: string | null;
     fechaRegistro: Date;
     rolSisIdFk: number | null;
-    usuFicha: string | null;
+    usuEstado: EstadoUsuario | null;
     criteriosAceptacions: CriteriosAceptacion[];
     observaciones: Observaciones[];
     rolSisIdFk2: RolSistema;

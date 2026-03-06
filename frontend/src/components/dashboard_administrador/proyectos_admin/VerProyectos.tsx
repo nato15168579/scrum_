@@ -13,6 +13,7 @@ import "../../dashboard_instructor/Dashboard.css";
 import "./VerProyectos.css";
 import { API_URL } from "../../../config/Api";
 import { ADMIN_MENU_ITEMS } from "../AdminMenuItems";
+import { resolveUserName } from "../../../utils/session";
 
 interface Proyecto {
   id: number;
@@ -55,7 +56,9 @@ const VerProyectosAdmin = () => {
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
-  const [adminName, setAdminName] = useState("Administrador");
+  const [adminName, setAdminName] = useState(() =>
+    resolveUserName(undefined, "Usuario"),
+  );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -113,10 +116,10 @@ const VerProyectosAdmin = () => {
         });
 
         setProyectos(formatted);
-        setAdminName(dashboardData?.instructor || "Administrador SENA");
+        setAdminName(resolveUserName(dashboardData?.instructor, "Usuario"));
       } catch (error) {
         console.error("Error cargando proyectos de admin:", error);
-        setAdminName("Administrador SENA");
+        setAdminName(resolveUserName(undefined, "Usuario"));
       } finally {
         setLoading(false);
       }

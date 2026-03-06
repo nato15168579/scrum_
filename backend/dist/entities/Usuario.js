@@ -40,7 +40,7 @@ __decorate([
     (0, typeorm_1.Column)("varchar", {
         name: "usu_nombres",
         nullable: true,
-        comment: "nombre  del usuario",
+        comment: "nombre del usuario",
         length: 100,
     }),
     __metadata("design:type", String)
@@ -49,7 +49,7 @@ __decorate([
     (0, typeorm_1.Column)("varchar", {
         name: "usu_apellidos",
         nullable: true,
-        comment: "apellido  del usuario",
+        comment: "apellido del usuario",
         length: 100,
     }),
     __metadata("design:type", String)
@@ -58,7 +58,7 @@ __decorate([
     (0, typeorm_1.Column)("varchar", {
         name: "usu_correo",
         nullable: true,
-        comment: "correo  del usuario",
+        comment: "correo del usuario",
         length: 100,
     }),
     __metadata("design:type", String)
@@ -76,7 +76,7 @@ __decorate([
     (0, typeorm_1.Column)("varchar", {
         name: "usu_contraseña",
         nullable: true,
-        comment: "contraseña del usuario",
+        comment: "contrasena del usuario",
         length: 250,
     }),
     __metadata("design:type", String)
@@ -95,13 +95,14 @@ __decorate([
 ], Usuario.prototype, "rolSisIdFk", void 0);
 __decorate([
     (0, typeorm_1.Column)("varchar", {
-        name: "usu_ficha",
+        name: "usu_estado",
         nullable: true,
-        comment: "Número de ficha (solo para aprendices)",
-        length: 50,
+        comment: "estado del usuario (Activo o Inactivo)",
+        length: 10,
+        default: () => "'Activo'",
     }),
     __metadata("design:type", String)
-], Usuario.prototype, "usuFicha", void 0);
+], Usuario.prototype, "usuEstado", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => CriteriosAceptacion_1.CriteriosAceptacion, (criteriosAceptacion) => criteriosAceptacion.usuCedulaFk2),
     __metadata("design:type", Array)

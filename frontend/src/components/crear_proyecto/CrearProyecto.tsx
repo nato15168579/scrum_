@@ -17,6 +17,7 @@ import senaLogo from "../../assets/sena.png";
 import "../dashboard_instructor/Dashboard.css";
 import "./CrearProyecto.css";
 import { API_URL } from "../../config/Api";
+import { resolveUserName } from "../../utils/session";
 
 const getCurrentLocalDate = () => {
   const now = new Date();
@@ -28,7 +29,9 @@ const CrearProyecto = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [instructorName, setInstructorName] = useState("Instructor");
+  const [instructorName, setInstructorName] = useState(() =>
+    resolveUserName(undefined, "Usuario"),
+  );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -69,10 +72,10 @@ const CrearProyecto = () => {
     fetch(`${API_URL}/dashboard?cedula=${cedula}`)
       .then((res) => res.json())
       .then((data) => {
-        setInstructorName(data?.instructor || "Instructor SENA");
+        setInstructorName(resolveUserName(data?.instructor, "Usuario"));
         setFormData((prev) => ({ ...prev, fechaCreacion: getCurrentLocalDate() }));
       })
-      .catch(() => setInstructorName("Instructor SENA"));
+      .catch(() => setInstructorName(resolveUserName(undefined, "Usuario")));
   }, [navigate]);
 
   const handleChange = (

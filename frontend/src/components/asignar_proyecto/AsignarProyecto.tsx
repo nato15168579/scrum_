@@ -9,6 +9,7 @@ import senaLogo from '../../assets/sena.png';
 import '../dashboard_instructor/Dashboard.css'; 
 import './AsignarProyecto.css'; 
 import { API_URL } from '../../config/Api';
+import { resolveUserName } from '../../utils/session';
 
 interface ProyectoAsignado {
     pro_ID: number;
@@ -21,7 +22,9 @@ const AsignarProyecto = () => {
     const location = useLocation();
     
     const [proyectos, setProyectos] = useState<ProyectoAsignado[]>([]);
-    const [instructorName, setInstructorName] = useState('Instructor'); 
+    const [instructorName, setInstructorName] = useState(() =>
+        resolveUserName(undefined, 'Usuario'),
+    ); 
     const [searchTerm, setSearchTerm] = useState('');
 
     // Estado para Paginación
@@ -42,7 +45,8 @@ const AsignarProyecto = () => {
 
         fetch(`${API_URL}/dashboard?cedula=${cedula}`)
             .then(res => res.json())
-            .then(data => setInstructorName(data?.instructor || "Instructor SENA"));
+            .then(data => setInstructorName(resolveUserName(data?.instructor, 'Usuario')))
+            .catch(() => setInstructorName(resolveUserName(undefined, 'Usuario')));
     }, [navigate]);
 
     const filtered = proyectos.filter((p) => 

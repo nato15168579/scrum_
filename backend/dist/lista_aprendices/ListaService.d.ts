@@ -1,5 +1,5 @@
 import { DataSource, Repository } from 'typeorm';
-import { Usuario } from '../entities/Usuario';
+import { EstadoUsuario, Usuario } from '../entities/Usuario';
 interface CreateAprendizDto {
     cedula: string | number;
     nombre: string;
@@ -18,9 +18,17 @@ export declare class ListaService {
     private columnExists;
     private tableExists;
     private ensureFechaRegistroColumn;
-    private normalizeFichasCargo;
-    findAllAprendices(): Promise<any>;
-    findAllInstructores(): Promise<any>;
+    private ensureEstadoColumn;
+    private ensureUsuarioColumns;
+    private ensureFichaSchema;
+    private normalizeEstado;
+    private formatDateToIso;
+    private buildFichaDetalle;
+    private getRolUsuario;
+    private getFichasAsignadasUsuario;
+    findAllFichas(): Promise<any>;
+    findAllAprendices(cedulaSolicitante?: string): Promise<any[]>;
+    findAllInstructores(_cedulaSolicitante?: string): Promise<any[]>;
     createAprendiz(payload: CreateAprendizDto): Promise<{
         ok: boolean;
         mensaje: string;
@@ -29,9 +37,17 @@ export declare class ListaService {
             nombre: string;
             apellido: string;
             ficha: string;
+            fichaNombre: any;
+            programa: any;
             email: string;
             fechaInscripcion: string;
+            estado: EstadoUsuario;
         };
+    }>;
+    updateAprendizEstado(cedula: string, estado: string): Promise<{
+        ok: boolean;
+        documento: string;
+        estado: EstadoUsuario;
     }>;
     getInstructorStats(cedula: string): Promise<{
         instructor: string;

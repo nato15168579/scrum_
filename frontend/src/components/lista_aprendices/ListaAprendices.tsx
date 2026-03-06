@@ -21,10 +21,12 @@ import senaLogo from "../../assets/sena.png";
 import "../dashboard_instructor/Dashboard.css";
 import "./ListaAprendices.css";
 import { API_URL } from "../../config/Api";
+import { resolveUserName } from "../../utils/session";
 
 interface Aprendiz {
   documento: string;
   ficha: string;
+  fichaNombre?: string;
   programa: string;
   nombre: string;
   apellido: string;
@@ -65,7 +67,9 @@ const ListaAprendices = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [instructorName, setInstructorName] = useState("Instructor");
+  const [instructorName, setInstructorName] = useState(() =>
+    resolveUserName(undefined, "Usuario"),
+  );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -129,15 +133,11 @@ const ListaAprendices = () => {
     fetch(`${API_URL}/dashboard?cedula=${cedula}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data && data.instructor) {
-          setInstructorName(data.instructor);
-        } else {
-          setInstructorName("Instructor SENA");
-        }
+        setInstructorName(resolveUserName(data?.instructor, "Usuario"));
       })
       .catch((err) => {
         console.error("Error perfil:", err);
-        setInstructorName("Instructor SENA");
+        setInstructorName(resolveUserName(undefined, "Usuario"));
       });
   }, [navigate]);
 
@@ -148,7 +148,9 @@ const ListaAprendices = () => {
           .toString()
           .toLowerCase()
           .includes(filters.documento.toLowerCase()) &&
-        (item.ficha || "").toLowerCase().includes(filters.ficha.toLowerCase()) &&
+        `${item.ficha || ""} ${item.fichaNombre || ""}`
+          .toLowerCase()
+          .includes(filters.ficha.toLowerCase()) &&
         (item.programa || "")
           .toLowerCase()
           .includes(filters.programa.toLowerCase()) &&
@@ -315,7 +317,11 @@ const ListaAprendices = () => {
                     return (
                       <tr key={index}>
                         <td>{row.documento}</td>
-                        <td>{row.ficha}</td>
+                        <td>
+                          {row.fichaNombre
+                            ? `${row.ficha} - ${row.fichaNombre}`
+                            : row.ficha}
+                        </td>
                         <td>{row.programa || "Sin programa"}</td>
                         <td>{row.nombre}</td>
                         <td>{row.apellido}</td>

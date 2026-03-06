@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, Not, IsNull, DataSource } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 import { Usuario } from "../entities/Usuario";
 
 @Injectable()
@@ -102,19 +102,15 @@ export class DashboardService {
     try {
       const cedula = Number(cedulaInput);
 
-      // 1. OBTENER DATOS DEL USUARIO
-      // Usamos findOneBy para evitar problemas de tipos con la cédula
       const usuario = await this.usuarioRepository.findOneBy({
         usuCedula: cedula,
       });
 
       if (!usuario) {
-        this.logger.warn(`Usuario con cédula ${cedula} no encontrado`);
+        this.logger.warn(`Usuario con cedula ${cedula} no encontrado`);
         return { error: "Usuario no encontrado" };
       }
 
-      // 2. CONTEO DE REUNIONES (Consultando la tabla intermedia usu_asis)
-      // En tu Usuario.ts definiste: @JoinTable({ name: "usu_asis" ... })
       let reunionesCount = 0;
       try {
         const queryResult = await this.dataSource.query(
@@ -122,44 +118,38 @@ export class DashboardService {
           [cedula],
         );
         reunionesCount = parseInt(queryResult[0].total) || 0;
-      } catch (e) {
+      } catch (e: any) {
         this.logger.error(
           "Error al consultar la tabla intermedia usu_asis:",
           e.message,
         );
       }
 
-      // 3. CONTEO DE FICHAS ÚNICAS
       let totalFichasSena = 0;
       try {
-        const usuariosConFicha = await this.usuarioRepository.find({
-          where: { usuFicha: Not(IsNull()) },
-          select: ["usuFicha"],
-        });
-        const fichasUnicas = [
-          ...new Set(usuariosConFicha.map((u) => u.usuFicha)),
-        ];
-        totalFichasSena = fichasUnicas.filter((f) => f).length;
-      } catch (e) {
+        if (await this.tableExists("fichas")) {
+          const [fichasRow] = await this.dataSource.query(
+            "SELECT COUNT(*) AS total FROM fichas",
+          );
+          totalFichasSena = Number(fichasRow?.total || 0);
+        }
+      } catch (e: any) {
         this.logger.error("Error al calcular fichas:", e.message);
       }
 
-      // 4. PROCESAMIENTO DE PROYECTOS (tolerante a esquemas de BD distintos)
       let proyectosStats = { total: 0, porHacer: 0, enProgreso: 0, hecho: 0 };
       try {
         proyectosStats = await this.getProyectoStats();
-      } catch (e) {
+      } catch (e: any) {
         this.logger.error("Error al calcular proyectos:", e.message);
       }
 
-      // 5. RESPUESTA PARA EL FRONTEND
-      // Aquí usamos los nombres EXACTOS de tu Usuario.ts
       return {
         instructor:
           `${usuario.usuNombres || ""} ${usuario.usuApellidos || ""}`.trim(),
         correo: usuario.usuCorreo || "Sin correo",
         description:
-          "Bienvenido al centro de administración del sistema. Desde aquí puedes supervisar el estado general de la plataforma, gestionar usuarios, monitorear proyectos y dar seguimiento a reportes en tiempo real.Este panel te ofrece una visión estratégica del rendimiento, crecimiento y actividad del sistema, permitiéndote tomar decisiones informadas y mantener el control operativo en todo momento.Utiliza el menú lateral para acceder a cada módulo y administrar los recursos de forma eficiente.",
+          "Bienvenido al centro de administracion del sistema. Desde aqui puedes supervisar el estado general de la plataforma, gestionar usuarios, monitorear proyectos y dar seguimiento a reportes en tiempo real. Este panel te ofrece una vision estrategica del rendimiento, crecimiento y actividad del sistema para mantener el control operativo en todo momento.",
         stats: [
           { label: "Cantidad de fichas", value: totalFichasSena },
           { label: "Reuniones observadas", value: reunionesCount },
@@ -172,8 +162,8 @@ export class DashboardService {
           hecho: proyectosStats.hecho,
         },
       };
-    } catch (error) {
-      this.logger.error("Error crítico en DashboardService:", error.message);
+    } catch (error: any) {
+      this.logger.error("Error critico en DashboardService:", error.message);
       throw new Error(`Error interno: ${error.message}`);
     }
   }

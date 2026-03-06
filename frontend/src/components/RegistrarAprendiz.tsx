@@ -22,6 +22,13 @@ import { API_URL } from "../config/Api";
 const API_USERS_URL = `${API_URL}/users`;
 const API_STATS_URL = `${API_URL}/stats`;
 
+interface FichaOption {
+  numero: string;
+  nombre: string;
+  programa: string;
+  estado: string;
+}
+
 const Sidebar = ({ navigate }: { navigate: (path: string) => void }) => {
   const menuItems = [
     { name: "Inicio", icon: Home, path: "/dashboard" },
@@ -81,9 +88,11 @@ const RegistrarAprendiz: React.FC = () => {
     null,
   );
   const [loading, setLoading] = useState(false);
+  const [fichasLoading, setFichasLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(
     "Verifica los datos o intenta mas tarde.",
   );
+  const [fichas, setFichas] = useState<FichaOption[]>([]);
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -109,6 +118,25 @@ const RegistrarAprendiz: React.FC = () => {
       .then((res) => setInstructorName(res.data.instructor || "Usuario"))
       .catch(() => setInstructorName("Usuario"));
 
+    axios
+      .get(`${API_URL}/fichas`)
+      .then((res) => {
+        const payload = Array.isArray(res.data) ? res.data : [];
+        setFichas(
+          payload.map((item) => ({
+            numero: String(item?.numero || ""),
+            nombre: String(item?.nombre || "Sin nombre"),
+            programa: String(item?.programa || "Sin programa"),
+            estado: String(item?.estado || "Sin estado"),
+          })),
+        );
+      })
+      .catch((error) => {
+        console.error("Error cargando fichas:", error);
+        setFichas([]);
+      })
+      .finally(() => setFichasLoading(false));
+
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node))
         setIsMenuOpen(false);
@@ -122,6 +150,10 @@ const RegistrarAprendiz: React.FC = () => {
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  const fichasActivas = fichas.filter((item) => item.estado === "Activa");
+  const fichaSeleccionada =
+    fichasActivas.find((item) => item.numero === formData.ficha) || null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -338,15 +370,38 @@ const RegistrarAprendiz: React.FC = () => {
                     <label className="label-text">
                       Ficha <span className="required-mark">*</span>
                     </label>
-                    <input
-                      type="text"
+                    <select
                       name="ficha"
                       className="input-field"
                       value={formData.ficha}
                       onChange={handleChange}
                       required
-                      placeholder="Ej: 2900123"
-                    />
+                      disabled={fichasLoading || fichasActivas.length === 0}
+                    >
+                      <option value="">
+                        {fichasLoading
+                          ? "Cargando fichas..."
+                          : fichasActivas.length > 0
+                            ? "Selecciona una ficha"
+                            : "No hay fichas activas"}
+                      </option>
+                      {fichasActivas.map((ficha) => (
+                        <option key={ficha.numero} value={ficha.numero}>
+                          {`${ficha.numero} - ${ficha.nombre} (${ficha.programa})`}
+                        </option>
+                      ))}
+                    </select>
+                    {fichaSeleccionada && (
+                      <small
+                        style={{
+                          marginTop: "8px",
+                          color: "#4b5563",
+                          display: "block",
+                        }}
+                      >
+                        {`Nombre: ${fichaSeleccionada.nombre} | Programa: ${fichaSeleccionada.programa}`}
+                      </small>
+                    )}
                   </div>
 
                   <div className="input-block">

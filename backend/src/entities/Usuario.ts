@@ -14,6 +14,8 @@ import { RolSistema } from "./RolSistema";
 import { Reuniones } from "./Reuniones";
 import { UsuProDetPar } from "./UsuProDetPar";
 
+export type EstadoUsuario = "Activo" | "Inactivo";
+
 @Index("RolID", ["rolSisIdFk"], {})
 @Entity("usuario", { schema: "pro_scrum" })
 export class Usuario {
@@ -35,7 +37,7 @@ export class Usuario {
   @Column("varchar", {
     name: "usu_nombres",
     nullable: true,
-    comment: "nombre  del usuario",
+    comment: "nombre del usuario",
     length: 100,
   })
   usuNombres: string | null;
@@ -43,7 +45,7 @@ export class Usuario {
   @Column("varchar", {
     name: "usu_apellidos",
     nullable: true,
-    comment: "apellido  del usuario",
+    comment: "apellido del usuario",
     length: 100,
   })
   usuApellidos: string | null;
@@ -51,7 +53,7 @@ export class Usuario {
   @Column("varchar", {
     name: "usu_correo",
     nullable: true,
-    comment: "correo  del usuario",
+    comment: "correo del usuario",
     length: 100,
   })
   usuCorreo: string | null;
@@ -67,7 +69,7 @@ export class Usuario {
   @Column("varchar", {
     name: "usu_contraseña",
     nullable: true,
-    comment: "contraseña del usuario",
+    comment: "contrasena del usuario",
     length: 250,
   })
   usuContrasena: string | null;
@@ -83,20 +85,24 @@ export class Usuario {
   rolSisIdFk: number | null;
 
   @Column("varchar", {
-    name: "usu_ficha",
+    name: "usu_estado",
     nullable: true,
-    comment: "Número de ficha (solo para aprendices)",
-    length: 50,
+    comment: "estado del usuario (Activo o Inactivo)",
+    length: 10,
+    default: () => "'Activo'",
   })
-  usuFicha: string | null;
+  usuEstado: EstadoUsuario | null;
 
   @OneToMany(
     () => CriteriosAceptacion,
-    (criteriosAceptacion) => criteriosAceptacion.usuCedulaFk2
+    (criteriosAceptacion) => criteriosAceptacion.usuCedulaFk2,
   )
   criteriosAceptacions: CriteriosAceptacion[];
 
-  @OneToMany(() => Observaciones, (observaciones) => observaciones.usuCedulaFk2)
+  @OneToMany(
+    () => Observaciones,
+    (observaciones) => observaciones.usuCedulaFk2,
+  )
   observaciones: Observaciones[];
 
   @ManyToOne(() => RolSistema, (rolSistema) => rolSistema.usuarios, {

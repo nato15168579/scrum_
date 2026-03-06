@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ListaService } from './ListaService';
 
 @Controller()
@@ -6,13 +6,26 @@ export class ListaController {
   constructor(private readonly listaService: ListaService) {}
 
   @Get('aprendices')
-  async getAprendices() {
-    return await this.listaService.findAllAprendices();
+  async getAprendices(@Query('cedula') cedula?: string) {
+    return await this.listaService.findAllAprendices(cedula);
+  }
+
+  @Patch('aprendices/:cedula/estado')
+  async updateAprendizEstado(
+    @Param('cedula') cedula: string,
+    @Body() payload: { estado: string },
+  ) {
+    return await this.listaService.updateAprendizEstado(cedula, payload.estado);
   }
 
   @Get('instructores')
-  async getInstructores() {
-    return await this.listaService.findAllInstructores();
+  async getInstructores(@Query('cedula') cedula?: string) {
+    return await this.listaService.findAllInstructores(cedula);
+  }
+
+  @Get('fichas')
+  async getFichas() {
+    return await this.listaService.findAllFichas();
   }
 
   @Get('stats')

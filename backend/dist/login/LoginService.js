@@ -34,15 +34,19 @@ let LoginService = class LoginService {
         this.usuarioRepo = usuarioRepo;
     }
     async validarUsuario(cedula, pass) {
-        console.log('🔍 [LoginService] Buscando usuario con cédula:', cedula);
+        console.log('[LoginService] Buscando usuario con cedula:', cedula);
         const usuario = await this.usuarioRepo.findOne({
-            where: { usuCedula: Number(cedula) }
+            where: { usuCedula: Number(cedula) },
         });
         if (!usuario) {
-            console.error('❌ [LoginService] Usuario no encontrado con cédula:', cedula);
+            console.error('[LoginService] Usuario no encontrado con cedula:', cedula);
             throw new common_1.UnauthorizedException('Usuario no encontrado');
         }
-        console.log('✅ [LoginService] Usuario encontrado:', {
+        if (usuario.usuEstado === 'Inactivo') {
+            console.error('[LoginService] Usuario inactivo:', cedula);
+            throw new common_1.UnauthorizedException('Usuario inactivo');
+        }
+        console.log('[LoginService] Usuario encontrado:', {
             usuCedula: usuario.usuCedula,
             usuNombres: usuario.usuNombres,
             rolSisIdFk: usuario.rolSisIdFk,
@@ -60,12 +64,12 @@ let LoginService = class LoginService {
             }
         }
         if (!esValida) {
-            console.error('❌ [LoginService] Contraseña incorrecta para cédula:', cedula);
-            throw new common_1.UnauthorizedException('Contraseña incorrecta');
+            console.error('[LoginService] Contrasena incorrecta para cedula:', cedula);
+            throw new common_1.UnauthorizedException('Contrasena incorrecta');
         }
-        console.log('✅ [LoginService] Contraseña válida');
+        console.log('[LoginService] Contrasena valida');
         const { usuContrasena } = usuario, datos = __rest(usuario, ["usuContrasena"]);
-        console.log('📤 [LoginService] Devolviendo datos del usuario:', {
+        console.log('[LoginService] Devolviendo datos del usuario:', {
             usuCedula: datos.usuCedula,
             usuNombres: datos.usuNombres,
             rolSisIdFk: datos.rolSisIdFk,

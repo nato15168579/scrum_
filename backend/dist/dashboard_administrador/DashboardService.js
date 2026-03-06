@@ -88,7 +88,7 @@ let DashboardService = DashboardService_1 = class DashboardService {
                 usuCedula: cedula,
             });
             if (!usuario) {
-                this.logger.warn(`Usuario con cédula ${cedula} no encontrado`);
+                this.logger.warn(`Usuario con cedula ${cedula} no encontrado`);
                 return { error: "Usuario no encontrado" };
             }
             let reunionesCount = 0;
@@ -101,14 +101,10 @@ let DashboardService = DashboardService_1 = class DashboardService {
             }
             let totalFichasSena = 0;
             try {
-                const usuariosConFicha = await this.usuarioRepository.find({
-                    where: { usuFicha: (0, typeorm_2.Not)((0, typeorm_2.IsNull)()) },
-                    select: ["usuFicha"],
-                });
-                const fichasUnicas = [
-                    ...new Set(usuariosConFicha.map((u) => u.usuFicha)),
-                ];
-                totalFichasSena = fichasUnicas.filter((f) => f).length;
+                if (await this.tableExists("fichas")) {
+                    const [fichasRow] = await this.dataSource.query("SELECT COUNT(*) AS total FROM fichas");
+                    totalFichasSena = Number((fichasRow === null || fichasRow === void 0 ? void 0 : fichasRow.total) || 0);
+                }
             }
             catch (e) {
                 this.logger.error("Error al calcular fichas:", e.message);
@@ -123,7 +119,7 @@ let DashboardService = DashboardService_1 = class DashboardService {
             return {
                 instructor: `${usuario.usuNombres || ""} ${usuario.usuApellidos || ""}`.trim(),
                 correo: usuario.usuCorreo || "Sin correo",
-                description: "Bienvenido al centro de administración del sistema. Desde aquí puedes supervisar el estado general de la plataforma, gestionar usuarios, monitorear proyectos y dar seguimiento a reportes en tiempo real.Este panel te ofrece una visión estratégica del rendimiento, crecimiento y actividad del sistema, permitiéndote tomar decisiones informadas y mantener el control operativo en todo momento.Utiliza el menú lateral para acceder a cada módulo y administrar los recursos de forma eficiente.",
+                description: "Bienvenido al centro de administracion del sistema. Desde aqui puedes supervisar el estado general de la plataforma, gestionar usuarios, monitorear proyectos y dar seguimiento a reportes en tiempo real. Este panel te ofrece una vision estrategica del rendimiento, crecimiento y actividad del sistema para mantener el control operativo en todo momento.",
                 stats: [
                     { label: "Cantidad de fichas", value: totalFichasSena },
                     { label: "Reuniones observadas", value: reunionesCount },
@@ -138,7 +134,7 @@ let DashboardService = DashboardService_1 = class DashboardService {
             };
         }
         catch (error) {
-            this.logger.error("Error crítico en DashboardService:", error.message);
+            this.logger.error("Error critico en DashboardService:", error.message);
             throw new Error(`Error interno: ${error.message}`);
         }
     }

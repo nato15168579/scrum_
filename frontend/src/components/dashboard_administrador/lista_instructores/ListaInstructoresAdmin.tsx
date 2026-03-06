@@ -14,23 +14,31 @@ import senaLogo from "../../../assets/sena.png";
 import "./ListaInstructores.css";
 import { API_URL } from "../../../config/Api";
 import { ADMIN_MENU_ITEMS } from "../AdminMenuItems";
+import { resolveUserName } from "../../../utils/session";
+
+interface FichaDetalle {
+  ficha: string;
+  nombre: string;
+  programa: string;
+  estado?: string | null;
+  fechaCreacion?: string | null;
+}
 
 interface Instructor {
   documento: string;
   especializacion: string;
-  fichasCargo?: string[] | string | null;
-  programa?: string | null;
+  fichasCargo?: string[] | null;
+  fichasDetalle?: FichaDetalle[] | null;
   nombre: string;
   apellido: string;
+  telefono: string;
   email: string;
+  fechaInscripcion?: string | null;
 }
 
 interface FichasModalData {
   instructorNombre: string;
-  fichas: Array<{
-    ficha: string;
-    programa: string;
-  }>;
+  fichas: FichaDetalle[];
 }
 
 type FilterKey =
@@ -39,8 +47,10 @@ type FilterKey =
   | "especializacion"
   | "nombre"
   | "apellido"
+  | "telefono"
   | "email"
-  | "fechaRegistro";
+  | "fechaRegistro"
+  | "fichasCargo";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -79,6 +89,31 @@ const normalizeFichasCargo = (value: unknown): string[] => {
         .filter(Boolean),
     ),
   );
+};
+
+const normalizeFichasDetalle = (value: unknown): FichaDetalle[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => ({
+      ficha: String((item as FichaDetalle)?.ficha || "").trim(),
+      nombre: String((item as FichaDetalle)?.nombre || "Sin nombre").trim(),
+      programa: String((item as FichaDetalle)?.programa || "Sin programa").trim(),
+      estado: String((item as FichaDetalle)?.estado || "").trim() || null,
+      fechaCreacion: (item as FichaDetalle)?.fechaCreacion || null,
+    }))
+    .filter((item) => item.ficha);
+};
+
+const buildFichaSearchValue = (item: Instructor) => {
+  const fichas = normalizeFichasDetalle(item.fichasDetalle);
+  if (fichas.length > 0) {
+    return fichas
+      .map((ficha) => `${ficha.ficha} ${ficha.nombre} ${ficha.programa}`.toLowerCase())
+      .join(" ");
+  }
+
+  return normalizeFichasCargo(item.fichasCargo).join(" ").toLowerCase();
 };
 
 const FILTER_OPTIONS: { key: FilterKey; label: string; placeholder: string }[] = [
@@ -122,7 +157,9 @@ const ListaInstructoresAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [adminName, setAdminName] = useState("Admin");
+  const [adminName, setAdminName] = useState(() =>
+    resolveUserName(undefined, "Usuario"),
+  );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [fichasModalData, setFichasModalData] =
@@ -175,7 +212,7 @@ const ListaInstructoresAdmin = () => {
           documento: String(item?.documento || ""),
           especializacion: String(item?.especializacion || "Sin especializacion"),
           fichasCargo: normalizeFichasCargo(item?.fichasCargo ?? item?.ficha),
-          programa: String(item?.programa || "Sin programa"),
+          fichasDetalle: normalizeFichasDetalle(item?.fichasDetalle),
           nombre: String(item?.nombre || ""),
           apellido: String(item?.apellido || ""),
           telefono: String(item?.telefono || ""),
@@ -185,14 +222,10 @@ const ListaInstructoresAdmin = () => {
 
         setInstructores(validData);
 
-        if (dashboardData && dashboardData.instructor) {
-          setAdminName(dashboardData.instructor);
-        } else {
-          setAdminName("Administrador SENA");
-        }
+        setAdminName(resolveUserName(dashboardData?.instructor, "Usuario"));
       } catch (err) {
         console.error("Error cargando lista de instructores:", err);
-        setAdminName("Administrador SENA");
+        setAdminName(resolveUserName(undefined, "Usuario"));
       } finally {
         setLoading(false);
       }
@@ -227,7 +260,7 @@ const ListaInstructoresAdmin = () => {
       telefono: (item) => item.telefono.toLowerCase(),
       email: (item) => item.email.toLowerCase(),
       fechaRegistro: (item) => formatFechaRegistro(item.fechaInscripcion).toLowerCase(),
-      fichasCargo: (item) => normalizeFichasCargo(item.fichasCargo).join(" ").toLowerCase(),
+      fichasCargo: (item) => buildFichaSearchValue(item),
     };
 
     return instructores.filter((item) => {
@@ -242,16 +275,21 @@ const ListaInstructoresAdmin = () => {
   }, [instructores, searchTerm, activeFilter]);
 
   const handleOpenFichasModal = (instructor: Instructor) => {
-    const fichas = normalizeFichasCargo(instructor.fichasCargo);
+    const fichasDetalle = normalizeFichasDetalle(instructor.fichasDetalle);
     const instructorNombre = `${instructor.nombre} ${instructor.apellido}`.trim();
-    const programa = String(instructor.programa || "Sin programa");
 
     setFichasModalData({
       instructorNombre: instructorNombre || `Instructor ${instructor.documento}`,
-      fichas: fichas.map((ficha) => ({
-        ficha,
-        programa,
-      })),
+      fichas:
+        fichasDetalle.length > 0
+          ? fichasDetalle
+          : normalizeFichasCargo(instructor.fichasCargo).map((ficha) => ({
+              ficha,
+              nombre: "Sin nombre",
+              programa: "Sin programa",
+              estado: null,
+              fechaCreacion: null,
+            })),
     });
   };
 
@@ -415,7 +453,11 @@ const ListaInstructoresAdmin = () => {
               <tbody>
                 {displayData.length > 0 ? (
                   displayData.map((row, index) => {
-                    const fichas = normalizeFichasCargo(row.fichasCargo);
+                    const fichas = normalizeFichasDetalle(row.fichasDetalle);
+                    const totalFichas =
+                      fichas.length > 0
+                        ? fichas.length
+                        : normalizeFichasCargo(row.fichasCargo).length;
 
                     return (
                       <tr key={`${row.documento}-${index}`}>
@@ -431,10 +473,10 @@ const ListaInstructoresAdmin = () => {
                             type="button"
                             className="btn-fichas-modal"
                             onClick={() => handleOpenFichasModal(row)}
-                            disabled={fichas.length === 0}
+                            disabled={totalFichas === 0}
                           >
-                            {fichas.length > 0
-                              ? `Ver fichas (${fichas.length})`
+                            {totalFichas > 0
+                              ? `Ver fichas (${totalFichas})`
                               : "Sin fichas asignadas"}
                           </button>
                         </td>
@@ -533,6 +575,7 @@ const ListaInstructoresAdmin = () => {
                   <thead>
                     <tr>
                       <th>Ficha</th>
+                      <th>Nombre</th>
                       <th>Programa</th>
                     </tr>
                   </thead>
@@ -540,6 +583,7 @@ const ListaInstructoresAdmin = () => {
                     {fichasModalData.fichas.map((item) => (
                       <tr key={`${item.ficha}-${item.programa}`}>
                         <td>{item.ficha}</td>
+                        <td>{item.nombre}</td>
                         <td>{item.programa}</td>
                       </tr>
                     ))}

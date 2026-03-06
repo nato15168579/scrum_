@@ -14,19 +14,23 @@ import senaLogo from "../../../assets/sena.png";
 import "./ListaAprendices.css";
 import { API_URL } from "../../../config/Api";
 import { ADMIN_MENU_ITEMS } from "../AdminMenuItems";
+import { resolveUserName } from "../../../utils/session";
+
+type EstadoAprendiz = "Activo" | "Inactivo";
 
 interface Aprendiz {
   documento: string;
   ficha: string;
+  fichaNombre?: string;
   programa: string;
   nombre: string;
   apellido: string;
   telefono: string;
   email: string;
   fechaInscripcion?: string | null;
+  estado: EstadoAprendiz;
 }
 
-type EstadoAprendiz = "Activo" | "Inactivo";
 type FilterKey =
   | "todos"
   | "documento"
@@ -40,10 +44,9 @@ type FilterKey =
   | "estado";
 
 const ITEMS_PER_PAGE = 10;
-const INACTIVE_DOCUMENT = "1047043541";
 
-const getDefaultEstado = (documento: string): EstadoAprendiz =>
-  documento === INACTIVE_DOCUMENT ? "Inactivo" : "Activo";
+const normalizeEstado = (estado?: string | null): EstadoAprendiz =>
+  estado === "Inactivo" ? "Inactivo" : "Activo";
 
 const formatFechaRegistro = (value?: string | null) => {
   if (!value) return "Sin registro";
@@ -89,13 +92,15 @@ const ListaAprendicesAdmin = () => {
   const location = useLocation();
 
   const [aprendices, setAprendices] = useState<Aprendiz[]>([]);
-  const [estadoPorDocumento, setEstadoPorDocumento] = useState<
-    Record<string, EstadoAprendiz>
+  const [actualizandoDocumento, setActualizandoDocumento] = useState<
+    Record<string, boolean>
   >({});
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [adminName, setAdminName] = useState("Admin");
+  const [adminName, setAdminName] = useState(() =>
+    resolveUserName(undefined, "Usuario"),
+  );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -131,12 +136,11 @@ const ListaAprendicesAdmin = () => {
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
         const validData = Array.isArray(data) ? data : [];
-        setAprendices(validData);
-        setEstadoPorDocumento(
-          validData.reduce<Record<string, EstadoAprendiz>>((acc, item) => {
-            acc[item.documento] = getDefaultEstado(item.documento);
-            return acc;
-          }, {}),
+        setAprendices(
+          validData.map((item) => ({
+            ...item,
+            estado: normalizeEstado(item.estado),
+          })),
         );
       })
       .catch((err) => console.error("Error aprendices:", err))
@@ -145,15 +149,11 @@ const ListaAprendicesAdmin = () => {
     fetch(`${API_URL}/dashboard?cedula=${cedula}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data && data.instructor) {
-          setAdminName(data.instructor);
-        } else {
-          setAdminName("Administrador SENA");
-        }
+        setAdminName(resolveUserName(data?.instructor, "Usuario"));
       })
       .catch((err) => {
         console.error("Error perfil:", err);
-        setAdminName("Administrador SENA");
+        setAdminName(resolveUserName(undefined, "Usuario"));
       });
   }, [navigate]);
 
@@ -167,22 +167,58 @@ const ListaAprendicesAdmin = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleToggleEstado = (documento: string) => {
+  const handleToggleEstado = async (
+    documento: string,
+    estadoActual: EstadoAprendiz,
+  ) => {
     const shouldUpdate = window.confirm(
-      "¿Está seguro de que desea cambiar el estado de este estudiante?",
+      "Esta seguro de que desea cambiar el estado de este estudiante?",
     );
     if (!shouldUpdate) return;
 
-    setEstadoPorDocumento((previousState) => {
-      const currentState = previousState[documento] || getDefaultEstado(documento);
-      const nextState: EstadoAprendiz =
-        currentState === "Activo" ? "Inactivo" : "Activo";
+    const nextState: EstadoAprendiz =
+      estadoActual === "Activo" ? "Inactivo" : "Activo";
 
-      return {
-        ...previousState,
-        [documento]: nextState,
-      };
-    });
+    setActualizandoDocumento((prev) => ({
+      ...prev,
+      [documento]: true,
+    }));
+
+    try {
+      const response = await fetch(`${API_URL}/aprendices/${documento}/estado`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ estado: nextState }),
+      });
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.message || "No fue posible actualizar el estado del aprendiz.",
+        );
+      }
+
+      const estadoActualizado = normalizeEstado(payload?.estado || nextState);
+
+      setAprendices((prev) =>
+        prev.map((item) =>
+          item.documento === documento
+            ? { ...item, estado: estadoActualizado }
+            : item,
+        ),
+      );
+    } catch (error) {
+      console.error("Error actualizando estado:", error);
+      window.alert("No fue posible actualizar el estado del aprendiz.");
+    } finally {
+      setActualizandoDocumento((prev) => ({
+        ...prev,
+        [documento]: false,
+      }));
+    }
   };
 
   const filteredData = useMemo(() => {
@@ -194,16 +230,16 @@ const ListaAprendicesAdmin = () => {
       (item: Aprendiz) => string
     > = {
       documento: (item) => (item.documento || "").toString().toLowerCase(),
-      ficha: (item) => (item.ficha || "").toLowerCase(),
+      ficha: (item) =>
+        `${item.ficha || ""} ${item.fichaNombre || ""}`.toLowerCase(),
       programa: (item) => (item.programa || "").toLowerCase(),
       nombre: (item) => (item.nombre || "").toLowerCase(),
       apellido: (item) => (item.apellido || "").toLowerCase(),
       telefono: (item) => (item.telefono || "").toLowerCase(),
       email: (item) => (item.email || "").toLowerCase(),
-      fechaRegistro: (item) => formatFechaRegistro(item.fechaInscripcion).toLowerCase(),
-      estado: (item) =>
-        (estadoPorDocumento[item.documento] || getDefaultEstado(item.documento))
-          .toLowerCase(),
+      fechaRegistro: (item) =>
+        formatFechaRegistro(item.fechaInscripcion).toLowerCase(),
+      estado: (item) => item.estado.toLowerCase(),
     };
 
     return aprendices.filter((item) => {
@@ -215,7 +251,7 @@ const ListaAprendicesAdmin = () => {
 
       return searchableFields[activeFilter](item).includes(query);
     });
-  }, [aprendices, searchTerm, activeFilter, estadoPorDocumento]);
+  }, [aprendices, searchTerm, activeFilter]);
 
   const totalItems = filteredData.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
@@ -380,14 +416,19 @@ const ListaAprendicesAdmin = () => {
               <tbody>
                 {displayData.length > 0 ? (
                   displayData.map((row, index) => {
-                    const estadoActual =
-                      estadoPorDocumento[row.documento] ||
-                      getDefaultEstado(row.documento);
+                    const estadoActual = normalizeEstado(row.estado);
+                    const isUpdating = Boolean(
+                      actualizandoDocumento[row.documento],
+                    );
 
                     return (
                       <tr key={index}>
                         <td>{row.documento}</td>
-                        <td>{row.ficha}</td>
+                        <td>
+                          {row.fichaNombre
+                            ? `${row.ficha} - ${row.fichaNombre}`
+                            : row.ficha}
+                        </td>
                         <td>{row.programa || "Sin programa"}</td>
                         <td>{row.nombre}</td>
                         <td>{row.apellido}</td>
@@ -398,9 +439,12 @@ const ListaAprendicesAdmin = () => {
                           <button
                             type="button"
                             className={`status-badge ${estadoActual === "Activo" ? "status-active" : "status-inactive"}`}
-                            onClick={() => handleToggleEstado(row.documento)}
+                            onClick={() =>
+                              handleToggleEstado(row.documento, estadoActual)
+                            }
+                            disabled={isUpdating}
                           >
-                            {estadoActual}
+                            {isUpdating ? "Actualizando..." : estadoActual}
                           </button>
                         </td>
                       </tr>

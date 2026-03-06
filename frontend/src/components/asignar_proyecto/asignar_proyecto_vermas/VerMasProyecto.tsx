@@ -8,6 +8,7 @@ import senaLogo from '../../../assets/sena.png';
 import '../../dashboard_instructor/Dashboard.css'; 
 import './VerMasProyecto.css'; 
 import { API_URL } from '../../../config/Api';
+import { resolveUserName } from '../../../utils/session';
 
 interface ProyectoDetalle {
     [key: string]: string | number | null | undefined;
@@ -24,7 +25,9 @@ const VerMasProyecto = () => {
     const { id } = useParams(); 
     
     const [proyecto, setProyecto] = useState<ProyectoDetalle | null>(null);
-    const [instructorName, setInstructorName] = useState('Instructor'); 
+    const [instructorName, setInstructorName] = useState(() =>
+        resolveUserName(undefined, 'Usuario'),
+    ); 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -71,7 +74,8 @@ const VerMasProyecto = () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
             .then(res => res.json())
-            .then(data => setInstructorName(data?.instructor || "Instructor SENA"));
+            .then(data => setInstructorName(resolveUserName(data?.instructor, 'Usuario')))
+            .catch(() => setInstructorName(resolveUserName(undefined, 'Usuario')));
         }
     }, [id]);
 

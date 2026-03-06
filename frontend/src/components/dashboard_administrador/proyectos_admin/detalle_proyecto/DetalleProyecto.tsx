@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'; 
 import senaLogo from '../assets/sena.png'; 
 import './DetalleProyecto.css'; 
+import { resolveUserName } from '../../../../utils/session';
 
 // ==========================================================
 // INTERFACES
@@ -95,7 +96,9 @@ const DetalleProyecto: React.FC = () => {
   const [miembros, setMiembros] = useState<Miembro[]>([]); 
   const [cargando, setCargando] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [instructorName, setInstructorName] = useState('Cargando...'); 
+  const [instructorName, setInstructorName] = useState(() =>
+    resolveUserName(undefined, 'Usuario'),
+  ); 
 
   // --- 1. CARGAR NOMBRE INSTRUCTOR ---
   const cargarNombreInstructor = async (cedula: string, token: string) => {
@@ -103,10 +106,10 @@ const DetalleProyecto: React.FC = () => {
         const response = await axios.get(`${API_BASE_URL}/stats?cedula=${cedula}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        setInstructorName(response.data.instructor || 'Usuario SENA');
+        setInstructorName(resolveUserName(response.data.instructor, 'Usuario'));
     } catch (error) {
         console.error("Error cargando nombre de instructor:", error);
-        setInstructorName('Error de perfil');
+        setInstructorName(resolveUserName(undefined, 'Usuario'));
     }
   };
   

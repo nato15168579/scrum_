@@ -2,8 +2,16 @@ import { ListaService } from './ListaService';
 export declare class ListaController {
     private readonly listaService;
     constructor(listaService: ListaService);
-    getAprendices(): Promise<any>;
-    getInstructores(): Promise<any>;
+    getAprendices(cedula?: string): Promise<any[]>;
+    updateAprendizEstado(cedula: string, payload: {
+        estado: string;
+    }): Promise<{
+        ok: boolean;
+        documento: string;
+        estado: import("../entities/Usuario").EstadoUsuario;
+    }>;
+    getInstructores(cedula?: string): Promise<any[]>;
+    getFichas(): Promise<any>;
     getStats(cedula: string): Promise<{
         instructor: string;
     }>;
@@ -25,8 +33,11 @@ export declare class ListaController {
             nombre: string;
             apellido: string;
             ficha: string;
+            fichaNombre: any;
+            programa: any;
             email: string;
             fechaInscripcion: string;
+            estado: import("../entities/Usuario").EstadoUsuario;
         };
     }>;
 }
