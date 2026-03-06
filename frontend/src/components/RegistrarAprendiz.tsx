@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import senaLogo from "../assets/sena.png";
 import "./RegistrarAprendiz.css";
-import { API_URL } from "../config/api";
+import { API_URL } from "../config/Api";
 
 const API_USERS_URL = `${API_URL}/users`;
 const API_STATS_URL = `${API_URL}/stats`;

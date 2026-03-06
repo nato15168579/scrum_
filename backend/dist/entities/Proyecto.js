@@ -24,6 +24,16 @@ __decorate([
     __metadata("design:type", Number)
 ], Proyecto.prototype, "proId", void 0);
 __decorate([
+    (0, typeorm_1.Column)("varchar", {
+        name: "pro_codigo",
+        nullable: true,
+        unique: true,
+        length: 32,
+        comment: "codigo unico del proyecto",
+    }),
+    __metadata("design:type", String)
+], Proyecto.prototype, "proCodigo", void 0);
+__decorate([
     (0, typeorm_1.Column)("varchar", { name: "pro_nombre", nullable: true, length: 100 }),
     __metadata("design:type", String)
 ], Proyecto.prototype, "proNombre", void 0);
@@ -86,6 +96,6 @@ __decorate([
 ], Proyecto.prototype, "usuProDetPars", void 0);
 exports.Proyecto = Proyecto = __decorate([
     (0, typeorm_1.Index)("det_par_ID_FK", ["detParIdFk"], {}),
-    (0, typeorm_1.Entity)(" proyecto", { schema: "pro_scrum" })
+    (0, typeorm_1.Entity)("proyecto", { schema: "pro_scrum" })
 ], Proyecto);
 //# sourceMappingURL=Proyecto.js.map

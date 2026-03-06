@@ -12,8 +12,8 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import senaLogo from "../../../assets/sena.png";
 import "./ListaAprendices.css";
-import { API_URL } from "../../../config/api";
-import { ADMIN_MENU_ITEMS } from "../adminMenuItems";
+import { API_URL } from "../../../config/Api";
+import { ADMIN_MENU_ITEMS } from "../AdminMenuItems";
 
 interface Aprendiz {
   documento: string;

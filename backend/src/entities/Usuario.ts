@@ -72,6 +72,13 @@ export class Usuario {
   })
   usuContrasena: string | null;
 
+  @Column("datetime", {
+    name: "fecha_registro",
+    default: () => "CURRENT_TIMESTAMP",
+    comment: "fecha de registro del usuario",
+  })
+  fechaRegistro: Date;
+
   @Column("int", { name: "rol_sis_ID_FK", nullable: true })
   rolSisIdFk: number | null;
 

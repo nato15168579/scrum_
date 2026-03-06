@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import senaLogo from "../../assets/sena.png";
 import "./Login.css";
-import { API_LOGIN } from "../../config/api";
+import { API_LOGIN } from "../../config/Api";
 
 const LoginScreen = () => {
   const [credentials, setCredentials] = useState({ cedula: "", password: "" });

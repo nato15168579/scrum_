@@ -16,7 +16,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import senaLogo from "../../assets/sena.png";
 import "../dashboard_instructor/Dashboard.css";
 import "./CrearProyecto.css";
-import { API_URL } from "../../config/api";
+import { API_URL } from "../../config/Api";
+
+const getCurrentLocalDate = () => {
+  const now = new Date();
+  const timezoneOffsetInMs = now.getTimezoneOffset() * 60 * 1000;
+  return new Date(now.getTime() - timezoneOffsetInMs).toISOString().slice(0, 10);
+};
 
 const CrearProyecto = () => {
   const navigate = useNavigate();
@@ -36,7 +42,7 @@ const CrearProyecto = () => {
   const [formData, setFormData] = useState({
     nombre: "",
     objetivo: "",
-    fechaCreacion: "",
+    fechaCreacion: getCurrentLocalDate(),
   });
 
   // Menú sin la opción de Ayuda (porque irá en el footer)
@@ -64,8 +70,7 @@ const CrearProyecto = () => {
       .then((res) => res.json())
       .then((data) => {
         setInstructorName(data?.instructor || "Instructor SENA");
-        const today = new Date().toISOString().substring(0, 10);
-        setFormData((prev) => ({ ...prev, fechaCreacion: today }));
+        setFormData((prev) => ({ ...prev, fechaCreacion: getCurrentLocalDate() }));
       })
       .catch(() => setInstructorName("Instructor SENA"));
   }, [navigate]);

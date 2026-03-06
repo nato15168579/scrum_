@@ -82,6 +82,14 @@ __decorate([
     __metadata("design:type", String)
 ], Usuario.prototype, "usuContrasena", void 0);
 __decorate([
+    (0, typeorm_1.Column)("datetime", {
+        name: "fecha_registro",
+        default: () => "CURRENT_TIMESTAMP",
+        comment: "fecha de registro del usuario",
+    }),
+    __metadata("design:type", Date)
+], Usuario.prototype, "fechaRegistro", void 0);
+__decorate([
     (0, typeorm_1.Column)("int", { name: "rol_sis_ID_FK", nullable: true }),
     __metadata("design:type", Number)
 ], Usuario.prototype, "rolSisIdFk", void 0);

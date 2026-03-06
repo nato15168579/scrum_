@@ -5,6 +5,7 @@ import { Sprint } from "./Sprint";
 import { UsuProDetPar } from "./UsuProDetPar";
 export declare class Proyecto {
     proId: number;
+    proCodigo: string | null;
     proNombre: string | null;
     proObjetivoGeneral: string | null;
     proObjetivosEspecificos: string | null;

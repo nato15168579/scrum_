@@ -11,6 +11,7 @@ export declare class Usuario {
     usuCorreo: string | null;
     usuTelefono: string | null;
     usuContrasena: string | null;
+    fechaRegistro: Date;
     rolSisIdFk: number | null;
     usuFicha: string | null;
     criteriosAceptacions: CriteriosAceptacion[];

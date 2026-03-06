@@ -13,10 +13,19 @@ import { Sprint } from "./Sprint";
 import { UsuProDetPar } from "./UsuProDetPar";
 
 @Index("det_par_ID_FK", ["detParIdFk"], {})
-@Entity(" proyecto", { schema: "pro_scrum" })
+@Entity("proyecto", { schema: "pro_scrum" })
 export class Proyecto {
   @Column("int", { primary: true, name: "pro_ID", comment: "id del proyecto" })
   proId: number;
+
+  @Column("varchar", {
+    name: "pro_codigo",
+    nullable: true,
+    unique: true,
+    length: 32,
+    comment: "codigo unico del proyecto",
+  })
+  proCodigo: string | null;
 
   @Column("varchar", { name: "pro_nombre", nullable: true, length: 100 })
   proNombre: string | null;

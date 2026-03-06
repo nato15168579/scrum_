@@ -2,15 +2,17 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginScreen from './components/login/LoginScreen';
 import InstructorDashboard from './components/dashboard_instructor/InstructorDashboard';
-import DashboardAdministrador from './components/dashboard_administrador/admin_dashboard';
+import DashboardAdministrador from './components/dashboard_administrador/AdminDashboard';
 import StudentDashboard from './components/StudentsDashboard/StudentDashboard';
 import ListaAprendices from './components/lista_aprendices/ListaAprendices';
 import ListaAprendicesAdmin from './components/dashboard_administrador/lista_aprendices/ListaAprendices';
-import ListaInstructoresAdmin from './components/dashboard_administrador/lista_instructores/lista_instructoresAdmin';
-import CrearProyecto from './components/crear_proyecto/CrearProyecto';
+import ListaInstructoresAdmin from './components/dashboard_administrador/lista_instructores/ListaInstructoresAdmin';
+import CrearProyectoInstructor from './components/crear_proyecto/CrearProyecto';
+import CrearProyectoAdmin from './components/dashboard_administrador/proyectos_admin/CrearProyectoAdmin';
 import AsignarProyecto from './components/asignar_proyecto/AsignarProyecto';
 import VerMasProyecto from './components/asignar_proyecto/asignar_proyecto_vermas/VerMasProyecto';
-import VerProyectos from './components/ver_proyectos/VerProyectos';
+import VerProyectosInstructor from './components/ver_proyectos/VerProyectos';
+import VerProyectosAdmin from './components/dashboard_administrador/proyectos_admin/VerProyectos';
 import RegistrarAprendiz from './components/RegistrarAprendiz';
 
 function DashboardByRole() {
@@ -22,6 +24,18 @@ function DashboardByRole() {
   if (roleId === '2') return <Navigate to="/dashboard-instructor" replace />;
   if (roleId === '1') return <Navigate to="/student-dashboard" replace />;
   return <Navigate to="/dashboard-administrador" replace />;
+}
+
+function VerProyectosByRole() {
+  const roleId = (localStorage.getItem('userRoleId') || '').trim();
+  if (roleId === '3') return <VerProyectosAdmin />;
+  return <VerProyectosInstructor />;
+}
+
+function CrearProyectoByRole() {
+  const roleId = (localStorage.getItem('userRoleId') || '').trim();
+  if (roleId === '3') return <CrearProyectoAdmin />;
+  return <CrearProyectoInstructor />;
 }
 
 function App() {
@@ -41,13 +55,13 @@ function App() {
       <Route path="/lista-aprendices-admin" element={<ListaAprendicesAdmin />} />
       <Route path="/lista-instructores-admin" element={<ListaInstructoresAdmin />} />
       {/* 4. ruta de crear proyecto */}
-      <Route path="/crear-proyecto" element={<CrearProyecto />} />
+      <Route path="/crear-proyecto" element={<CrearProyectoByRole />} />
       {/* 5. ruta de asignar proyecto */}
       <Route path="/asignar-proyectos" element={<AsignarProyecto />} />
       {/* 5.1. ruta de asignar proyecto a ver mas */}
       <Route path="/asignar-proyectos-vermas/:id" element={<VerMasProyecto />} />
       {/* 6. ruta de asignar proyecto a ver mas */}
-      <Route path="/ver-proyectos" element={<VerProyectos />} />
+      <Route path="/ver-proyectos" element={<VerProyectosByRole />} />
       {/* 7. ruta de registrar aprendiz */}
       <Route path="/registrar-aprendiz" element={<RegistrarAprendiz />} />
       {/* error: si la ruta falla te manda al login */}

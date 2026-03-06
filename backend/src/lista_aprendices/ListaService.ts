@@ -1,0 +1,257 @@
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { Usuario } from '../entities/Usuario';
+import * as bcrypt from 'bcrypt';
+
+interface CreateAprendizDto {
+  cedula: string | number;
+  nombre: string;
+  apellidos: string;
+  correo: string;
+  telefono?: string;
+  ficha?: string;
+  tipoDocumento?: string;
+  sexo?: string;
+  password: string;
+}
+
+@Injectable()
+export class ListaService {
+  constructor(
+    @InjectRepository(Usuario)
+    private readonly usuarioRepository: Repository<Usuario>,
+    private readonly dataSource: DataSource,
+  ) {}
+
+  private async columnExists(tableName: string, columnName: string) {
+    const [result] = await this.dataSource.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+      `,
+      [tableName, columnName],
+    );
+
+    return Number(result?.total || 0) > 0;
+  }
+
+  private async tableExists(tableName: string) {
+    const [result] = await this.dataSource.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+      `,
+      [tableName],
+    );
+
+    return Number(result?.total || 0) > 0;
+  }
+
+  private async ensureFechaRegistroColumn() {
+    const hasFechaRegistro = await this.columnExists('usuario', 'fecha_registro');
+
+    if (!hasFechaRegistro) {
+      await this.dataSource.query(`
+        ALTER TABLE usuario
+        ADD COLUMN fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        COMMENT 'fecha de registro del usuario'
+      `);
+    }
+
+    const hasRegistroTable = await this.tableExists('usuario_registro');
+    if (hasRegistroTable) {
+      await this.dataSource.query(`
+        UPDATE usuario u
+        INNER JOIN usuario_registro r ON r.usu_cedula = u.usu_cedula
+        SET u.fecha_registro = r.fecha_registro
+      `);
+
+      await this.dataSource.query('DROP TABLE IF EXISTS usuario_registro');
+    }
+  }
+
+  private normalizeFichasCargo(rawValue: unknown): string[] {
+    const raw = String(rawValue ?? '').trim();
+    if (!raw) return [];
+
+    return Array.from(
+      new Set(
+        raw
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean),
+      ),
+    );
+  }
+
+  async findAllAprendices() {
+    await this.ensureFechaRegistroColumn();
+    const hasProgramaColumn = await this.columnExists('usuario', 'usu_programa');
+    const programaSelect = hasProgramaColumn ? 'u.usu_programa' : 'NULL';
+
+    const aprendices = await this.dataSource.query(
+      `
+        SELECT
+          u.usu_cedula AS documento,
+          u.usu_ficha AS ficha,
+          ${programaSelect} AS programa,
+          u.usu_nombres AS nombre,
+          u.usu_apellidos AS apellido,
+          u.usu_telefono AS telefono,
+          u.usu_correo AS email,
+          u.fecha_registro AS fechaInscripcion
+        FROM usuario u
+        WHERE u.rol_sis_ID_FK = 1
+        ORDER BY u.fecha_registro DESC, u.usu_cedula DESC
+      `,
+    );
+
+    return (aprendices || []).map((ap: any) => ({
+      documento: String(ap.documento),
+      ficha: ap.ficha || 'Sin ficha',
+      programa: ap.programa || 'Sin programa',
+      nombre: ap.nombre || '',
+      apellido: ap.apellido || '',
+      telefono: ap.telefono || '',
+      email: ap.email || '',
+      fechaInscripcion: ap.fechaInscripcion
+        ? new Date(ap.fechaInscripcion).toISOString()
+        : null,
+    }));
+  }
+
+  async findAllInstructores() {
+    await this.ensureFechaRegistroColumn();
+    const hasEspecializacionColumn = await this.columnExists(
+      'usuario',
+      'usu_especializacion',
+    );
+    const especializacionSelect = hasEspecializacionColumn
+      ? 'u.usu_especializacion'
+      : 'NULL';
+    const hasFichaColumn = await this.columnExists('usuario', 'usu_ficha');
+    const fichasCargoSelect = hasFichaColumn ? 'u.usu_ficha' : 'NULL';
+    const hasProgramaColumn = await this.columnExists('usuario', 'usu_programa');
+    const programaSelect = hasProgramaColumn ? 'u.usu_programa' : 'NULL';
+
+    const instructores = await this.dataSource.query(
+      `
+        SELECT
+          u.usu_cedula AS documento,
+          ${especializacionSelect} AS especializacion,
+          ${fichasCargoSelect} AS fichasCargo,
+          ${programaSelect} AS programa,
+          u.usu_nombres AS nombre,
+          u.usu_apellidos AS apellido,
+          u.usu_telefono AS telefono,
+          u.usu_correo AS email,
+          u.fecha_registro AS fechaInscripcion
+        FROM usuario u
+        WHERE u.rol_sis_ID_FK = 2
+        ORDER BY u.fecha_registro DESC, u.usu_cedula DESC
+      `,
+    );
+
+    return (instructores || []).map((inst: any) => ({
+      documento: String(inst.documento),
+      especializacion: inst.especializacion || 'Sin especializacion',
+      fichasCargo: this.normalizeFichasCargo(inst.fichasCargo),
+      programa: inst.programa || 'Sin programa',
+      nombre: inst.nombre || '',
+      apellido: inst.apellido || '',
+      telefono: inst.telefono || '',
+      email: inst.email || '',
+      fechaInscripcion: inst.fechaInscripcion
+        ? new Date(inst.fechaInscripcion).toISOString()
+        : null,
+    }));
+  }
+
+  async createAprendiz(payload: CreateAprendizDto) {
+    await this.ensureFechaRegistroColumn();
+
+    const cedula = Number(payload.cedula);
+    if (!cedula || Number.isNaN(cedula)) {
+      throw new BadRequestException('La cedula es obligatoria y debe ser numerica.');
+    }
+
+    if (!payload.password || payload.password.trim().length < 4) {
+      throw new BadRequestException('La contrasena es obligatoria.');
+    }
+
+    const yaExiste = await this.usuarioRepository.findOneBy({
+      usuCedula: cedula,
+    });
+
+    if (yaExiste) {
+      throw new ConflictException('Ya existe un usuario con esa cedula.');
+    }
+
+    const hash = await bcrypt.hash(payload.password.trim(), 10);
+
+    const nuevoAprendiz = this.usuarioRepository.create({
+      usuCedula: cedula,
+      usuTipoDocumento: payload.tipoDocumento || 'CC',
+      usuNombres: payload.nombre?.trim() || '',
+      usuApellidos: payload.apellidos?.trim() || '',
+      usuCorreo: payload.correo?.trim() || '',
+      usuTelefono: payload.telefono?.trim() || null,
+      usuContrasena: hash,
+      rolSisIdFk: 1,
+      usuFicha: payload.ficha?.trim() || null,
+    });
+
+    try {
+      await this.usuarioRepository.save(nuevoAprendiz);
+
+      const [registro] = await this.dataSource.query(
+        'SELECT fecha_registro FROM usuario WHERE usu_cedula = ? LIMIT 1',
+        [cedula],
+      );
+
+      return {
+        ok: true,
+        mensaje: 'Aprendiz registrado correctamente.',
+        aprendiz: {
+          documento: String(nuevoAprendiz.usuCedula),
+          nombre: nuevoAprendiz.usuNombres || '',
+          apellido: nuevoAprendiz.usuApellidos || '',
+          ficha: nuevoAprendiz.usuFicha || 'Sin ficha',
+          email: nuevoAprendiz.usuCorreo || '',
+          fechaInscripcion: registro?.fecha_registro
+            ? new Date(registro.fecha_registro).toISOString()
+            : null,
+        },
+      };
+    } catch (error) {
+      const err = error as { message?: string };
+      throw new InternalServerErrorException(
+        `No se pudo registrar el aprendiz: ${err?.message || 'Error interno.'}`,
+      );
+    }
+  }
+
+  async getInstructorStats(cedula: string) {
+    const instructor = await this.usuarioRepository.findOne({
+      where: { usuCedula: parseInt(cedula) },
+      select: ['usuNombres', 'usuApellidos'],
+    });
+
+    return {
+      instructor: instructor
+        ? `${instructor.usuNombres} ${instructor.usuApellidos}`
+        : 'Instructor SENA',
+    };
+  }
+}

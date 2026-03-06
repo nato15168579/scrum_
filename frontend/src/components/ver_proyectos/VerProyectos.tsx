@@ -7,7 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import senaLogo from '../../assets/sena.png'; 
 import '../dashboard_instructor/Dashboard.css'; 
 import './VerProyectos.css'; 
-import { API_URL } from '../../config/api';
+import { API_URL } from '../../config/Api';
 
 // --- INTERFACES ---
 interface Proyecto {
