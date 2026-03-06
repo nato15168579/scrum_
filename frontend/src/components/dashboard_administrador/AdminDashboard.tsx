@@ -1,4 +1,3 @@
-// Hola
 import { useEffect, useMemo, useState } from "react";
 import {
   Bar,

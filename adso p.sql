@@ -754,71 +754,38 @@ CREATE TABLE `usuario` (
 
 /*Data for the table `usuario` */
 
-insert  into `usuario`(`usu_cedula`,`usu_nombres`,`usu_apellidos`,`usu_correo`,`usu_telefono`,`usu_contraseña`,`rol_sis_ID_FK`,`usu_ficha`,`usu_programa`,`usu_especializacion`,`usu_tipodedocumento`) values 
-(1000000001,'juan','olivares','juanolivares@gmail.com','3100000000','juan123',2,'8923567','AVIACION','Ing Software','CC'),
-(1000000002,'katherine paola','blanco','kathe@gmail.com','3200000000','kathe123',2,'2998937','ADSO','Ing en base de datos','CC'),
-(1001855307,'jocy hans','charris fernandez','Jocy@gmail.com','3002201010','j123',1,'2998937','ADSO',NULL,'CC'),
-(1010006601,'jean carlos','coronell castro','jean@gmail.com','4235386883','jean123',1,'2998937','ADSO',NULL,'CC'),
-(1016011848,'madeleine','castillo cardenas','madeleine@gmail.com','3000000005','made123',1,'2998937','ADSO',NULL,'CC'),
-(1042251558,'edgar dario','badillo macias','edgar.badillo@gmail.com','3000000001','edgar123',1,'2998937','ADSO',NULL,'CC'),
-(1042251706,'moises','garcia urda','moises@gmail.com','3148687899','moises123',1,'2998937','ADSO',NULL,'CC'),
-(1042254436,'daniel david','muñoz montoya','daniel@gmail.com','3000000003','daniel123',1,'2998937','ADSO',NULL,'CC'),
-(1042852867,'gabriella ','julio cantillo','gabriella@gmail.com','3000000001','gabriella123',1,'2998937','ADSO',NULL,'CC'),
-(1043134580,'franklin ','munzon herrera','franklin@gmail.com','3000000002','franklin123',1,'2998937','ADSO',NULL,'CC'),
-(1043665064,'jorge enrique','burgos lopez','jorgeburgos@gmail.com','3254649897','jorgeburgos',1,'2998937','ADSO',NULL,'CC'),
-(1044600666,'carlos alfonso','arango de la cruz','carlos@gmail.com','3128609809','carlos123',1,'2998937','ADSO',NULL,'CC'),
-(1044604785,'santiago','celin garcia','santiago.celin@gmail.com','3000000004','santiago123',1,'2998937','ADSO',NULL,'CC'),
-(1044607032,'juan david','gutierrez montes','juan@gmail.com','3129800768','juan123',1,'2998937','ADSO',NULL,'CC'),
-(1044607427,'guillermo ','rodriguez trocha','guillermorod@gmail.com','3216475538','guillermo123',1,'2998937','ADSO',NULL,'CC'),
-(1044619072,'isaac david','cantillo julio','isaaccantillo@gmail.com','3127009807','isaaccantillo',1,'2998937','ADSO',NULL,'CC'),
-(1046696769,'santiago jose','fernandez perez','Fernandezsantiago152@gmail.com','3004504333','santiago123',1,'2998937','ADSO',NULL,'CC'),
-(1046813010,'jailer de jesus','lara pineda','jailer@gmail.com','3000000005','jailer123',1,'2998937','ADSO',NULL,'CC'),
-(1047043541,'isaac david','jimenez perea','isaacjim1706@gmail.com','3017110394','isaac123',1,'2998937','ADSO',NULL,'CC'),
-(1047222805,'jhon carlos','sarmiento rodriguez','jhon.sarmiento@gmail.com','3000000006','jhon123',1,'2998937','ADSO',NULL,'CC'),
-(1047336800,'luis gabriel','villareal chico','luis@gmail.com','3006574678','luis123',1,'2998937','ADSO',NULL,'CC'),
-(1048068189,'edgar isacc ','aroca yanes','edgar.aroca@gmail.com','3000000002','edgar123',1,'2998937','ADSO',NULL,'CC'),
-(1048069515,'juan david','orozco almanza','juanorozco@gmail.com','3241756688','juanorozco',1,'2998937','ADSO',NULL,'CC'),
-(1048277496,'ricardo rafael','retamoso gutierrez','ricardo@gmail.com','3000000004','ricardo123',1,'2998937','ADSO',NULL,'CC'),
-(1049931166,'estuardo jesus','villadiego obrian','estuardo@gmail.com','3000000003','estuardo123',1,'2998937','ADSO',NULL,'CC'),
-(1080570745,'briyith lorena','padilla alfaro','briyith@gmail.com','3246757886','briyith123',1,'2998937','ADSO',NULL,'CC'),
-(1081914694,'luisa fernanda','arrieta marquez','luisa@gmail.com','3127688966','luisa123',1,'2998937','ADSO',NULL,'CC'),
-(1085046441,'Jorje luis','Oliveros Mora','oliverosmorjorgeluis@gmail.com','3148606444','jorge123',1,'2998937','ADSO',NULL,'CC'),
-(1129534383,'camilo andres ','villalobos fernandez','camilo@gmail.com ','3247648989','camilo123',1,'2998937','ADSO',NULL,'CC'),
-(1130267265,'yeilis paola','mendoza blanco','yeilismendoza26@gmail.com','3106298355','yeilis123',1,'2998937','ADSO',NULL,'CC'),
-(1234567890,'Elemir elias','Gomez zarso','isaacjim1706@gmail.com','3013677446','1S44Cdavid',3,NULL,NULL,NULL,'CC');
-
-/*
-  Migracion de usuario_registro -> usuario.fecha_registro
-  El historico de fechas queda guardado directamente en usuario.
-*/
-DROP TABLE IF EXISTS `usuario_registro`;
-
-UPDATE usuario
-SET fecha_registro = CASE usu_cedula
-  WHEN 1000000001 THEN '2025-09-24 06:24:19'
-  WHEN 1000000002 THEN '2026-02-27 22:04:25'
-  WHEN 1001855307 THEN '2026-01-19 17:20:36'
-  WHEN 1016011848 THEN '2026-01-18 17:33:09'
-  WHEN 1042251558 THEN '2026-02-27 17:33:42'
-  WHEN 1043134580 THEN '2026-03-02 07:34:30'
-  WHEN 1047043541 THEN '2026-02-27 16:08:26'
-  WHEN 1047222805 THEN '2025-10-14 18:26:15'
-  WHEN 1048069515 THEN '2026-02-27 22:03:47'
-  WHEN 1048277496 THEN '2026-01-31 18:26:03'
-  ELSE fecha_registro
-END
-WHERE usu_cedula IN (
-  1000000001,
-  1000000002,
-  1001855307,
-  1016011848,
-  1042251558,
-  1043134580,
-  1047043541,
-  1047222805,
-  1048069515,
-  1048277496
-);
+insert  into `usuario`(`usu_cedula`,`usu_nombres`,`usu_apellidos`,`usu_correo`,`usu_telefono`,`usu_contraseña`,`fecha_registro`,`rol_sis_ID_FK`,`usu_ficha`,`usu_programa`,`usu_especializacion`,`usu_tipodedocumento`) values 
+(1000000001,'juan','olivares','juanolivares@gmail.com','3100000000','$2b$10$MXzo.RloxM1IcceK4nMrhe0LOC7izc0YtTtjCUQfsK4LuF5qoGV1C','2025-09-24 06:24:19',2,'8923567','AVIACION','Ing Software','CC'),
+(1000000002,'katherine paola','blanco','kathe@gmail.com','3200000000','kathe123','2026-02-27 22:04:25',2,'2998937','ADSO','Ing en base de datos','CC'),
+(1001855307,'jocy hans','charris fernandez','Jocy@gmail.com','3002201010','j123','2026-01-19 17:20:36',1,'2998937','ADSO',NULL,'CC'),
+(1010006601,'jean carlos','coronell castro','jean@gmail.com','4235386883','jean123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1016011848,'madeleine','castillo cardenas','madeleine@gmail.com','3000000005','made123','2026-01-18 17:33:09',1,'2998937','ADSO',NULL,'CC'),
+(1042251558,'edgar dario','badillo macias','edgar.badillo@gmail.com','3000000001','edgar123','2026-02-27 17:33:42',1,'2998937','ADSO',NULL,'CC'),
+(1042251706,'moises','garcia urda','moises@gmail.com','3148687899','moises123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1042254436,'daniel david','muñoz montoya','daniel@gmail.com','3000000003','daniel123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1042852867,'gabriella ','julio cantillo','gabriella@gmail.com','3000000001','gabriella123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1043134580,'franklin ','munzon herrera','franklin@gmail.com','3000000002','franklin123','2026-03-02 07:34:30',1,'2998937','ADSO',NULL,'CC'),
+(1043665064,'jorge enrique','burgos lopez','jorgeburgos@gmail.com','3254649897','jorgeburgos','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1044600666,'carlos alfonso','arango de la cruz','carlos@gmail.com','3128609809','carlos123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1044604785,'santiago','celin garcia','santiago.celin@gmail.com','3000000004','santiago123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1044607032,'juan david','gutierrez montes','juan@gmail.com','3129800768','juan123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1044607427,'guillermo ','rodriguez trocha','guillermorod@gmail.com','3216475538','guillermo123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1044619072,'isaac david','cantillo julio','isaaccantillo@gmail.com','3127009807','isaaccantillo','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1046696769,'santiago jose','fernandez perez','Fernandezsantiago152@gmail.com','3004504333','santiago123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1046813010,'jailer de jesus','lara pineda','jailer@gmail.com','3000000005','jailer123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1047043541,'isaac david','jimenez perea','isaacjim1706@gmail.com','3017110394','$2b$10$2HX4vqeImjt/CyuBmAB.4uWIWurBj0Rg6dD4YNScZcmLB6ejLQHKq','2026-02-27 16:08:26',1,'2998937','ADSO',NULL,'CC'),
+(1047222805,'jhon carlos','sarmiento rodriguez','jhon.sarmiento@gmail.com','3000000006','jhon123','2025-10-14 18:26:15',1,'2998937','ADSO',NULL,'CC'),
+(1047336800,'luis gabriel','villareal chico','luis@gmail.com','3006574678','luis123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1048068189,'edgar isacc ','aroca yanes','edgar.aroca@gmail.com','3000000002','edgar123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1048069515,'juan david','orozco almanza','juanorozco@gmail.com','3241756688','juanorozco','2026-02-27 22:03:47',1,'2998937','ADSO',NULL,'CC'),
+(1048277496,'ricardo rafael','retamoso gutierrez','ricardo@gmail.com','3000000004','ricardo123','2026-01-31 18:26:03',1,'2998937','ADSO',NULL,'CC'),
+(1049931166,'estuardo jesus','villadiego obrian','estuardo@gmail.com','3000000003','estuardo123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1080570745,'briyith lorena','padilla alfaro','briyith@gmail.com','3246757886','briyith123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1081914694,'luisa fernanda','arrieta marquez','luisa@gmail.com','3127688966','luisa123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1085046441,'Jorje luis','Oliveros Mora','oliverosmorjorgeluis@gmail.com','3148606444','jorge123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1129534383,'camilo andres ','villalobos fernandez','camilo@gmail.com ','3247648989','camilo123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1130267265,'yeilis paola','mendoza blanco','yeilismendoza26@gmail.com','3106298355','yeilis123','2026-03-05 19:51:55',1,'2998937','ADSO',NULL,'CC'),
+(1234567890,'Elemir elias','Gomez zarso','isaacjim1706@gmail.com','3013677446','$2b$10$9Yi.nACflwrIn68G0gSbteSxLg90rHD9k35Z.0sybzu5N66i3MWJi','2026-03-05 19:51:55',3,NULL,NULL,NULL,'CC');
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
