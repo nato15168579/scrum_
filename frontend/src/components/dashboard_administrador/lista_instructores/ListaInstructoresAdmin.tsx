@@ -22,7 +22,9 @@ interface Instructor {
   programa?: string | null;
   nombre: string;
   apellido: string;
+  telefono: string;
   email: string;
+  fechaInscripcion?: string | null;
 }
 
 interface FichasModalData {
@@ -39,8 +41,10 @@ type FilterKey =
   | "especializacion"
   | "nombre"
   | "apellido"
+  | "telefono"
   | "email"
-  | "fechaRegistro";
+  | "fechaRegistro"
+  | "fichasCargo";
 
 const ITEMS_PER_PAGE = 10;
 
