@@ -90,7 +90,7 @@ const FILTER_OPTIONS: { key: FilterKey; label: string; placeholder: string }[] =
     key: "todos",
     label: "Todos los campos",
     placeholder:
-      "Buscar en documento, especializacion, nombre, apellido, telefono, email o fichas",
+      "Buscar",
   },
   {
     key: "documento",
