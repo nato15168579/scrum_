@@ -13,6 +13,7 @@ import AsignarProyecto from './components/asignar_proyecto/AsignarProyecto';
 import VerMasProyecto from './components/asignar_proyecto/asignar_proyecto_vermas/VerMasProyecto';
 import VerProyectosInstructor from './components/ver_proyectos/VerProyectos';
 import VerProyectosAdmin from './components/dashboard_administrador/proyectos_admin/VerProyectos';
+import RegistrarUsuariosAdmin from './components/dashboard_administrador/registrar_usuarios_admin/RegistrarUsuariosAdmin';
 import RegistrarAprendiz from './components/RegistrarAprendiz';
 
 function DashboardByRole() {
@@ -64,6 +65,7 @@ function App() {
       <Route path="/ver-proyectos" element={<VerProyectosByRole />} />
       {/* 7. ruta de registrar aprendiz */}
       <Route path="/registrar-aprendiz" element={<RegistrarAprendiz />} />
+      <Route path="/registrar-usuarios-admin" element={<RegistrarUsuariosAdmin />} />
       {/* error: si la ruta falla te manda al login */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

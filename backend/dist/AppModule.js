@@ -25,11 +25,11 @@ exports.AppModule = AppModule = __decorate([
         imports: [
             typeorm_1.TypeOrmModule.forRoot({
                 type: 'mysql',
-                host: 'localhost',
-                port: 3306,
-                username: 'root',
-                password: '',
-                database: 'pro_scrum',
+                host: process.env.DB_HOST || '127.0.0.1',
+                port: Number(process.env.DB_PORT || 3307),
+                username: process.env.DB_USERNAME || 'root',
+                password: process.env.DB_PASSWORD || '',
+                database: process.env.DB_DATABASE || 'pro_scrum',
                 entities: [__dirname + '/entities/*.entity{.ts,.js}', __dirname + '/entities/*{.ts,.js}'],
                 synchronize: false,
             }),

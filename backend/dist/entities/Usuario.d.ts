@@ -4,6 +4,7 @@ import { RolSistema } from "./RolSistema";
 import { Reuniones } from "./Reuniones";
 import { UsuProDetPar } from "./UsuProDetPar";
 export type EstadoUsuario = "Activo" | "Inactivo";
+export type SexoUsuario = "Hombre" | "Mujer";
 export declare class Usuario {
     usuCedula: number;
     usuTipoDocumento: string | null;
@@ -11,6 +12,8 @@ export declare class Usuario {
     usuApellidos: string | null;
     usuCorreo: string | null;
     usuTelefono: string | null;
+    usuEspecializacion: string | null;
+    usuSexo: SexoUsuario | null;
     usuContrasena: string | null;
     fechaRegistro: Date;
     rolSisIdFk: number | null;

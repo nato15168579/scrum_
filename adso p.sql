@@ -765,6 +765,7 @@ CREATE TABLE `usuario` (
   `rol_sis_ID_FK` int(11) DEFAULT NULL,
   `usu_estado` enum('Activo','Inactivo') NOT NULL DEFAULT 'Activo' COMMENT 'estado del usuario (Activo o Inactivo)',
   `usu_especializacion` varchar(120) DEFAULT NULL COMMENT 'especializacion del instructor',
+  `usu_sexo` enum('Hombre','Mujer') DEFAULT NULL COMMENT 'sexo del aprendiz',
   `usu_tipodedocumento` enum('CC','TI','CE','PEP','PPT') DEFAULT NULL COMMENT 'tipo de documento del usuario (TI; tarjeta de identidad, CC; cedula de ciudadania; CE; Cédula de Extranjería, PPT\n; permiso por proteccion temporal, PEP; permiso especial de permanencia',
   PRIMARY KEY (`usu_cedula`),
   KEY `RolID` (`rol_sis_ID_FK`),

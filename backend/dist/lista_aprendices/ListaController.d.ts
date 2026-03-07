@@ -10,34 +10,88 @@ export declare class ListaController {
         documento: string;
         estado: import("../entities/Usuario").EstadoUsuario;
     }>;
-    getInstructores(cedula?: string): Promise<any[]>;
-    getFichas(): Promise<any>;
-    getStats(cedula: string): Promise<{
-        instructor: string;
-    }>;
-    createAprendiz(payload: {
-        cedula: string | number;
-        nombre: string;
-        apellidos: string;
-        correo: string;
+    updateAprendiz(cedula: string, payload: {
+        nombre?: string;
+        apellidos?: string;
+        correo?: string;
         telefono?: string;
-        ficha?: string;
-        tipoDocumento?: string;
         sexo?: string;
-        password: string;
+        ficha?: string | number;
+        estado?: string;
     }): Promise<{
         ok: boolean;
         mensaje: string;
         aprendiz: {
             documento: string;
+            tipoDocumento: string;
+            ficha: string;
+            area: any;
+            fichaNombre: any;
+            programa: any;
+            nombre: string;
+            apellido: string;
+            telefono: string;
+            email: string;
+            sexo: string;
+            fechaInscripcion: string;
+            estado: import("../entities/Usuario").EstadoUsuario;
+        };
+    }>;
+    deleteAprendiz(cedula: string): Promise<{
+        ok: boolean;
+        documento: string;
+        mensaje: string;
+    }>;
+    getInstructores(cedula?: string): Promise<any[]>;
+    getFichas(): Promise<any>;
+    getStats(cedula: string): Promise<{
+        instructor: string;
+    }>;
+    createUsuario(payload: {
+        cedula: string | number;
+        nombre: string;
+        apellidos: string;
+        correo?: string;
+        telefono?: string;
+        ficha?: string;
+        tipoDocumento?: string;
+        sexo?: string;
+        especializacion?: string;
+        tipoUsuario?: 'aprendiz' | 'instructor';
+        password: string;
+    }): Promise<{
+        ok: boolean;
+        mensaje: string;
+        instructor: {
+            documento: string;
+            tipoDocumento: string;
+            nombre: string;
+            apellido: string;
+            especializacion: string;
+            telefono: string;
+            email: string;
+            fechaInscripcion: string;
+            estado: import("../entities/Usuario").EstadoUsuario;
+        };
+        aprendiz?: undefined;
+    } | {
+        ok: boolean;
+        mensaje: string;
+        aprendiz: {
+            documento: string;
+            tipoDocumento: string;
+            area: any;
             nombre: string;
             apellido: string;
             ficha: string;
             fichaNombre: any;
             programa: any;
             email: string;
+            telefono: string;
+            sexo: string;
             fechaInscripcion: string;
             estado: import("../entities/Usuario").EstadoUsuario;
         };
+        instructor?: undefined;
     }>;
 }

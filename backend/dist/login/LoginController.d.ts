@@ -9,6 +9,8 @@ export declare class LoginController {
         usuApellidos: string | null;
         usuCorreo: string | null;
         usuTelefono: string | null;
+        usuEspecializacion: string | null;
+        usuSexo: import("../entities/Usuario").SexoUsuario | null;
         fechaRegistro: Date;
         rolSisIdFk: number | null;
         usuEstado: import("../entities/Usuario").EstadoUsuario | null;

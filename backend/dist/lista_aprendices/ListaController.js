@@ -25,6 +25,12 @@ let ListaController = class ListaController {
     async updateAprendizEstado(cedula, payload) {
         return await this.listaService.updateAprendizEstado(cedula, payload.estado);
     }
+    async updateAprendiz(cedula, payload) {
+        return await this.listaService.updateAprendiz(cedula, payload);
+    }
+    async deleteAprendiz(cedula) {
+        return await this.listaService.deleteAprendiz(cedula);
+    }
     async getInstructores(cedula) {
         return await this.listaService.findAllInstructores(cedula);
     }
@@ -34,8 +40,8 @@ let ListaController = class ListaController {
     async getStats(cedula) {
         return await this.listaService.getInstructorStats(cedula);
     }
-    async createAprendiz(payload) {
-        return await this.listaService.createAprendiz(payload);
+    async createUsuario(payload) {
+        return await this.listaService.createUsuario(payload);
     }
 };
 exports.ListaController = ListaController;
@@ -54,6 +60,21 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "updateAprendizEstado", null);
+__decorate([
+    (0, common_1.Patch)('aprendices/:cedula'),
+    __param(0, (0, common_1.Param)('cedula')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "updateAprendiz", null);
+__decorate([
+    (0, common_1.Delete)('aprendices/:cedula'),
+    __param(0, (0, common_1.Param)('cedula')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "deleteAprendiz", null);
 __decorate([
     (0, common_1.Get)('instructores'),
     __param(0, (0, common_1.Query)('cedula')),
@@ -80,7 +101,7 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
-], ListaController.prototype, "createAprendiz", null);
+], ListaController.prototype, "createUsuario", null);
 exports.ListaController = ListaController = __decorate([
     (0, common_1.Controller)(),
     __metadata("design:paramtypes", [ListaService_1.ListaService])

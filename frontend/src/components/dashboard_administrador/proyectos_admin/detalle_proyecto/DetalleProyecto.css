@@ -190,6 +190,24 @@
   width: 50%;
 }
 
+.member-detail-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.member-detail-meta strong {
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.member-detail-meta small {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
 .status-active {
   color: #39A900;
   font-weight: bold;

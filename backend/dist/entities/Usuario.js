@@ -74,6 +74,24 @@ __decorate([
 ], Usuario.prototype, "usuTelefono", void 0);
 __decorate([
     (0, typeorm_1.Column)("varchar", {
+        name: "usu_especializacion",
+        nullable: true,
+        comment: "especializacion del instructor",
+        length: 120,
+    }),
+    __metadata("design:type", String)
+], Usuario.prototype, "usuEspecializacion", void 0);
+__decorate([
+    (0, typeorm_1.Column)("enum", {
+        name: "usu_sexo",
+        nullable: true,
+        enum: ["Hombre", "Mujer"],
+        comment: "sexo del aprendiz",
+    }),
+    __metadata("design:type", String)
+], Usuario.prototype, "usuSexo", void 0);
+__decorate([
+    (0, typeorm_1.Column)("varchar", {
         name: "usu_contraseña",
         nullable: true,
         comment: "contrasena del usuario",

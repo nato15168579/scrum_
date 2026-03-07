@@ -7,19 +7,31 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { EstadoUsuario, Usuario } from '../entities/Usuario';
+import { EstadoUsuario, SexoUsuario, Usuario } from '../entities/Usuario';
 import * as bcrypt from 'bcrypt';
 
-interface CreateAprendizDto {
+interface CreateUsuarioDto {
   cedula: string | number;
   nombre: string;
   apellidos: string;
-  correo: string;
+  correo?: string;
   telefono?: string;
   ficha?: string;
   tipoDocumento?: string;
   sexo?: string;
+  especializacion?: string;
+  tipoUsuario?: 'aprendiz' | 'instructor';
   password: string;
+}
+
+interface UpdateAprendizDto {
+  nombre?: string;
+  apellidos?: string;
+  correo?: string;
+  telefono?: string;
+  sexo?: string;
+  ficha?: string | number;
+  estado?: string;
 }
 
 interface FichaDetalle {
@@ -31,6 +43,7 @@ interface FichaDetalle {
 }
 
 const ESTADOS_USUARIO: EstadoUsuario[] = ['Activo', 'Inactivo'];
+const SEXOS_USUARIO: SexoUsuario[] = ['Hombre', 'Mujer'];
 
 @Injectable()
 export class ListaService {
@@ -116,9 +129,38 @@ export class ListaService {
     `);
   }
 
+  private async ensureEspecializacionColumn() {
+    const hasEspecializacion = await this.columnExists(
+      'usuario',
+      'usu_especializacion',
+    );
+
+    if (!hasEspecializacion) {
+      await this.dataSource.query(`
+        ALTER TABLE usuario
+        ADD COLUMN usu_especializacion VARCHAR(120) NULL
+        COMMENT 'especializacion del instructor'
+      `);
+    }
+  }
+
+  private async ensureSexoColumn() {
+    const hasSexo = await this.columnExists('usuario', 'usu_sexo');
+
+    if (!hasSexo) {
+      await this.dataSource.query(`
+        ALTER TABLE usuario
+        ADD COLUMN usu_sexo ENUM('Hombre','Mujer') NULL
+        COMMENT 'sexo del aprendiz'
+      `);
+    }
+  }
+
   private async ensureUsuarioColumns() {
     await this.ensureFechaRegistroColumn();
     await this.ensureEstadoColumn();
+    await this.ensureEspecializacionColumn();
+    await this.ensureSexoColumn();
   }
 
   private async ensureFichaSchema() {
@@ -137,6 +179,29 @@ export class ListaService {
         `Faltan tablas requeridas en la base de datos: ${missingTables.join(', ')}. Importa el esquema SQL actualizado.`,
       );
     }
+
+    const hasFichaNombre = await this.columnExists('fichas', 'fic_nombre');
+    const hasFichaArea = await this.columnExists('fichas', 'fic_area');
+
+    if (!hasFichaNombre && !hasFichaArea) {
+      throw new InternalServerErrorException(
+        'La tabla fichas debe tener la columna fic_nombre o fic_area.',
+      );
+    }
+  }
+
+  private async getFichaNombreSelect(alias = 'f') {
+    const prefix = alias ? `${alias}.` : '';
+
+    if (await this.columnExists('fichas', 'fic_nombre')) {
+      return `${prefix}fic_nombre`;
+    }
+
+    if (await this.columnExists('fichas', 'fic_area')) {
+      return `${prefix}fic_area`;
+    }
+
+    return 'NULL';
   }
 
   private normalizeEstado(value: unknown): EstadoUsuario {
@@ -194,13 +259,92 @@ export class ListaService {
       .filter((ficha: number) => !Number.isNaN(ficha));
   }
 
+  private sanitizeText(value: unknown) {
+    return String(value ?? '').trim();
+  }
+
+  private async getFichaActualUsuario(cedula: number) {
+    const [row] = await this.dataSource.query(
+      `
+        SELECT fic_numero_FK AS ficha, usf_fecha_asignacion AS fechaAsignacion
+        FROM usuario_ficha
+        WHERE usu_cedula_FK = ?
+        ORDER BY usf_fecha_asignacion ASC
+        LIMIT 1
+      `,
+      [cedula],
+    );
+
+    return row || null;
+  }
+
+  private async getFichaByNumero(fichaNumero: number) {
+    const fichaNombreSelect = await this.getFichaNombreSelect('');
+    const [ficha] = await this.dataSource.query(
+      `
+        SELECT
+          fic_numero,
+          ${fichaNombreSelect} AS fichaNombre,
+          fic_programa,
+          fic_estado
+        FROM fichas
+        WHERE fic_numero = ?
+        LIMIT 1
+      `,
+      [fichaNumero],
+    );
+
+    return ficha || null;
+  }
+
+  private mapAprendizResponse(row: any) {
+    return {
+      documento: String(row.documento),
+      tipoDocumento: row.tipoDocumento || 'CC',
+      ficha: row.ficha ? String(row.ficha) : 'Sin ficha',
+      area: row.fichaNombre || 'Sin area',
+      fichaNombre: row.fichaNombre || 'Sin nombre de ficha',
+      programa: row.programa || 'Sin programa',
+      nombre: row.nombre || '',
+      apellido: row.apellido || '',
+      telefono: row.telefono || '',
+      email: row.email || '',
+      sexo: row.sexo || '',
+      fechaInscripcion: this.formatDateToIso(row.fechaInscripcion),
+      estado: this.normalizeEstado(row.estado),
+    };
+  }
+
+  private async deleteUsuarioReferences(queryRunner: any, cedula: number) {
+    const references = await queryRunner.query(
+      `
+        SELECT
+          TABLE_NAME AS tableName,
+          COLUMN_NAME AS columnName
+        FROM information_schema.KEY_COLUMN_USAGE
+        WHERE REFERENCED_TABLE_SCHEMA = DATABASE()
+          AND REFERENCED_TABLE_NAME = 'usuario'
+          AND REFERENCED_COLUMN_NAME = 'usu_cedula'
+        ORDER BY TABLE_NAME ASC
+      `,
+    );
+
+    for (const reference of references || []) {
+      await queryRunner.query(
+        `DELETE FROM \`${reference.tableName}\` WHERE \`${reference.columnName}\` = ?`,
+        [cedula],
+      );
+    }
+  }
+
   async findAllFichas() {
     await this.ensureFichaSchema();
+    const fichaNombreSelect = await this.getFichaNombreSelect('f');
 
     const fichas = await this.dataSource.query(`
       SELECT
         CAST(f.fic_numero AS CHAR) AS numero,
-        f.fic_nombre AS nombre,
+        ${fichaNombreSelect} AS nombre,
         f.fic_programa AS programa,
         f.fic_estado AS estado,
         f.fic_fecha_creacion AS fechaCreacion
@@ -220,6 +364,7 @@ export class ListaService {
   async findAllAprendices(cedulaSolicitante?: string) {
     await this.ensureUsuarioColumns();
     await this.ensureFichaSchema();
+    const fichaNombreSelect = await this.getFichaNombreSelect('f');
 
     const rolSolicitante = await this.getRolUsuario(cedulaSolicitante);
     let filtroFichas = '';
@@ -242,13 +387,15 @@ export class ListaService {
       `
       SELECT
         u.usu_cedula AS documento,
+        u.usu_tipodedocumento AS tipoDocumento,
         CAST(f.fic_numero AS CHAR) AS ficha,
-        f.fic_nombre AS fichaNombre,
+        ${fichaNombreSelect} AS fichaNombre,
         f.fic_programa AS programa,
         u.usu_nombres AS nombre,
         u.usu_apellidos AS apellido,
         u.usu_telefono AS telefono,
         u.usu_correo AS email,
+        u.usu_sexo AS sexo,
         u.fecha_registro AS fechaInscripcion,
         u.usu_estado AS estado,
         uf.usf_fecha_asignacion AS fechaAsignacionFicha
@@ -269,18 +416,7 @@ export class ListaService {
       const existing = aprendicesMap.get(documento);
 
       if (!existing) {
-        aprendicesMap.set(documento, {
-          documento,
-          ficha: row.ficha || 'Sin ficha',
-          fichaNombre: row.fichaNombre || 'Sin nombre de ficha',
-          programa: row.programa || 'Sin programa',
-          nombre: row.nombre || '',
-          apellido: row.apellido || '',
-          telefono: row.telefono || '',
-          email: row.email || '',
-          fechaInscripcion: this.formatDateToIso(row.fechaInscripcion),
-          estado: this.normalizeEstado(row.estado),
-        });
+        aprendicesMap.set(documento, this.mapAprendizResponse(row));
         continue;
       }
 
@@ -297,6 +433,7 @@ export class ListaService {
   async findAllInstructores(_cedulaSolicitante?: string) {
     await this.ensureUsuarioColumns();
     await this.ensureFichaSchema();
+    const fichaNombreSelect = await this.getFichaNombreSelect('f');
 
     const rows = await this.dataSource.query(`
       SELECT
@@ -308,7 +445,7 @@ export class ListaService {
         u.usu_correo AS email,
         u.fecha_registro AS fechaInscripcion,
         CAST(f.fic_numero AS CHAR) AS ficha,
-        f.fic_nombre AS fichaNombre,
+        ${fichaNombreSelect} AS fichaNombre,
         f.fic_programa AS programa,
         f.fic_estado AS fichaEstado,
         f.fic_fecha_creacion AS fichaFechaCreacion
@@ -353,23 +490,44 @@ export class ListaService {
     return Array.from(instructoresMap.values());
   }
 
-  async createAprendiz(payload: CreateAprendizDto) {
+  async createUsuario(payload: CreateUsuarioDto) {
     await this.ensureUsuarioColumns();
-    await this.ensureFichaSchema();
 
+    const tipoUsuario =
+      payload.tipoUsuario === 'instructor' ? 'instructor' : 'aprendiz';
     const cedula = Number(payload.cedula);
+    const nombre = this.sanitizeText(payload.nombre);
+    const apellidos = this.sanitizeText(payload.apellidos);
+    const correo = this.sanitizeText(payload.correo);
+    const telefono = this.sanitizeText(payload.telefono);
+    const password = this.sanitizeText(payload.password);
+    const tipoDocumento = this.sanitizeText(payload.tipoDocumento) || 'CC';
+    const especializacion = this.sanitizeText(payload.especializacion);
+    const sexo = this.sanitizeText(payload.sexo);
+
     if (!cedula || Number.isNaN(cedula)) {
       throw new BadRequestException('La cedula es obligatoria y debe ser numerica.');
     }
 
-    if (!payload.password || payload.password.trim().length < 4) {
+    if (!nombre) {
+      throw new BadRequestException('El nombre es obligatorio.');
+    }
+
+    if (!apellidos) {
+      throw new BadRequestException('El apellido es obligatorio.');
+    }
+
+    if (!password || password.length < 4) {
       throw new BadRequestException('La contrasena es obligatoria.');
     }
 
-    const fichaNumero = Number(String(payload.ficha || '').trim());
-    if (!fichaNumero || Number.isNaN(fichaNumero)) {
-      throw new BadRequestException('La ficha es obligatoria y debe ser numerica.');
+    if (sexo && !SEXOS_USUARIO.includes(sexo as SexoUsuario)) {
+      throw new BadRequestException(
+        'El sexo debe ser Hombre o Mujer.',
+      );
     }
+
+    const sexoNormalizado = sexo ? (sexo as SexoUsuario) : null;
 
     const yaExiste = await this.usuarioRepository.findOneBy({
       usuCedula: cedula,
@@ -379,42 +537,89 @@ export class ListaService {
       throw new ConflictException('Ya existe un usuario con esa cedula.');
     }
 
-    const [ficha] = await this.dataSource.query(
-      `
-        SELECT
-          fic_numero,
-          fic_nombre,
-          fic_programa,
-          fic_estado
-        FROM fichas
-        WHERE fic_numero = ?
-        LIMIT 1
-      `,
-      [fichaNumero],
-    );
-
-    if (!ficha) {
-      throw new NotFoundException('La ficha seleccionada no existe.');
-    }
-
-    if (ficha.fic_estado !== 'Activa') {
-      throw new BadRequestException('La ficha seleccionada no esta activa.');
-    }
-
-    const hash = await bcrypt.hash(payload.password.trim(), 10);
+    const hash = await bcrypt.hash(password, 10);
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
+      if (tipoUsuario === 'instructor') {
+        if (!correo) {
+          throw new BadRequestException('El correo es obligatorio para el instructor.');
+        }
+
+        if (!especializacion) {
+          throw new BadRequestException(
+            'La especializacion es obligatoria para el instructor.',
+          );
+        }
+
+        const nuevoInstructor = queryRunner.manager.create(Usuario, {
+          usuCedula: cedula,
+          usuTipoDocumento: tipoDocumento,
+          usuNombres: nombre,
+          usuApellidos: apellidos,
+          usuCorreo: correo,
+          usuTelefono: telefono || null,
+          usuEspecializacion: especializacion,
+          usuSexo: null,
+          usuContrasena: hash,
+          rolSisIdFk: 2,
+          usuEstado: 'Activo',
+        });
+
+        await queryRunner.manager.save(Usuario, nuevoInstructor);
+
+        const [registro] = await queryRunner.query(
+          'SELECT fecha_registro FROM usuario WHERE usu_cedula = ? LIMIT 1',
+          [cedula],
+        );
+
+        await queryRunner.commitTransaction();
+
+        return {
+          ok: true,
+          mensaje: 'Instructor registrado correctamente.',
+          instructor: {
+            documento: String(nuevoInstructor.usuCedula),
+            tipoDocumento: nuevoInstructor.usuTipoDocumento || 'CC',
+            nombre: nuevoInstructor.usuNombres || '',
+            apellido: nuevoInstructor.usuApellidos || '',
+            especializacion: nuevoInstructor.usuEspecializacion || '',
+            telefono: nuevoInstructor.usuTelefono || '',
+            email: nuevoInstructor.usuCorreo || '',
+            fechaInscripcion: this.formatDateToIso(registro?.fecha_registro),
+            estado: nuevoInstructor.usuEstado || 'Activo',
+          },
+        };
+      }
+
+      await this.ensureFichaSchema();
+      const fichaNumero = Number(String(payload.ficha || '').trim());
+      if (!fichaNumero || Number.isNaN(fichaNumero)) {
+        throw new BadRequestException('La ficha es obligatoria y debe ser numerica.');
+      }
+
+      const ficha = await this.getFichaByNumero(fichaNumero);
+
+      if (!ficha) {
+        throw new NotFoundException('La ficha seleccionada no existe.');
+      }
+
+      if (ficha.fic_estado !== 'Activa') {
+        throw new BadRequestException('La ficha seleccionada no esta activa.');
+      }
+
       const nuevoAprendiz = queryRunner.manager.create(Usuario, {
         usuCedula: cedula,
-        usuTipoDocumento: payload.tipoDocumento || 'CC',
-        usuNombres: payload.nombre?.trim() || '',
-        usuApellidos: payload.apellidos?.trim() || '',
-        usuCorreo: payload.correo?.trim() || '',
-        usuTelefono: payload.telefono?.trim() || null,
+        usuTipoDocumento: tipoDocumento,
+        usuNombres: nombre,
+        usuApellidos: apellidos,
+        usuCorreo: correo || null,
+        usuTelefono: telefono || null,
+        usuEspecializacion: null,
+        usuSexo: sexoNormalizado,
         usuContrasena: hash,
         rolSisIdFk: 1,
         usuEstado: 'Activo',
@@ -442,12 +647,16 @@ export class ListaService {
         mensaje: 'Aprendiz registrado correctamente.',
         aprendiz: {
           documento: String(nuevoAprendiz.usuCedula),
+          tipoDocumento: nuevoAprendiz.usuTipoDocumento || 'CC',
+          area: ficha.fichaNombre || 'Sin area',
           nombre: nuevoAprendiz.usuNombres || '',
           apellido: nuevoAprendiz.usuApellidos || '',
           ficha: String(ficha.fic_numero),
-          fichaNombre: ficha.fic_nombre || 'Sin nombre de ficha',
+          fichaNombre: ficha.fichaNombre || 'Sin nombre de ficha',
           programa: ficha.fic_programa || 'Sin programa',
           email: nuevoAprendiz.usuCorreo || '',
+          telefono: nuevoAprendiz.usuTelefono || '',
+          sexo: nuevoAprendiz.usuSexo || '',
           fechaInscripcion: this.formatDateToIso(registro?.fecha_registro),
           estado: nuevoAprendiz.usuEstado || 'Activo',
         },
@@ -455,9 +664,194 @@ export class ListaService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ConflictException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
       const err = error as { message?: string };
       throw new InternalServerErrorException(
-        `No se pudo registrar el aprendiz: ${err?.message || 'Error interno.'}`,
+        `No se pudo registrar el usuario: ${err?.message || 'Error interno.'}`,
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async updateAprendiz(cedula: string, payload: UpdateAprendizDto) {
+    await this.ensureUsuarioColumns();
+    await this.ensureFichaSchema();
+
+    const documento = Number(cedula);
+    if (!documento || Number.isNaN(documento)) {
+      throw new BadRequestException('La cedula del aprendiz es invalida.');
+    }
+
+    const aprendiz = await this.usuarioRepository.findOne({
+      where: {
+        usuCedula: documento,
+        rolSisIdFk: 1,
+      },
+    });
+
+    if (!aprendiz) {
+      throw new NotFoundException('No se encontro el aprendiz solicitado.');
+    }
+
+    const nombre = this.sanitizeText(payload.nombre ?? aprendiz.usuNombres);
+    const apellidos = this.sanitizeText(payload.apellidos ?? aprendiz.usuApellidos);
+    const correo = this.sanitizeText(payload.correo ?? aprendiz.usuCorreo);
+    const telefono = this.sanitizeText(payload.telefono ?? aprendiz.usuTelefono);
+    const sexo = this.sanitizeText(payload.sexo ?? aprendiz.usuSexo);
+    const estado = this.sanitizeText(payload.estado ?? aprendiz.usuEstado);
+
+    if (!nombre) {
+      throw new BadRequestException('El nombre es obligatorio.');
+    }
+
+    if (!apellidos) {
+      throw new BadRequestException('El apellido es obligatorio.');
+    }
+
+    if (!correo) {
+      throw new BadRequestException('El correo es obligatorio.');
+    }
+
+    if (!ESTADOS_USUARIO.includes(estado as EstadoUsuario)) {
+      throw new BadRequestException('El estado debe ser Activo o Inactivo.');
+    }
+
+    if (sexo && !SEXOS_USUARIO.includes(sexo as SexoUsuario)) {
+      throw new BadRequestException('El sexo debe ser Hombre o Mujer.');
+    }
+
+    const fichaActual = await this.getFichaActualUsuario(documento);
+    const fichaNumero = Number(
+      String(payload.ficha ?? fichaActual?.ficha ?? '').trim(),
+    );
+
+    if (!fichaNumero || Number.isNaN(fichaNumero)) {
+      throw new BadRequestException('La ficha es obligatoria y debe ser numerica.');
+    }
+
+    const ficha = await this.getFichaByNumero(fichaNumero);
+
+    if (!ficha) {
+      throw new NotFoundException('La ficha seleccionada no existe.');
+    }
+
+    if (ficha.fic_estado !== 'Activa') {
+      throw new BadRequestException('La ficha seleccionada no esta activa.');
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      aprendiz.usuNombres = nombre;
+      aprendiz.usuApellidos = apellidos;
+      aprendiz.usuCorreo = correo;
+      aprendiz.usuTelefono = telefono || null;
+      aprendiz.usuSexo = sexo ? (sexo as SexoUsuario) : null;
+      aprendiz.usuEstado = estado as EstadoUsuario;
+
+      await queryRunner.manager.save(Usuario, aprendiz);
+
+      await queryRunner.query(
+        'DELETE FROM usuario_ficha WHERE usu_cedula_FK = ?',
+        [documento],
+      );
+
+      await queryRunner.query(
+        `
+          INSERT INTO usuario_ficha (usu_cedula_FK, fic_numero_FK, usf_fecha_asignacion)
+          VALUES (?, ?, ?)
+        `,
+        [
+          documento,
+          fichaNumero,
+          fichaActual?.fechaAsignacion || new Date(),
+        ],
+      );
+
+      await queryRunner.commitTransaction();
+
+      return {
+        ok: true,
+        mensaje: 'Aprendiz actualizado correctamente.',
+        aprendiz: {
+          documento: String(aprendiz.usuCedula),
+          tipoDocumento: aprendiz.usuTipoDocumento || 'CC',
+          ficha: String(ficha.fic_numero),
+          area: ficha.fichaNombre || 'Sin area',
+          fichaNombre: ficha.fichaNombre || 'Sin nombre de ficha',
+          programa: ficha.fic_programa || 'Sin programa',
+          nombre: aprendiz.usuNombres || '',
+          apellido: aprendiz.usuApellidos || '',
+          telefono: aprendiz.usuTelefono || '',
+          email: aprendiz.usuCorreo || '',
+          sexo: aprendiz.usuSexo || '',
+          fechaInscripcion: this.formatDateToIso(aprendiz.fechaRegistro),
+          estado: aprendiz.usuEstado || 'Activo',
+        },
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      const err = error as { message?: string };
+      throw new InternalServerErrorException(
+        `No se pudo actualizar el aprendiz: ${err?.message || 'Error interno.'}`,
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async deleteAprendiz(cedula: string) {
+    const documento = Number(cedula);
+    if (!documento || Number.isNaN(documento)) {
+      throw new BadRequestException('La cedula del aprendiz es invalida.');
+    }
+
+    const aprendiz = await this.usuarioRepository.findOne({
+      where: {
+        usuCedula: documento,
+        rolSisIdFk: 1,
+      },
+      select: ['usuCedula', 'usuNombres', 'usuApellidos'],
+    });
+
+    if (!aprendiz) {
+      throw new NotFoundException('No se encontro el aprendiz solicitado.');
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await this.deleteUsuarioReferences(queryRunner, documento);
+
+      await queryRunner.query(
+        'DELETE FROM usuario WHERE usu_cedula = ? AND rol_sis_ID_FK = 1',
+        [documento],
+      );
+
+      await queryRunner.commitTransaction();
+
+      return {
+        ok: true,
+        documento: String(documento),
+        mensaje: `Aprendiz ${aprendiz.usuNombres || ''} ${aprendiz.usuApellidos || ''} eliminado correctamente.`,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      const err = error as { message?: string };
+      throw new InternalServerErrorException(
+        `No se pudo eliminar el aprendiz: ${err?.message || 'Error interno.'}`,
       );
     } finally {
       await queryRunner.release();

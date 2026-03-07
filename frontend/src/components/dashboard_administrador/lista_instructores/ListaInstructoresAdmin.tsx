@@ -575,7 +575,7 @@ const ListaInstructoresAdmin = () => {
                   <thead>
                     <tr>
                       <th>Ficha</th>
-                      <th>Nombre</th>
+                      <th>Area</th>
                       <th>Programa</th>
                     </tr>
                   </thead>

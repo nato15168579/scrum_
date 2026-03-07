@@ -15,6 +15,7 @@ import { Reuniones } from "./Reuniones";
 import { UsuProDetPar } from "./UsuProDetPar";
 
 export type EstadoUsuario = "Activo" | "Inactivo";
+export type SexoUsuario = "Hombre" | "Mujer";
 
 @Index("RolID", ["rolSisIdFk"], {})
 @Entity("usuario", { schema: "pro_scrum" })
@@ -65,6 +66,22 @@ export class Usuario {
     length: 20,
   })
   usuTelefono: string | null;
+
+  @Column("varchar", {
+    name: "usu_especializacion",
+    nullable: true,
+    comment: "especializacion del instructor",
+    length: 120,
+  })
+  usuEspecializacion: string | null;
+
+  @Column("enum", {
+    name: "usu_sexo",
+    nullable: true,
+    enum: ["Hombre", "Mujer"],
+    comment: "sexo del aprendiz",
+  })
+  usuSexo: SexoUsuario | null;
 
   @Column("varchar", {
     name: "usu_contraseña",

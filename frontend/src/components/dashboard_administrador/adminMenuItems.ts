@@ -21,8 +21,8 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   { name: "Cambios Del sistema", icon: Settings, path: "/asignar-proyectos" },
   { name: "Proyectos", icon: FolderOpen, path: "/ver-proyectos" },
   {
-    name: "Registrar Instructor",
+    name: "Registrar Usuario",
     icon: UserPlus,
-    path: "/registrar-aprendiz",
+    path: "/registrar-usuarios-admin",
   },
 ];

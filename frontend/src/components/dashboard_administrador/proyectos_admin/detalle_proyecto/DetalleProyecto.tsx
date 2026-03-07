@@ -26,6 +26,7 @@ interface ProyectoData {
 interface Miembro {
     nombre: string;
     rol: string;
+    sexo?: string;
 }
 
 const API_BASE_URL = 'http://localhost:5000/dashboard'; 
@@ -286,7 +287,10 @@ const DetalleProyecto: React.FC = () => {
                 miembros.map((miembro, index) => (
                     <div key={index} className="info-detail-row">
                         <label>{miembro.nombre}</label>
-                        <span>{miembro.rol}</span>
+                        <span className="member-detail-meta">
+                          <strong>{miembro.rol}</strong>
+                          <small>{miembro.sexo || 'Sexo no registrado'}</small>
+                        </span>
                     </div>
                 ))
             ) : (
