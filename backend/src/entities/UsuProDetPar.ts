@@ -7,7 +7,7 @@ import { Proyecto } from "./Proyecto";
 @Index("RolScrumID", ["proId"], {})
 @Entity("usu_pro_det_par", { schema: "pro_scrum" })
 export class UsuProDetPar {
-  @Column("int", {
+  @Column("bigint", {
     primary: true,
     name: "usu_cedula",
     comment: "cedula del usuario",

@@ -20,6 +20,7 @@ const Usuario_1 = require("../entities/Usuario");
 const bcrypt = require("bcrypt");
 const ESTADOS_USUARIO = ['Activo', 'Inactivo'];
 const SEXOS_USUARIO = ['Hombre', 'Mujer'];
+const ESTADOS_FICHA = ['Activa', 'Inactiva'];
 let ListaService = class ListaService {
     constructor(usuarioRepository, dataSource) {
         this.usuarioRepository = usuarioRepository;
@@ -103,7 +104,71 @@ let ListaService = class ListaService {
       `);
         }
     }
+    async ensureUsuarioCedulaBigInt() {
+        const [usuarioCedula] = await this.dataSource.query(`
+        SELECT DATA_TYPE AS dataType
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'usuario'
+          AND COLUMN_NAME = 'usu_cedula'
+      `);
+        if (!usuarioCedula) {
+            throw new common_1.InternalServerErrorException('La tabla usuario debe tener la columna usu_cedula.');
+        }
+        if (String(usuarioCedula.dataType || '').toLowerCase() === 'bigint') {
+            return;
+        }
+        const foreignKeys = await this.dataSource.query(`
+        SELECT
+          kcu.TABLE_NAME AS tableName,
+          kcu.COLUMN_NAME AS columnName,
+          kcu.CONSTRAINT_NAME AS constraintName,
+          c.IS_NULLABLE AS isNullable,
+          rc.UPDATE_RULE AS updateRule,
+          rc.DELETE_RULE AS deleteRule
+        FROM information_schema.KEY_COLUMN_USAGE kcu
+        INNER JOIN information_schema.COLUMNS c
+          ON c.TABLE_SCHEMA = kcu.TABLE_SCHEMA
+         AND c.TABLE_NAME = kcu.TABLE_NAME
+         AND c.COLUMN_NAME = kcu.COLUMN_NAME
+        INNER JOIN information_schema.REFERENTIAL_CONSTRAINTS rc
+          ON rc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA
+         AND rc.TABLE_NAME = kcu.TABLE_NAME
+         AND rc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+        WHERE kcu.TABLE_SCHEMA = DATABASE()
+          AND kcu.REFERENCED_TABLE_NAME = 'usuario'
+          AND kcu.REFERENCED_COLUMN_NAME = 'usu_cedula'
+        ORDER BY kcu.TABLE_NAME ASC, kcu.COLUMN_NAME ASC
+      `);
+        for (const foreignKey of foreignKeys || []) {
+            await this.dataSource.query(`
+          ALTER TABLE \`${foreignKey.tableName}\`
+          DROP FOREIGN KEY \`${foreignKey.constraintName}\`
+        `);
+        }
+        for (const foreignKey of foreignKeys || []) {
+            await this.dataSource.query(`
+          ALTER TABLE \`${foreignKey.tableName}\`
+          MODIFY COLUMN \`${foreignKey.columnName}\` BIGINT ${foreignKey.isNullable === 'YES' ? 'NULL' : 'NOT NULL'}
+        `);
+        }
+        await this.dataSource.query(`
+      ALTER TABLE usuario
+      MODIFY COLUMN usu_cedula BIGINT NOT NULL COMMENT 'cedula del usuario'
+    `);
+        for (const foreignKey of foreignKeys || []) {
+            await this.dataSource.query(`
+          ALTER TABLE \`${foreignKey.tableName}\`
+          ADD CONSTRAINT \`${foreignKey.constraintName}\`
+          FOREIGN KEY (\`${foreignKey.columnName}\`)
+          REFERENCES usuario (usu_cedula)
+          ON DELETE ${foreignKey.deleteRule}
+          ON UPDATE ${foreignKey.updateRule}
+        `);
+        }
+    }
     async ensureUsuarioColumns() {
+        await this.ensureUsuarioCedulaBigInt();
         await this.ensureFechaRegistroColumn();
         await this.ensureEstadoColumn();
         await this.ensureEspecializacionColumn();
@@ -135,6 +200,114 @@ let ListaService = class ListaService {
             return `${prefix}fic_area`;
         }
         return 'NULL';
+    }
+    async getFichaNombreColumn() {
+        if (await this.columnExists('fichas', 'fic_nombre')) {
+            return 'fic_nombre';
+        }
+        if (await this.columnExists('fichas', 'fic_area')) {
+            return 'fic_area';
+        }
+        throw new common_1.InternalServerErrorException('La tabla fichas debe tener la columna fic_nombre o fic_area.');
+    }
+    normalizeCatalogValue(value) {
+        return this.sanitizeText(value)
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toUpperCase();
+    }
+    resolveCatalogValue(value, allowedValues) {
+        const normalizedValue = this.normalizeCatalogValue(value);
+        return (allowedValues.find((allowedValue) => this.normalizeCatalogValue(allowedValue) === normalizedValue) || '');
+    }
+    escapeSqlLiteral(value) {
+        return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+    async getColumnMetadata(tableName, columnName) {
+        const [column] = await this.dataSource.query(`
+        SELECT
+          DATA_TYPE AS dataType,
+          COLUMN_TYPE AS columnType,
+          IS_NULLABLE AS isNullable,
+          COLUMN_DEFAULT AS columnDefault,
+          COLUMN_COMMENT AS columnComment
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+      `, [tableName, columnName]);
+        return column || null;
+    }
+    async getEnumColumnOptions(tableName, columnName) {
+        const column = await this.getColumnMetadata(tableName, columnName);
+        if (!column || String(column.dataType || '').toLowerCase() !== 'enum') {
+            return [];
+        }
+        const matches = String(column.columnType || '').match(/'((?:[^'\\\\]|\\\\.)*)'/g);
+        return (matches || []).map((match) => match.slice(1, -1).replace(/\\\\'/g, "'"));
+    }
+    async ensureEnumColumnValue(tableName, columnName, value) {
+        const normalizedValue = this.sanitizeText(value);
+        if (!normalizedValue) {
+            return '';
+        }
+        const column = await this.getColumnMetadata(tableName, columnName);
+        if (!column || String(column.dataType || '').toLowerCase() !== 'enum') {
+            return normalizedValue;
+        }
+        const currentValues = await this.getEnumColumnOptions(tableName, columnName);
+        const matchedValue = this.resolveCatalogValue(normalizedValue, currentValues);
+        if (matchedValue) {
+            return matchedValue;
+        }
+        const nextValues = [...currentValues, normalizedValue];
+        const nullClause = column.isNullable === 'YES' ? 'NULL' : 'NOT NULL';
+        const hasNullDefault = column.columnDefault === null ||
+            column.columnDefault === undefined ||
+            this.normalizeCatalogValue(column.columnDefault) === 'NULL';
+        const defaultClause = hasNullDefault
+            ? column.isNullable === 'YES'
+                ? ' DEFAULT NULL'
+                : ''
+            : ` DEFAULT '${this.escapeSqlLiteral(String(column.columnDefault))}'`;
+        const commentClause = this.sanitizeText(column.columnComment)
+            ? ` COMMENT '${this.escapeSqlLiteral(String(column.columnComment))}'`
+            : '';
+        await this.dataSource.query(`
+        ALTER TABLE \`${tableName}\`
+        MODIFY COLUMN \`${columnName}\` ENUM(${nextValues
+            .map((item) => `'${this.escapeSqlLiteral(item)}'`)
+            .join(', ')}) ${nullClause}${defaultClause}${commentClause}
+      `);
+        return normalizedValue;
+    }
+    async getFichaAreasByPrograma() {
+        await this.ensureFichaSchema();
+        const fichaNombreSelect = await this.getFichaNombreSelect('');
+        const rows = await this.dataSource.query(`
+        SELECT
+          ${fichaNombreSelect} AS nombre,
+          fic_programa AS programa
+        FROM fichas
+        WHERE TRIM(COALESCE(${fichaNombreSelect}, '')) <> ''
+          AND TRIM(COALESCE(fic_programa, '')) <> ''
+        ORDER BY fic_programa ASC, ${fichaNombreSelect} ASC
+      `);
+        const areasByPrograma = {};
+        for (const row of rows || []) {
+            const programa = this.sanitizeText(row.programa);
+            const nombre = this.sanitizeText(row.nombre);
+            if (!programa || !nombre) {
+                continue;
+            }
+            if (!areasByPrograma[programa]) {
+                areasByPrograma[programa] = [];
+            }
+            if (!areasByPrograma[programa].includes(nombre)) {
+                areasByPrograma[programa].push(nombre);
+            }
+        }
+        return areasByPrograma;
     }
     normalizeEstado(value) {
         return value === 'Inactivo' ? 'Inactivo' : 'Activo';
@@ -181,8 +354,30 @@ let ListaService = class ListaService {
             .map((row) => Number(row.ficha))
             .filter((ficha) => !Number.isNaN(ficha));
     }
+    async ensureUsuarioFichaAssignment(queryExecutor, cedula, fichaNumero) {
+        const [existingAssignment] = await queryExecutor.query(`
+        SELECT COUNT(*) AS total
+        FROM usuario_ficha
+        WHERE usu_cedula_FK = ? AND fic_numero_FK = ?
+      `, [cedula, fichaNumero]);
+        if (Number((existingAssignment === null || existingAssignment === void 0 ? void 0 : existingAssignment.total) || 0) > 0) {
+            return false;
+        }
+        await queryExecutor.query(`
+        INSERT INTO usuario_ficha (usu_cedula_FK, fic_numero_FK, usf_fecha_asignacion)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+      `, [cedula, fichaNumero]);
+        return true;
+    }
     sanitizeText(value) {
         return String(value !== null && value !== void 0 ? value : '').trim();
+    }
+    buildDefaultPassword(nombre) {
+        var _a;
+        const normalizedFirstName = (_a = this.sanitizeText(nombre)
+            .split(/\s+/)
+            .find(Boolean)) === null || _a === void 0 ? void 0 : _a.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        return `${normalizedFirstName || 'usuario'}123`;
     }
     async getFichaActualUsuario(cedula) {
         const [row] = await this.dataSource.query(`
@@ -201,12 +396,46 @@ let ListaService = class ListaService {
           fic_numero,
           ${fichaNombreSelect} AS fichaNombre,
           fic_programa,
-          fic_estado
+          fic_programa AS programa,
+          fic_estado,
+          fic_estado AS estado
         FROM fichas
         WHERE fic_numero = ?
         LIMIT 1
       `, [fichaNumero]);
         return ficha || null;
+    }
+    async getFichasByNumeros(fichas) {
+        await this.ensureFichaSchema();
+        const uniqueFichas = Array.from(new Set(fichas.filter((item) => !Number.isNaN(item))));
+        if (uniqueFichas.length === 0) {
+            return [];
+        }
+        const fichaNombreSelect = await this.getFichaNombreSelect('f');
+        const placeholders = uniqueFichas.map(() => '?').join(', ');
+        const rows = await this.dataSource.query(`
+        SELECT
+          CAST(f.fic_numero AS CHAR) AS ficha,
+          ${fichaNombreSelect} AS fichaNombre,
+          f.fic_programa AS programa,
+          f.fic_estado AS fichaEstado,
+          f.fic_fecha_creacion AS fichaFechaCreacion
+        FROM fichas f
+        WHERE f.fic_numero IN (${placeholders})
+        ORDER BY f.fic_numero ASC
+      `, uniqueFichas);
+        return (rows || [])
+            .map((row) => this.buildFichaDetalle(row))
+            .filter((row) => Boolean(row));
+    }
+    async getFichaCatalogOptions() {
+        await this.ensureFichaSchema();
+        const fichaNombreColumn = await this.getFichaNombreColumn();
+        return {
+            areas: await this.getEnumColumnOptions('fichas', fichaNombreColumn),
+            programas: await this.getEnumColumnOptions('fichas', 'fic_programa'),
+            areasByPrograma: await this.getFichaAreasByPrograma(),
+        };
     }
     mapAprendizResponse(row) {
         return {
@@ -260,6 +489,282 @@ let ListaService = class ListaService {
             estado: ficha.estado || 'Sin estado',
             fechaCreacion: this.formatDateToIso(ficha.fechaCreacion),
         }));
+    }
+    async createFicha(payload) {
+        var _a;
+        await this.ensureFichaSchema();
+        const numero = Number(String((_a = payload.numero) !== null && _a !== void 0 ? _a : '').trim());
+        const nombre = this.sanitizeText(payload.nombre);
+        const programa = this.sanitizeText(payload.programa);
+        const estado = this.sanitizeText(payload.estado);
+        const allowCustomCatalogValues = Boolean(payload.allowCustomCatalogValues);
+        if (!numero || Number.isNaN(numero)) {
+            throw new common_1.BadRequestException('El numero de ficha es obligatorio y debe ser numerico.');
+        }
+        if (!nombre) {
+            throw new common_1.BadRequestException('El area o nombre de la ficha es obligatorio.');
+        }
+        if (!programa) {
+            throw new common_1.BadRequestException('El programa de la ficha es obligatorio.');
+        }
+        if (estado && !ESTADOS_FICHA.includes(estado)) {
+            throw new common_1.BadRequestException('El estado de la ficha debe ser Activa o Inactiva.');
+        }
+        const fichaExistente = await this.getFichaByNumero(numero);
+        const fichaNombreColumn = await this.getFichaNombreColumn();
+        const allowedAreas = await this.getEnumColumnOptions('fichas', fichaNombreColumn);
+        const allowedProgramas = await this.getEnumColumnOptions('fichas', 'fic_programa');
+        let normalizedPrograma = allowedProgramas.length
+            ? this.resolveCatalogValue(programa, allowedProgramas)
+            : programa;
+        if (!normalizedPrograma) {
+            if (!allowCustomCatalogValues) {
+                throw new common_1.BadRequestException(`El programa de la ficha debe ser uno de: ${allowedProgramas.join(', ')}.`);
+            }
+            normalizedPrograma = await this.ensureEnumColumnValue('fichas', 'fic_programa', programa);
+        }
+        let normalizedNombre = allowedAreas.length
+            ? this.resolveCatalogValue(nombre, allowedAreas)
+            : nombre;
+        const areasByPrograma = await this.getFichaAreasByPrograma();
+        const allowedAreasForPrograma = areasByPrograma[normalizedPrograma] || [];
+        if (!normalizedNombre) {
+            if (!allowCustomCatalogValues) {
+                throw new common_1.BadRequestException(`El area de la ficha debe ser una de: ${allowedAreas.join(', ')}.`);
+            }
+            normalizedNombre = await this.ensureEnumColumnValue('fichas', fichaNombreColumn, nombre);
+        }
+        if (!allowCustomCatalogValues &&
+            allowedAreasForPrograma.length > 0 &&
+            !allowedAreasForPrograma.includes(normalizedNombre)) {
+            throw new common_1.BadRequestException(`El area seleccionada no pertenece al programa ${normalizedPrograma}.`);
+        }
+        const fichaEstado = estado || 'Activa';
+        if (fichaExistente) {
+            const fichaNombreActual = this.sanitizeText(fichaExistente.fichaNombre);
+            const fichaProgramaActual = this.sanitizeText(fichaExistente.programa || fichaExistente.fic_programa);
+            if (fichaNombreActual && fichaProgramaActual) {
+                throw new common_1.ConflictException(`La ficha ${numero} ya existe.`);
+            }
+            await this.dataSource.query(`
+          UPDATE fichas
+          SET ${fichaNombreColumn} = ?, fic_programa = ?, fic_estado = ?
+          WHERE fic_numero = ?
+        `, [normalizedNombre, normalizedPrograma, fichaEstado, numero]);
+            return {
+                ok: true,
+                mensaje: `Ficha ${numero} actualizada correctamente.`,
+                ficha: {
+                    numero: String(numero),
+                    nombre: normalizedNombre,
+                    programa: normalizedPrograma,
+                    estado: fichaEstado,
+                },
+            };
+        }
+        await this.dataSource.query(`
+        INSERT INTO fichas (fic_numero, ${fichaNombreColumn}, fic_programa, fic_estado)
+        VALUES (?, ?, ?, ?)
+      `, [numero, normalizedNombre, normalizedPrograma, fichaEstado]);
+        return {
+            ok: true,
+            mensaje: `Ficha ${numero} registrada correctamente.`,
+            ficha: {
+                numero: String(numero),
+                nombre: normalizedNombre,
+                programa: normalizedPrograma,
+                estado: fichaEstado,
+            },
+        };
+    }
+    async importUsuarios(rows) {
+        await this.ensureUsuarioColumns();
+        await this.ensureFichaSchema();
+        if (!Array.isArray(rows) || rows.length === 0) {
+            throw new common_1.BadRequestException('Debes enviar al menos un usuario para importar.');
+        }
+        const normalizedRows = rows.map((item, index) => ({
+            fila: index + 2,
+            documento: this.sanitizeText(item === null || item === void 0 ? void 0 : item.documento),
+            tipoDocumento: this.sanitizeText(item === null || item === void 0 ? void 0 : item.tipoDocumento).toUpperCase() || 'CC',
+            ficha: this.sanitizeText(item === null || item === void 0 ? void 0 : item.ficha),
+            nombre: this.sanitizeText(item === null || item === void 0 ? void 0 : item.nombre),
+            apellido: this.sanitizeText(item === null || item === void 0 ? void 0 : item.apellido),
+            sexo: this.sanitizeText(item === null || item === void 0 ? void 0 : item.sexo),
+            telefono: this.sanitizeText(item === null || item === void 0 ? void 0 : item.telefono),
+            email: this.sanitizeText(item === null || item === void 0 ? void 0 : item.email),
+            especializacion: this.sanitizeText(item === null || item === void 0 ? void 0 : item.especializacion),
+            tipoUsuario: this.sanitizeText(item === null || item === void 0 ? void 0 : item.tipoUsuario).toLowerCase(),
+        }));
+        const validationErrors = normalizedRows
+            .flatMap((row) => {
+            const rowErrors = [];
+            if (!row.documento || Number.isNaN(Number(row.documento))) {
+                rowErrors.push({
+                    fila: row.fila,
+                    documento: row.documento || 'Sin documento',
+                    message: 'El documento es obligatorio y debe ser numerico.',
+                });
+            }
+            if (!row.nombre) {
+                rowErrors.push({
+                    fila: row.fila,
+                    documento: row.documento || 'Sin documento',
+                    message: 'El nombre es obligatorio.',
+                });
+            }
+            if (!row.apellido) {
+                rowErrors.push({
+                    fila: row.fila,
+                    documento: row.documento || 'Sin documento',
+                    message: 'El apellido es obligatorio.',
+                });
+            }
+            if (!['aprendiz', 'instructor'].includes(row.tipoUsuario)) {
+                rowErrors.push({
+                    fila: row.fila,
+                    documento: row.documento || 'Sin documento',
+                    message: 'El tipo de usuario debe ser Aprendiz o Instructor.',
+                });
+            }
+            if (row.sexo && !SEXOS_USUARIO.includes(row.sexo)) {
+                rowErrors.push({
+                    fila: row.fila,
+                    documento: row.documento || 'Sin documento',
+                    message: 'El sexo debe ser Hombre o Mujer.',
+                });
+            }
+            if (row.tipoUsuario === 'aprendiz' &&
+                (!row.ficha || Number.isNaN(Number(row.ficha)))) {
+                rowErrors.push({
+                    fila: row.fila,
+                    documento: row.documento || 'Sin documento',
+                    message: 'La ficha es obligatoria y debe ser numerica para el aprendiz.',
+                });
+            }
+            if (row.ficha && Number.isNaN(Number(row.ficha))) {
+                rowErrors.push({
+                    fila: row.fila,
+                    documento: row.documento || 'Sin documento',
+                    message: 'La ficha debe ser numerica.',
+                });
+            }
+            if (row.tipoUsuario === 'instructor' && !row.email) {
+                rowErrors.push({
+                    fila: row.fila,
+                    documento: row.documento || 'Sin documento',
+                    message: 'El correo es obligatorio para el instructor.',
+                });
+            }
+            if (row.tipoUsuario === 'instructor' &&
+                !row.especializacion &&
+                !row.ficha) {
+                rowErrors.push({
+                    fila: row.fila,
+                    documento: row.documento || 'Sin documento',
+                    message: 'La ficha es obligatoria para el instructor en esta plantilla de importacion.',
+                });
+            }
+            return rowErrors;
+        });
+        if (validationErrors.length > 0) {
+            throw new common_1.BadRequestException({
+                code: 'INVALID_IMPORT_ROWS',
+                message: 'El archivo contiene filas invalidas.',
+                errors: validationErrors,
+            });
+        }
+        const fichaNumbers = Array.from(new Set(normalizedRows
+            .map((row) => Number(row.ficha))
+            .filter((item) => !Number.isNaN(item))));
+        const fichaNombreSelect = await this.getFichaNombreSelect('');
+        const existingFichas = fichaNumbers.length > 0
+            ? await this.dataSource.query(`
+              SELECT
+                CAST(fic_numero AS CHAR) AS numero,
+                ${fichaNombreSelect} AS nombre,
+                fic_programa AS programa,
+                fic_estado AS estado
+              FROM fichas
+              WHERE fic_numero IN (${fichaNumbers.map(() => '?').join(', ')})
+            `, fichaNumbers)
+            : [];
+        const existingFichaMap = new Map((existingFichas || []).map((item) => [
+            String(item.numero),
+            {
+                nombre: this.sanitizeText(item.nombre),
+                programa: this.sanitizeText(item.programa),
+                estado: this.sanitizeText(item.estado) || 'Activa',
+            },
+        ]));
+        const missingFichas = fichaNumbers
+            .map(String)
+            .filter((numero) => {
+            const ficha = existingFichaMap.get(numero);
+            return !ficha || !ficha.nombre || !ficha.programa;
+        })
+            .sort((a, b) => Number(a) - Number(b));
+        if (missingFichas.length > 0) {
+            throw new common_1.BadRequestException({
+                code: 'MISSING_FICHAS',
+                message: 'Hay fichas que no existen o estan incompletas en la base de datos. Completa su area y programa antes de continuar.',
+                missingFichas: missingFichas.map((numero) => {
+                    const ficha = existingFichaMap.get(numero);
+                    return {
+                        numero,
+                        nombre: (ficha === null || ficha === void 0 ? void 0 : ficha.nombre) || '',
+                        programa: (ficha === null || ficha === void 0 ? void 0 : ficha.programa) || '',
+                        estado: (ficha === null || ficha === void 0 ? void 0 : ficha.estado) === 'Inactiva' ? 'Inactiva' : 'Activa',
+                    };
+                }),
+            });
+        }
+        const created = [];
+        const errors = [];
+        for (const row of normalizedRows) {
+            const password = this.buildDefaultPassword(row.nombre);
+            try {
+                await this.createUsuario({
+                    tipoUsuario: row.tipoUsuario,
+                    cedula: row.documento,
+                    tipoDocumento: row.tipoDocumento,
+                    nombre: row.nombre,
+                    apellidos: row.apellido,
+                    ficha: row.ficha || undefined,
+                    correo: row.email,
+                    telefono: row.telefono,
+                    sexo: row.tipoUsuario === 'aprendiz' ? row.sexo : undefined,
+                    especializacion: row.tipoUsuario === 'instructor'
+                        ? row.especializacion || undefined
+                        : undefined,
+                    password,
+                });
+                created.push({
+                    fila: row.fila,
+                    documento: row.documento,
+                    nombre: row.nombre,
+                    tipoUsuario: row.tipoUsuario,
+                    passwordTemporal: password,
+                });
+            }
+            catch (error) {
+                errors.push({
+                    fila: row.fila,
+                    documento: row.documento,
+                    message: error instanceof Error
+                        ? error.message
+                        : 'No fue posible registrar el aprendiz.',
+                });
+            }
+        }
+        return {
+            ok: errors.length === 0,
+            total: normalizedRows.length,
+            creados: created.length,
+            fallidos: errors.length,
+            creadosDetalle: created,
+            errores: errors,
+        };
     }
     async findAllAprendices(cedulaSolicitante) {
         await this.ensureUsuarioColumns();
@@ -321,9 +826,11 @@ let ListaService = class ListaService {
         const rows = await this.dataSource.query(`
       SELECT
         u.usu_cedula AS documento,
+        u.usu_tipo_documento AS tipoDocumento,
         u.usu_especializacion AS especializacion,
         u.usu_nombres AS nombre,
         u.usu_apellidos AS apellido,
+        u.usu_sexo AS sexo,
         u.usu_telefono AS telefono,
         u.usu_correo AS email,
         u.fecha_registro AS fechaInscripcion,
@@ -344,11 +851,13 @@ let ListaService = class ListaService {
             if (!instructoresMap.has(documento)) {
                 instructoresMap.set(documento, {
                     documento,
+                    tipoDocumento: row.tipoDocumento || 'CC',
                     especializacion: row.especializacion || 'Sin especializacion',
                     fichasCargo: [],
                     fichasDetalle: [],
                     nombre: row.nombre || '',
                     apellido: row.apellido || '',
+                    sexo: row.sexo || '',
                     telefono: row.telefono || '',
                     email: row.email || '',
                     fechaInscripcion: this.formatDateToIso(row.fechaInscripcion),
@@ -372,9 +881,9 @@ let ListaService = class ListaService {
         const apellidos = this.sanitizeText(payload.apellidos);
         const correo = this.sanitizeText(payload.correo);
         const telefono = this.sanitizeText(payload.telefono);
-        const password = this.sanitizeText(payload.password);
+        const password = this.sanitizeText(payload.password) || this.buildDefaultPassword(nombre);
         const tipoDocumento = this.sanitizeText(payload.tipoDocumento) || 'CC';
-        const especializacion = this.sanitizeText(payload.especializacion);
+        const fichaRaw = this.sanitizeText(payload.ficha);
         const sexo = this.sanitizeText(payload.sexo);
         if (!cedula || Number.isNaN(cedula)) {
             throw new common_1.BadRequestException('La cedula es obligatoria y debe ser numerica.');
@@ -392,10 +901,71 @@ let ListaService = class ListaService {
             throw new common_1.BadRequestException('El sexo debe ser Hombre o Mujer.');
         }
         const sexoNormalizado = sexo ? sexo : null;
+        let fichaNumero = null;
+        let ficha = null;
+        if (fichaRaw) {
+            await this.ensureFichaSchema();
+            fichaNumero = Number(fichaRaw);
+            if (!fichaNumero || Number.isNaN(fichaNumero)) {
+                throw new common_1.BadRequestException('La ficha es obligatoria y debe ser numerica.');
+            }
+            ficha = await this.getFichaByNumero(fichaNumero);
+            if (!ficha) {
+                throw new common_1.NotFoundException('La ficha seleccionada no existe.');
+            }
+            if (ficha.fic_estado !== 'Activa') {
+                throw new common_1.BadRequestException('La ficha seleccionada no esta activa.');
+            }
+        }
+        const especializacion = this.sanitizeText(payload.especializacion) ||
+            (tipoUsuario === 'instructor'
+                ? this.sanitizeText((ficha === null || ficha === void 0 ? void 0 : ficha.programa) || (ficha === null || ficha === void 0 ? void 0 : ficha.fic_programa))
+                : '');
         const yaExiste = await this.usuarioRepository.findOneBy({
             usuCedula: cedula,
         });
         if (yaExiste) {
+            if (tipoUsuario === 'instructor' && yaExiste.rolSisIdFk === 2) {
+                if (!fichaNumero) {
+                    throw new common_1.ConflictException('Ya existe un instructor con esa cedula.');
+                }
+                const fichaAsignada = await this.ensureUsuarioFichaAssignment(this.dataSource, cedula, fichaNumero);
+                let shouldSaveInstructor = false;
+                if (!this.sanitizeText(yaExiste.usuEspecializacion) && especializacion) {
+                    yaExiste.usuEspecializacion = especializacion;
+                    shouldSaveInstructor = true;
+                }
+                if (!this.sanitizeText(yaExiste.usuSexo) && sexoNormalizado) {
+                    yaExiste.usuSexo = sexoNormalizado;
+                    shouldSaveInstructor = true;
+                }
+                if (shouldSaveInstructor) {
+                    await this.usuarioRepository.save(yaExiste);
+                }
+                const [registro] = await this.dataSource.query('SELECT fecha_registro FROM usuario WHERE usu_cedula = ? LIMIT 1', [cedula]);
+                return {
+                    ok: true,
+                    mensaje: fichaAsignada
+                        ? 'Ficha asignada correctamente al instructor existente.'
+                        : 'El instructor ya tenia la ficha asignada.',
+                    instructor: {
+                        documento: String(yaExiste.usuCedula),
+                        tipoDocumento: yaExiste.usuTipoDocumento || 'CC',
+                        nombre: yaExiste.usuNombres || nombre,
+                        apellido: yaExiste.usuApellidos || apellidos,
+                        especializacion: yaExiste.usuEspecializacion || especializacion || '',
+                        sexo: yaExiste.usuSexo || sexoNormalizado || '',
+                        ficha: fichaNumero ? String(fichaNumero) : '',
+                        fichaNombre: (ficha === null || ficha === void 0 ? void 0 : ficha.fichaNombre) || '',
+                        programa: (ficha === null || ficha === void 0 ? void 0 : ficha.programa) || (ficha === null || ficha === void 0 ? void 0 : ficha.fic_programa) || '',
+                        telefono: yaExiste.usuTelefono || telefono || '',
+                        email: yaExiste.usuCorreo || correo || '',
+                        fechaInscripcion: this.formatDateToIso(registro === null || registro === void 0 ? void 0 : registro.fecha_registro),
+                        estado: yaExiste.usuEstado || 'Activo',
+                    },
+                    fichaAsignada,
+                };
+            }
             throw new common_1.ConflictException('Ya existe un usuario con esa cedula.');
         }
         const hash = await bcrypt.hash(password, 10);
@@ -418,12 +988,15 @@ let ListaService = class ListaService {
                     usuCorreo: correo,
                     usuTelefono: telefono || null,
                     usuEspecializacion: especializacion,
-                    usuSexo: null,
+                    usuSexo: sexoNormalizado,
                     usuContrasena: hash,
                     rolSisIdFk: 2,
                     usuEstado: 'Activo',
                 });
                 await queryRunner.manager.save(Usuario_1.Usuario, nuevoInstructor);
+                if (fichaNumero) {
+                    await this.ensureUsuarioFichaAssignment(queryRunner, cedula, fichaNumero);
+                }
                 const [registro] = await queryRunner.query('SELECT fecha_registro FROM usuario WHERE usu_cedula = ? LIMIT 1', [cedula]);
                 await queryRunner.commitTransaction();
                 return {
@@ -435,6 +1008,10 @@ let ListaService = class ListaService {
                         nombre: nuevoInstructor.usuNombres || '',
                         apellido: nuevoInstructor.usuApellidos || '',
                         especializacion: nuevoInstructor.usuEspecializacion || '',
+                        sexo: nuevoInstructor.usuSexo || '',
+                        ficha: fichaNumero ? String(fichaNumero) : '',
+                        fichaNombre: (ficha === null || ficha === void 0 ? void 0 : ficha.fichaNombre) || '',
+                        programa: (ficha === null || ficha === void 0 ? void 0 : ficha.programa) || (ficha === null || ficha === void 0 ? void 0 : ficha.fic_programa) || '',
                         telefono: nuevoInstructor.usuTelefono || '',
                         email: nuevoInstructor.usuCorreo || '',
                         fechaInscripcion: this.formatDateToIso(registro === null || registro === void 0 ? void 0 : registro.fecha_registro),
@@ -442,17 +1019,8 @@ let ListaService = class ListaService {
                     },
                 };
             }
-            await this.ensureFichaSchema();
-            const fichaNumero = Number(String(payload.ficha || '').trim());
-            if (!fichaNumero || Number.isNaN(fichaNumero)) {
+            if (!fichaNumero) {
                 throw new common_1.BadRequestException('La ficha es obligatoria y debe ser numerica.');
-            }
-            const ficha = await this.getFichaByNumero(fichaNumero);
-            if (!ficha) {
-                throw new common_1.NotFoundException('La ficha seleccionada no existe.');
-            }
-            if (ficha.fic_estado !== 'Activa') {
-                throw new common_1.BadRequestException('La ficha seleccionada no esta activa.');
             }
             const nuevoAprendiz = queryRunner.manager.create(Usuario_1.Usuario, {
                 usuCedula: cedula,
@@ -468,10 +1036,7 @@ let ListaService = class ListaService {
                 usuEstado: 'Activo',
             });
             await queryRunner.manager.save(Usuario_1.Usuario, nuevoAprendiz);
-            await queryRunner.query(`
-          INSERT INTO usuario_ficha (usu_cedula_FK, fic_numero_FK, usf_fecha_asignacion)
-          VALUES (?, ?, CURRENT_TIMESTAMP)
-        `, [cedula, fichaNumero]);
+            await this.ensureUsuarioFichaAssignment(queryRunner, cedula, fichaNumero);
             const [registro] = await queryRunner.query('SELECT fecha_registro FROM usuario WHERE usu_cedula = ? LIMIT 1', [cedula]);
             await queryRunner.commitTransaction();
             return {
@@ -608,6 +1173,99 @@ let ListaService = class ListaService {
             await queryRunner.release();
         }
     }
+    async updateInstructor(cedula, payload) {
+        var _a, _b, _c, _d, _e, _f;
+        await this.ensureUsuarioColumns();
+        await this.ensureFichaSchema();
+        const documento = Number(cedula);
+        if (!documento || Number.isNaN(documento)) {
+            throw new common_1.BadRequestException('La cedula del instructor es invalida.');
+        }
+        const instructor = await this.usuarioRepository.findOne({
+            where: {
+                usuCedula: documento,
+                rolSisIdFk: 2,
+            },
+        });
+        if (!instructor) {
+            throw new common_1.NotFoundException('No se encontro el instructor solicitado.');
+        }
+        const nombre = this.sanitizeText((_a = payload.nombre) !== null && _a !== void 0 ? _a : instructor.usuNombres);
+        const apellidos = this.sanitizeText((_b = payload.apellidos) !== null && _b !== void 0 ? _b : instructor.usuApellidos);
+        const correo = this.sanitizeText((_c = payload.correo) !== null && _c !== void 0 ? _c : instructor.usuCorreo);
+        const telefono = this.sanitizeText((_d = payload.telefono) !== null && _d !== void 0 ? _d : instructor.usuTelefono);
+        const sexo = this.sanitizeText((_e = payload.sexo) !== null && _e !== void 0 ? _e : instructor.usuSexo);
+        const especializacion = this.sanitizeText((_f = payload.especializacion) !== null && _f !== void 0 ? _f : instructor.usuEspecializacion);
+        const shouldUpdateFichas = Array.isArray(payload.fichas);
+        const fichasSeleccionadas = shouldUpdateFichas
+            ? Array.from(new Set((payload.fichas || [])
+                .map((item) => Number(String(item !== null && item !== void 0 ? item : '').trim()))
+                .filter((item) => !Number.isNaN(item) && item > 0)))
+            : await this.getFichasAsignadasUsuario(documento);
+        if (!nombre) {
+            throw new common_1.BadRequestException('El nombre es obligatorio.');
+        }
+        if (!apellidos) {
+            throw new common_1.BadRequestException('El apellido es obligatorio.');
+        }
+        if (!correo) {
+            throw new common_1.BadRequestException('El correo es obligatorio.');
+        }
+        if (!especializacion) {
+            throw new common_1.BadRequestException('La especializacion es obligatoria.');
+        }
+        if (sexo && !SEXOS_USUARIO.includes(sexo)) {
+            throw new common_1.BadRequestException('El sexo debe ser Hombre o Mujer.');
+        }
+        const fichasDetalle = await this.getFichasByNumeros(fichasSeleccionadas);
+        if (fichasDetalle.length !== fichasSeleccionadas.length) {
+            throw new common_1.NotFoundException('Una o varias fichas seleccionadas no existen.');
+        }
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+        try {
+            instructor.usuNombres = nombre;
+            instructor.usuApellidos = apellidos;
+            instructor.usuCorreo = correo;
+            instructor.usuTelefono = telefono || null;
+            instructor.usuSexo = sexo ? sexo : null;
+            instructor.usuEspecializacion = especializacion;
+            await queryRunner.manager.save(Usuario_1.Usuario, instructor);
+            if (shouldUpdateFichas) {
+                await queryRunner.query('DELETE FROM usuario_ficha WHERE usu_cedula_FK = ?', [documento]);
+                for (const fichaNumero of fichasSeleccionadas) {
+                    await this.ensureUsuarioFichaAssignment(queryRunner, documento, fichaNumero);
+                }
+            }
+            await queryRunner.commitTransaction();
+        }
+        catch (error) {
+            await queryRunner.rollbackTransaction();
+            const err = error;
+            throw new common_1.InternalServerErrorException(`No se pudo actualizar el instructor: ${(err === null || err === void 0 ? void 0 : err.message) || 'Error interno.'}`);
+        }
+        finally {
+            await queryRunner.release();
+        }
+        return {
+            ok: true,
+            mensaje: 'Instructor actualizado correctamente.',
+            instructor: {
+                documento: String(instructor.usuCedula),
+                tipoDocumento: instructor.usuTipoDocumento || 'CC',
+                nombre: instructor.usuNombres || '',
+                apellido: instructor.usuApellidos || '',
+                especializacion: instructor.usuEspecializacion || '',
+                sexo: instructor.usuSexo || '',
+                telefono: instructor.usuTelefono || '',
+                email: instructor.usuCorreo || '',
+                fechaInscripcion: this.formatDateToIso(instructor.fechaRegistro),
+                fichasCargo: fichasDetalle.map((item) => item.ficha),
+                fichasDetalle,
+            },
+        };
+    }
     async deleteAprendiz(cedula) {
         const documento = Number(cedula);
         if (!documento || Number.isNaN(documento)) {
@@ -640,6 +1298,43 @@ let ListaService = class ListaService {
             await queryRunner.rollbackTransaction();
             const err = error;
             throw new common_1.InternalServerErrorException(`No se pudo eliminar el aprendiz: ${(err === null || err === void 0 ? void 0 : err.message) || 'Error interno.'}`);
+        }
+        finally {
+            await queryRunner.release();
+        }
+    }
+    async deleteInstructor(cedula) {
+        const documento = Number(cedula);
+        if (!documento || Number.isNaN(documento)) {
+            throw new common_1.BadRequestException('La cedula del instructor es invalida.');
+        }
+        const instructor = await this.usuarioRepository.findOne({
+            where: {
+                usuCedula: documento,
+                rolSisIdFk: 2,
+            },
+            select: ['usuCedula', 'usuNombres', 'usuApellidos'],
+        });
+        if (!instructor) {
+            throw new common_1.NotFoundException('No se encontro el instructor solicitado.');
+        }
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+        try {
+            await this.deleteUsuarioReferences(queryRunner, documento);
+            await queryRunner.query('DELETE FROM usuario WHERE usu_cedula = ? AND rol_sis_ID_FK = 2', [documento]);
+            await queryRunner.commitTransaction();
+            return {
+                ok: true,
+                documento: String(documento),
+                mensaje: `Instructor ${instructor.usuNombres || ''} ${instructor.usuApellidos || ''} eliminado correctamente.`,
+            };
+        }
+        catch (error) {
+            await queryRunner.rollbackTransaction();
+            const err = error;
+            throw new common_1.InternalServerErrorException(`No se pudo eliminar el instructor: ${(err === null || err === void 0 ? void 0 : err.message) || 'Error interno.'}`);
         }
         finally {
             await queryRunner.release();

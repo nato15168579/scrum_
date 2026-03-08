@@ -1,4 +1,5 @@
 -- hola 
+-- holas
 /*
 SQLyog Ultimate v13.1.1 (64 bit)
 MySQL - 10.4.32-MariaDB : Database - pro_scrum
@@ -25,7 +26,7 @@ CREATE TABLE `criterios_aceptacion` (
   `cri_ID` int(11) NOT NULL COMMENT 'id de criterio de aceptacion',
   `his_ID_FK` int(11) NOT NULL COMMENT 'id de la historia de usuario',
   `pro_ID_his_FK` int(11) NOT NULL COMMENT 'id del proyecto',
-  `usu_cedula_FK` int(11) NOT NULL COMMENT 'cedula del usuario',
+  `usu_cedula_FK` bigint(20) NOT NULL COMMENT 'cedula del usuario',
   `estado_FK` int(11) NOT NULL COMMENT 'Estado del criterio (pendiente, en proceso, finalizado)',
   `cri_tiempo` varchar(50) DEFAULT NULL COMMENT 'defina cuanto tiempo en horas va a ejercer cada criterio',
   `cri_descripcion` varchar(500) DEFAULT NULL COMMENT 'descripcion del criterio de aceptacion',
@@ -516,7 +517,7 @@ CREATE TABLE `observaciones` (
   `obs_fecha` date DEFAULT NULL COMMENT 'fecha de la  observacion',
   `obs_estado_FK` int(11) DEFAULT NULL COMMENT 'especifique en que estado se estado est ala observacion (por hacer, en progreso, hecho)',
   `obs_descripcion` varchar(255) DEFAULT NULL COMMENT 'descripcion de la  observacion',
-  `usu_cedula_FK` int(11) DEFAULT NULL,
+  `usu_cedula_FK` bigint(20) DEFAULT NULL,
   `pro_ID_FK` int(11) DEFAULT NULL,
   PRIMARY KEY (`obs_ID`),
   KEY `usu_fk` (`usu_cedula_FK`),
@@ -689,7 +690,7 @@ DROP TABLE IF EXISTS `usu_asis`;
 
 CREATE TABLE `usu_asis` (
   `reu_asistente_FK` int(50) NOT NULL COMMENT 'asistencia de los participantes en las reuniones',
-  `usu_cedula` int(11) NOT NULL COMMENT 'cedula del usuario',
+  `usu_cedula` bigint(20) NOT NULL COMMENT 'cedula del usuario',
   PRIMARY KEY (`reu_asistente_FK`,`usu_cedula`),
   KEY `reu_asistente` (`reu_asistente_FK`),
   KEY `usu_cedula` (`usu_cedula`),
@@ -704,7 +705,7 @@ CREATE TABLE `usu_asis` (
 DROP TABLE IF EXISTS `usu_pro_det_par`;
 
 CREATE TABLE `usu_pro_det_par` (
-  `usu_cedula` int(20) NOT NULL COMMENT 'cedula del usuario',
+  `usu_cedula` bigint(20) NOT NULL COMMENT 'cedula del usuario',
   `det_par_ID_` int(11) NOT NULL COMMENT 'id del detalle parametro',
   `pro_ID` int(11) NOT NULL COMMENT 'id del proyecto',
   PRIMARY KEY (`usu_cedula`,`det_par_ID_`,`pro_ID`),
@@ -756,7 +757,7 @@ insert  into `fichas`(`fic_numero`,`fic_nombre`,`fic_programa`,`fic_fecha_creaci
 DROP TABLE IF EXISTS `usuario`;
 
 CREATE TABLE `usuario` (
-  `usu_cedula` int(20) NOT NULL COMMENT 'cedula del usuario',
+  `usu_cedula` bigint(20) NOT NULL COMMENT 'cedula del usuario',
   `usu_nombres` varchar(100) DEFAULT NULL COMMENT 'nombre  del usuario',
   `usu_apellidos` varchar(100) DEFAULT NULL COMMENT 'apellido  del usuario',
   `usu_correo` varchar(100) DEFAULT NULL COMMENT 'correo  del usuario',
@@ -817,7 +818,7 @@ WHERE `usu_cedula` = 1047043541;
 DROP TABLE IF EXISTS `usuario_ficha`;
 
 CREATE TABLE `usuario_ficha` (
-  `usu_cedula_FK` int(20) NOT NULL COMMENT 'cedula del usuario',
+  `usu_cedula_FK` bigint(20) NOT NULL COMMENT 'cedula del usuario',
   `fic_numero_FK` int(11) NOT NULL COMMENT 'numero de la ficha',
   `usf_fecha_asignacion` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'fecha de asignacion del usuario a la ficha',
   PRIMARY KEY (`usu_cedula_FK`,`fic_numero_FK`),
@@ -864,7 +865,7 @@ BEGIN
 
   IF v_rol NOT IN (1,2) THEN
     SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'Solo aprendices e instructores pueden tener fichas asignadas.';
+      SET MESSAGE_TEXT = 'Solo aprendices e instructores pueden tener Fichas a Cargo.';
   END IF;
 
   IF v_rol = 1 AND EXISTS (
@@ -896,7 +897,7 @@ BEGIN
 
   IF v_rol NOT IN (1,2) THEN
     SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'Solo aprendices e instructores pueden tener fichas asignadas.';
+      SET MESSAGE_TEXT = 'Solo aprendices e instructores pueden tener Fichas a Cargo.';
   END IF;
 
   IF v_rol = 1 AND EXISTS (

@@ -45,7 +45,7 @@ export class Observaciones {
   })
   obsDescripcion: string | null;
 
-  @Column("int", { name: "usu_cedula_FK", nullable: true })
+  @Column("bigint", { name: "usu_cedula_FK", nullable: true })
   usuCedulaFk: number | null;
 
   @Column("int", { name: "pro_ID_FK", nullable: true })

@@ -42,7 +42,7 @@ __decorate([
     __metadata("design:type", Number)
 ], CriteriosAceptacion.prototype, "proIdHisFk", void 0);
 __decorate([
-    (0, typeorm_1.Column)("int", {
+    (0, typeorm_1.Column)("bigint", {
         name: "usu_cedula_FK",
         nullable: true,
         comment: "cedula del usuario",

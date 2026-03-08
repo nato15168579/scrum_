@@ -20,7 +20,7 @@ export type SexoUsuario = "Hombre" | "Mujer";
 @Index("RolID", ["rolSisIdFk"], {})
 @Entity("usuario", { schema: "pro_scrum" })
 export class Usuario {
-  @Column("int", {
+  @Column("bigint", {
     primary: true,
     name: "usu_cedula",
     comment: "cedula del usuario",

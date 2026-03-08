@@ -34,14 +34,29 @@ let ListaController = class ListaController {
     async getInstructores(cedula) {
         return await this.listaService.findAllInstructores(cedula);
     }
+    async updateInstructor(cedula, payload) {
+        return await this.listaService.updateInstructor(cedula, payload);
+    }
+    async deleteInstructor(cedula) {
+        return await this.listaService.deleteInstructor(cedula);
+    }
     async getFichas() {
         return await this.listaService.findAllFichas();
+    }
+    async getFichaOptions() {
+        return await this.listaService.getFichaCatalogOptions();
+    }
+    async createFicha(payload) {
+        return await this.listaService.createFicha(payload);
     }
     async getStats(cedula) {
         return await this.listaService.getInstructorStats(cedula);
     }
     async createUsuario(payload) {
         return await this.listaService.createUsuario(payload);
+    }
+    async importUsuarios(payload) {
+        return await this.listaService.importUsuarios(payload.usuarios);
     }
 };
 exports.ListaController = ListaController;
@@ -83,11 +98,39 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "getInstructores", null);
 __decorate([
+    (0, common_1.Patch)('instructores/:cedula'),
+    __param(0, (0, common_1.Param)('cedula')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "updateInstructor", null);
+__decorate([
+    (0, common_1.Delete)('instructores/:cedula'),
+    __param(0, (0, common_1.Param)('cedula')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "deleteInstructor", null);
+__decorate([
     (0, common_1.Get)('fichas'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "getFichas", null);
+__decorate([
+    (0, common_1.Get)('fichas/options'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "getFichaOptions", null);
+__decorate([
+    (0, common_1.Post)('fichas'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "createFicha", null);
 __decorate([
     (0, common_1.Get)('stats'),
     __param(0, (0, common_1.Query)('cedula')),
@@ -102,6 +145,13 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "createUsuario", null);
+__decorate([
+    (0, common_1.Post)('users/import'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "importUsuarios", null);
 exports.ListaController = ListaController = __decorate([
     (0, common_1.Controller)(),
     __metadata("design:paramtypes", [ListaService_1.ListaService])

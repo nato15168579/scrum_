@@ -20,7 +20,7 @@ let Usuario = class Usuario {
 };
 exports.Usuario = Usuario;
 __decorate([
-    (0, typeorm_1.Column)("int", {
+    (0, typeorm_1.Column)("bigint", {
         primary: true,
         name: "usu_cedula",
         comment: "cedula del usuario",

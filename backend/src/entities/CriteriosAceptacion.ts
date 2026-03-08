@@ -30,7 +30,7 @@ export class CriteriosAceptacion {
   })
   proIdHisFk: number;
 
-  @Column("int", {
+  @Column("bigint", {
     name: "usu_cedula_FK",
     nullable: true,
     comment: "cedula del usuario",

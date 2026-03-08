@@ -11,7 +11,26 @@ interface CreateUsuarioDto {
     sexo?: string;
     especializacion?: string;
     tipoUsuario?: 'aprendiz' | 'instructor';
-    password: string;
+    password?: string;
+}
+interface CreateFichaDto {
+    numero: string | number;
+    nombre: string;
+    programa: string;
+    estado?: 'Activa' | 'Inactiva';
+    allowCustomCatalogValues?: boolean;
+}
+interface ImportUsuarioDto {
+    documento: string | number;
+    tipoDocumento?: string;
+    ficha?: string | number;
+    nombre: string;
+    apellido: string;
+    sexo?: string;
+    telefono?: string;
+    email?: string;
+    especializacion?: string;
+    tipoUsuario?: 'aprendiz' | 'instructor' | string;
 }
 interface UpdateAprendizDto {
     nombre?: string;
@@ -21,6 +40,15 @@ interface UpdateAprendizDto {
     sexo?: string;
     ficha?: string | number;
     estado?: string;
+}
+interface UpdateInstructorDto {
+    nombre?: string;
+    apellidos?: string;
+    correo?: string;
+    telefono?: string;
+    sexo?: string;
+    especializacion?: string;
+    fichas?: Array<string | number>;
 }
 export declare class ListaService {
     private readonly usuarioRepository;
@@ -32,20 +60,65 @@ export declare class ListaService {
     private ensureEstadoColumn;
     private ensureEspecializacionColumn;
     private ensureSexoColumn;
+    private ensureUsuarioCedulaBigInt;
     private ensureUsuarioColumns;
     private ensureFichaSchema;
     private getFichaNombreSelect;
+    private getFichaNombreColumn;
+    private normalizeCatalogValue;
+    private resolveCatalogValue;
+    private escapeSqlLiteral;
+    private getColumnMetadata;
+    private getEnumColumnOptions;
+    private ensureEnumColumnValue;
+    private getFichaAreasByPrograma;
     private normalizeEstado;
     private formatDateToIso;
     private buildFichaDetalle;
     private getRolUsuario;
     private getFichasAsignadasUsuario;
+    private ensureUsuarioFichaAssignment;
     private sanitizeText;
+    private buildDefaultPassword;
     private getFichaActualUsuario;
     private getFichaByNumero;
+    private getFichasByNumeros;
+    getFichaCatalogOptions(): Promise<{
+        areas: any[];
+        programas: any[];
+        areasByPrograma: Record<string, string[]>;
+    }>;
     private mapAprendizResponse;
     private deleteUsuarioReferences;
     findAllFichas(): Promise<any>;
+    createFicha(payload: CreateFichaDto): Promise<{
+        ok: boolean;
+        mensaje: string;
+        ficha: {
+            numero: string;
+            nombre: string;
+            programa: string;
+            estado: string;
+        };
+    }>;
+    importUsuarios(rows: ImportUsuarioDto[]): Promise<{
+        ok: boolean;
+        total: number;
+        creados: number;
+        fallidos: number;
+        creadosDetalle: {
+            fila: number;
+            documento: string;
+            nombre: string;
+            tipoUsuario: "aprendiz" | "instructor";
+            passwordTemporal: string;
+        }[];
+        errores: {
+            fila: number;
+            documento: string;
+            message: string;
+        }[];
+    }>;
     findAllAprendices(cedulaSolicitante?: string): Promise<any[]>;
     findAllInstructores(_cedulaSolicitante?: string): Promise<any[]>;
     createUsuario(payload: CreateUsuarioDto): Promise<{
@@ -57,11 +130,36 @@ export declare class ListaService {
             nombre: string;
             apellido: string;
             especializacion: string;
+            sexo: string;
+            ficha: string;
+            fichaNombre: any;
+            programa: any;
             telefono: string;
             email: string;
             fechaInscripcion: string;
             estado: EstadoUsuario;
         };
+        fichaAsignada: boolean;
+        aprendiz?: undefined;
+    } | {
+        ok: boolean;
+        mensaje: string;
+        instructor: {
+            documento: string;
+            tipoDocumento: string;
+            nombre: string;
+            apellido: string;
+            especializacion: string;
+            sexo: string;
+            ficha: string;
+            fichaNombre: any;
+            programa: any;
+            telefono: string;
+            email: string;
+            fechaInscripcion: string;
+            estado: EstadoUsuario;
+        };
+        fichaAsignada?: undefined;
         aprendiz?: undefined;
     } | {
         ok: boolean;
@@ -82,6 +180,7 @@ export declare class ListaService {
             estado: EstadoUsuario;
         };
         instructor?: undefined;
+        fichaAsignada?: undefined;
     }>;
     updateAprendiz(cedula: string, payload: UpdateAprendizDto): Promise<{
         ok: boolean;
@@ -102,7 +201,29 @@ export declare class ListaService {
             estado: EstadoUsuario;
         };
     }>;
+    updateInstructor(cedula: string, payload: UpdateInstructorDto): Promise<{
+        ok: boolean;
+        mensaje: string;
+        instructor: {
+            documento: string;
+            tipoDocumento: string;
+            nombre: string;
+            apellido: string;
+            especializacion: string;
+            sexo: string;
+            telefono: string;
+            email: string;
+            fechaInscripcion: string;
+            fichasCargo: any;
+            fichasDetalle: any;
+        };
+    }>;
     deleteAprendiz(cedula: string): Promise<{
+        ok: boolean;
+        documento: string;
+        mensaje: string;
+    }>;
+    deleteInstructor(cedula: string): Promise<{
         ok: boolean;
         documento: string;
         mensaje: string;

@@ -321,6 +321,14 @@
   color: #111827;
 }
 
+.register-users-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .register-users-chip {
   display: inline-flex;
   align-items: center;
@@ -332,6 +340,39 @@
   border-radius: 999px;
   font-size: 0.88rem;
   font-weight: 700;
+}
+
+.register-users-file-input {
+  display: none;
+}
+
+.register-users-import-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  color: #0f5f2f;
+  background: #effaf1;
+  border: 1px solid #cfe9d1;
+  border-radius: 14px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.register-users-import-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 24px rgba(34, 94, 46, 0.12);
+  border-color: rgba(57, 169, 0, 0.45);
+}
+
+.register-users-import-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .register-users-form {
@@ -399,6 +440,13 @@
   border-radius: 14px;
 }
 
+.register-users-form-hint-secondary {
+  margin-top: -10px;
+  background: #f3f9f3;
+  border-style: solid;
+  border-color: #d4ead6;
+}
+
 .register-users-submit {
   align-self: flex-start;
   min-width: 200px;
@@ -447,6 +495,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
+  overflow-y: auto;
   background: rgba(15, 23, 42, 0.52);
   backdrop-filter: blur(5px);
 }
@@ -454,10 +503,17 @@
 .register-users-modal-card {
   width: min(100%, 430px);
   padding: 30px 28px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
   text-align: center;
   background: #fff;
   border-radius: 24px;
   box-shadow: 0 28px 60px rgba(15, 23, 42, 0.24);
+}
+
+.register-users-missing-fichas-card {
+  width: min(100%, 760px);
+  text-align: left;
 }
 
 .register-users-modal-icon {
@@ -494,8 +550,112 @@
   color: #4b5563;
 }
 
+.register-users-modal-inline-note {
+  margin-top: 18px !important;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 14px;
+}
+
+.register-users-modal-inline-error {
+  color: #b91c1c !important;
+  background: #fef2f2;
+  border-style: solid;
+  border-color: #fecaca;
+}
+
+.register-users-missing-fichas-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.register-users-missing-ficha-item {
+  padding: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+}
+
+.register-users-missing-ficha-item strong {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 1rem;
+  color: #111827;
+}
+
+.register-users-imported-list-card {
+  width: min(100%, 1120px);
+  text-align: left;
+}
+
+.register-users-imported-table-wrapper {
+  margin-top: 24px;
+  max-width: 100%;
+  max-height: min(48vh, 420px);
+  overflow-y: auto;
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+}
+
+.register-users-imported-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.register-users-imported-table thead tr {
+  background: #39a900;
+  color: #fff;
+}
+
+.register-users-imported-table th,
+.register-users-imported-table td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.92rem;
+}
+
+.register-users-imported-table th {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.register-users-imported-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.register-users-user-type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.register-users-user-type-badge.aprendiz {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.register-users-user-type-badge.instructor {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
 .register-users-modal-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 12px;
   margin-top: 24px;
@@ -569,6 +729,11 @@
     align-items: flex-start;
   }
 
+  .register-users-card-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .register-users-profile {
     width: 100%;
     justify-content: space-between;
@@ -578,9 +743,40 @@
     grid-template-columns: 1fr;
   }
 
+  .register-users-missing-fichas-list {
+    grid-template-columns: 1fr;
+  }
+
   .register-users-card,
   .register-users-selector-card {
     padding: 20px;
+  }
+
+  .register-users-modal-overlay {
+    align-items: flex-start;
+    padding: 14px;
+  }
+
+  .register-users-modal-card {
+    width: 100%;
+    max-height: calc(100vh - 28px);
+    padding: 22px 18px;
+    border-radius: 20px;
+  }
+
+  .register-users-modal-card h2 {
+    font-size: 1.28rem;
+  }
+
+  .register-users-missing-ficha-item {
+    padding: 16px;
+  }
+
+  .register-users-imported-table th,
+  .register-users-imported-table td {
+    padding: 12px;
+    font-size: 0.86rem;
+    white-space: nowrap;
   }
 
   .register-users-submit,
@@ -590,5 +786,31 @@
 
   .register-users-modal-actions {
     flex-direction: column-reverse;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-users-modal-overlay {
+    padding: 10px;
+  }
+
+  .register-users-modal-card {
+    max-height: calc(100vh - 20px);
+    padding: 18px 14px;
+    border-radius: 18px;
+  }
+
+  .register-users-modal-inline-note {
+    padding: 10px 12px;
+    font-size: 0.92rem;
+  }
+
+  .register-users-imported-table-wrapper {
+    border-radius: 14px;
+  }
+
+  .register-users-user-type-badge {
+    min-width: 84px;
+    font-size: 0.72rem;
   }
 }

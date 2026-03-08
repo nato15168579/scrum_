@@ -51,7 +51,7 @@ __decorate([
     __metadata("design:type", String)
 ], Observaciones.prototype, "obsDescripcion", void 0);
 __decorate([
-    (0, typeorm_1.Column)("int", { name: "usu_cedula_FK", nullable: true }),
+    (0, typeorm_1.Column)("bigint", { name: "usu_cedula_FK", nullable: true }),
     __metadata("design:type", Number)
 ], Observaciones.prototype, "usuCedulaFk", void 0);
 __decorate([

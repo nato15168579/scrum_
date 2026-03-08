@@ -636,6 +636,7 @@ const ListaAprendicesAdmin = () => {
                   <th>Nombre</th>
                   <th>Apellido</th>
                   <th>Email</th>
+                  <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -650,6 +651,13 @@ const ListaAprendicesAdmin = () => {
                         <td>{row.nombre}</td>
                         <td>{row.apellido}</td>
                         <td>{row.email}</td>
+                        <td>
+                          <span
+                            className={`status-badge ${row.estado === "Activo" ? "status-active" : "status-inactive"}`}
+                          >
+                            {row.estado}
+                          </span>
+                        </td>
                         <td>
                           <div className="table-actions">
                             <button
@@ -687,7 +695,7 @@ const ListaAprendicesAdmin = () => {
                 ) : (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       style={{
                         textAlign: "center",
                         padding: "30px",
