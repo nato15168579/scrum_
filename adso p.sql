@@ -1,5 +1,4 @@
--- hola 
--- holas
+-- holax
 /*
 SQLyog Ultimate v13.1.1 (64 bit)
 MySQL - 10.4.32-MariaDB : Database - pro_scrum

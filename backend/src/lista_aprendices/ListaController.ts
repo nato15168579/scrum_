@@ -1,5 +1,19 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+﻿/**
+ * Controlador principal del modulo administrativo de usuarios y fichas.
+ *
+ * Expone endpoints de aprendices, instructores, fichas e importacion. Algunas
+ * rutas aceptan mas de un verbo HTTP por compatibilidad operativa.
+ */
+
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ListaService } from './ListaService';
+import {
+  CreateFichaDto,
+  CreateUsuarioDto,
+  ImportUsuarioDto,
+  UpdateAprendizDto,
+  UpdateInstructorDto,
+} from './ListaTypes';
 
 @Controller()
 export class ListaController {
@@ -21,16 +35,7 @@ export class ListaController {
   @Patch('aprendices/:cedula')
   async updateAprendiz(
     @Param('cedula') cedula: string,
-    @Body()
-    payload: {
-      nombre?: string;
-      apellidos?: string;
-      correo?: string;
-      telefono?: string;
-      sexo?: string;
-      ficha?: string | number;
-      estado?: string;
-    },
+    @Body() payload: UpdateAprendizDto,
   ) {
     return await this.listaService.updateAprendiz(cedula, payload);
   }
@@ -48,16 +53,23 @@ export class ListaController {
   @Patch('instructores/:cedula')
   async updateInstructor(
     @Param('cedula') cedula: string,
-    @Body()
-    payload: {
-      nombre?: string;
-      apellidos?: string;
-      correo?: string;
-      telefono?: string;
-      sexo?: string;
-      especializacion?: string;
-      fichas?: Array<string | number>;
-    },
+    @Body() payload: UpdateInstructorDto,
+  ) {
+    return await this.listaService.updateInstructor(cedula, payload);
+  }
+
+  @Put('instructores/:cedula')
+  async replaceInstructor(
+    @Param('cedula') cedula: string,
+    @Body() payload: UpdateInstructorDto,
+  ) {
+    return await this.listaService.updateInstructor(cedula, payload);
+  }
+
+  @Post('instructores/:cedula')
+  async updateInstructorCompat(
+    @Param('cedula') cedula: string,
+    @Body() payload: UpdateInstructorDto,
   ) {
     return await this.listaService.updateInstructor(cedula, payload);
   }
@@ -79,14 +91,7 @@ export class ListaController {
 
   @Post('fichas')
   async createFicha(
-    @Body()
-    payload: {
-      numero: string | number;
-      nombre: string;
-      programa: string;
-      estado?: 'Activa' | 'Inactiva';
-      allowCustomCatalogValues?: boolean;
-    },
+    @Body() payload: CreateFichaDto,
   ) {
     return await this.listaService.createFicha(payload);
   }
@@ -98,42 +103,16 @@ export class ListaController {
 
   @Post('users')
   async createUsuario(
-    @Body()
-    payload: {
-      cedula: string | number;
-      nombre: string;
-      apellidos: string;
-      correo?: string;
-      telefono?: string;
-      ficha?: string;
-      tipoDocumento?: string;
-      sexo?: string;
-      especializacion?: string;
-      tipoUsuario?: 'aprendiz' | 'instructor';
-      password?: string;
-    },
+    @Body() payload: CreateUsuarioDto,
   ) {
     return await this.listaService.createUsuario(payload);
   }
 
   @Post('users/import')
   async importUsuarios(
-    @Body()
-    payload: {
-      usuarios: Array<{
-        documento: string | number;
-        tipoDocumento?: string;
-        ficha?: string | number;
-        nombre: string;
-        apellido: string;
-        sexo?: string;
-        telefono?: string;
-        email?: string;
-        especializacion?: string;
-        tipoUsuario?: 'aprendiz' | 'instructor' | string;
-      }>;
-    },
+    @Body() payload: { usuarios: ImportUsuarioDto[] },
   ) {
     return await this.listaService.importUsuarios(payload.usuarios);
   }
 }
+

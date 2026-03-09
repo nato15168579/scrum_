@@ -5,10 +5,9 @@ import { DashboardModule } from './dashboard_administrador/DashboardModules';
 import { DashboardModule as DashboardStudentModule } from './dashboard_Students/DashboardModule';
 import { ListaModule } from './lista_aprendices/ListaModules';
 import { CrearproModule } from './crear_proyecto/CrearproModules';
-import { AsigProyectoModule } from './asignar_proyecto/AsigproyectoModules'
-import { AsigProVerModule } from './asignar_proyecto/asignar_proyecto_vermas/AsigproverModules'
-import { VerproModule } from './ver_proyecto/VerproModules'
-import { Proyecto } from './entities/Proyecto';
+import { AsigProyectoModule } from './asignar_proyecto/AsigproyectoModules';
+import { AsigProVerModule } from './asignar_proyecto/asignar_proyecto_vermas/AsigproverModules';
+import { VerproModule } from './ver_proyecto/VerproModules';
 
 @Module({
   imports: [

@@ -1,23 +1,34 @@
+/**
+ * Lista administrativa de aprendices.
+ *
+ * Esta vista resuelve tres casos principales sobre un mismo dataset:
+ * - consulta y busqueda paginada
+ * - lectura detallada en modal
+ * - edicion y eliminacion conectadas al backend
+ *
+ * Los normalizadores locales absorben diferencias historicas de payload para
+ * que la UI no dependa de un unico formato exacto de respuesta.
+ */
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Search,
-  User,
-  ChevronDown,
-  LogOut,
   Eye,
   Pencil,
   Trash2,
   AlertTriangle,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  HelpCircle,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import senaLogo from "../../../assets/sena.png";
 import "./ListaAprendices.css";
 import { API_URL } from "../../../config/Api";
-import { ADMIN_MENU_ITEMS } from "../AdminMenuItems";
 import { resolveUserName } from "../../../utils/session";
+import AdminLogoutModal from "../shared/AdminLogoutModal";
+import AdminProfileMenu from "../shared/AdminProfileMenu";
+import AdminSidebar from "../shared/AdminSidebar";
+import { logoutAndRedirect, requireAdminAccess } from "../shared/adminSession";
+import { useClickOutside } from "../shared/useClickOutside";
 
 type EstadoAprendiz = "Activo" | "Inactivo";
 
@@ -75,6 +86,8 @@ type FilterKey =
 
 const ITEMS_PER_PAGE = 10;
 
+// Helpers de normalizacion para mantener estable la UI aunque el backend haya
+// enviado nombres de campo distintos en etapas anteriores del proyecto.
 const normalizeEstado = (estado?: string | null): EstadoAprendiz =>
   estado === "Inactivo" ? "Inactivo" : "Activo";
 
@@ -190,30 +203,16 @@ const ListaAprendicesAdmin = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterKey>("todos");
 
-  const confirmLogout = () => {
-    localStorage.clear();
-    navigate("/");
-  };
+  useClickOutside(menuRef, () => setIsMenuOpen(false));
 
   useEffect(() => {
-    const cedula = localStorage.getItem("userCedula");
-    const roleId = (localStorage.getItem("userRoleId") || "").trim();
-
+    const cedula = requireAdminAccess(navigate);
     if (!cedula) {
-      navigate("/");
       return;
     }
 
-    if (roleId === "2") {
-      navigate("/dashboard-instructor");
-      return;
-    }
-
-    if (roleId && roleId !== "3") {
-      navigate("/student-dashboard");
-      return;
-    }
-
+    // Se cargan por separado aprendices, fichas y datos del perfil admin para
+    // que cada flujo tenga fallos aislados y feedback independiente.
     fetch(`${API_URL}/aprendices?cedula=${cedula}`)
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
@@ -249,16 +248,6 @@ const ListaAprendicesAdmin = () => {
         setAdminName(resolveUserName(undefined, "Usuario"));
       });
   }, [navigate]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const openViewModal = (aprendiz: Aprendiz) => {
     setViewingAprendiz(aprendiz);
@@ -334,6 +323,8 @@ const ListaAprendicesAdmin = () => {
       return;
     }
 
+    // La edicion siempre envia la foto completa del formulario para evitar que
+    // el backend mezcle datos nuevos con residuos del estado anterior.
     setIsSavingEdit(true);
 
     try {
@@ -404,6 +395,8 @@ const ListaAprendicesAdmin = () => {
   const handleDeleteAprendiz = async () => {
     if (!aprendizToDelete) return;
 
+    // La eliminacion actualiza el estado local solo si el backend confirma la
+    // operacion para mantener sincronizada la tabla visible.
     setIsDeletingAprendiz(true);
 
     try {
@@ -466,6 +459,9 @@ const ListaAprendicesAdmin = () => {
 
   const totalItems = filteredData.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+  // Solo se muestran fichas activas, salvo la ya asignada al aprendiz en
+  // edicion para no perder la seleccion actual mientras se actualiza el form.
   const fichasDisponibles = useMemo(() => {
     return fichas.filter(
       (item) =>
@@ -500,82 +496,25 @@ const ListaAprendicesAdmin = () => {
 
   return (
     <div className="dashboard-page">
-      <aside className="side-card">
-        <div className="brand-block">
-          <img src={senaLogo} alt="Logo" className="logo-lg" />
-          <h2>Gestion de proyectos</h2>
-        </div>
-        <nav className="menu">
-          <p className="menu-title">MENU</p>
-          <ul>
-            {ADMIN_MENU_ITEMS.map((item) => (
-              <li
-                key={item.name}
-                className={location.pathname === item.path ? "active" : ""}
-                onClick={() => navigate(item.path)}
-              >
-                <item.icon size={18} style={{ marginRight: "10px" }} />{" "}
-                {item.name}
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <div
-          className="settings-footer"
-          style={{ marginTop: "auto", padding: "10px 0" }}
-        >
-          <p className="menu-title">SETTINGS</p>
-          <div
-            className="support-item"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "10px",
-              cursor: "pointer",
-              fontSize: "0.9rem",
-              color: "#555",
-            }}
-          >
-            <HelpCircle
-              size={18}
-              style={{ marginRight: "10px", color: "#39A900" }}
-            />
-            <span>Ayuda y Soporte</span>
-          </div>
-        </div>
-      </aside>
+      <AdminSidebar
+        currentPath={location.pathname}
+        onNavigate={navigate}
+        onSupportClick={() => undefined}
+      />
 
       <main className="content">
         <nav className="nav-top">
           <div className="title-section">
             <h1>Lista de Aprendices</h1>
           </div>
-
-          <div
-            className="profile-menu"
-            ref={menuRef}
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            <img
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(adminName)}&background=39A900&color=fff`}
-              className="profile-img"
-              alt="Avatar"
-            />
-            <span className="profile-name">{adminName}</span>
-            <ChevronDown size={18} />
-
-            {isMenuOpen && (
-              <ul className="dropdown-profile">
-                <li>
-                  <User size={16} style={{ marginRight: "8px" }} /> Mi Perfil
-                </li>
-                <li className="logout" onClick={() => setShowLogoutModal(true)}>
-                  <LogOut size={16} style={{ marginRight: "8px" }} /> Cerrar
-                  Sesion
-                </li>
-              </ul>
-            )}
-          </div>
+          <AdminProfileMenu
+            displayName={adminName}
+            isOpen={isMenuOpen}
+            menuRef={menuRef}
+            onToggle={() => setIsMenuOpen((current) => !current)}
+            onLogout={() => setShowLogoutModal(true)}
+            showProfileItem
+          />
         </nav>
 
         <div className="lista-container">
@@ -734,27 +673,11 @@ const ListaAprendicesAdmin = () => {
         </div>
       </main>
 
-      {showLogoutModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="warning-icon-container">
-              <AlertTriangle size={45} color="white" />
-            </div>
-            <h2 className="modal-title">Estas seguro?</h2>
-            <div className="modal-buttons">
-              <button className="btn-confirm-logout" onClick={confirmLogout}>
-                Si, Cerrar
-              </button>
-              <button
-                className="btn-cancel-logout"
-                onClick={() => setShowLogoutModal(false)}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminLogoutModal
+        isOpen={showLogoutModal}
+        onCancel={() => setShowLogoutModal(false)}
+        onConfirm={() => logoutAndRedirect(navigate)}
+      />
 
       {viewingAprendiz && (
         <div className="modal-overlay">

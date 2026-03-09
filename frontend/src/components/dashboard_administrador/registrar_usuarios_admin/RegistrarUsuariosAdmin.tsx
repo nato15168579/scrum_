@@ -1,25 +1,31 @@
+/**
+ * Registro administrativo de usuarios y manejo de importacion masiva.
+ *
+ * Este archivo combina dos flujos manuales (instructor y aprendiz) con un
+ * tercer flujo mas complejo de importacion desde Excel. La dificultad principal
+ * esta en reconciliar datos incompletos de fichas antes de insertar usuarios y
+ * mantener sincronizados formularios, modales y catalogos del backend.
+ */
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
-  AlertTriangle,
-  ChevronDown,
   CheckCircle2,
   FileSpreadsheet,
   GraduationCap,
-  HelpCircle,
-  LogOut,
-  User,
   UserCheck,
   UserPlus,
   XCircle,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
-import senaLogo from "../../../assets/sena.png";
 import { API_URL } from "../../../config/Api";
 import { resolveUserName } from "../../../utils/session";
-import { ADMIN_MENU_ITEMS } from "../AdminMenuItems";
 import "../AdminDashboard.css";
 import "./RegistrarUsuariosAdmin.css";
+import AdminLogoutModal from "../shared/AdminLogoutModal";
+import AdminProfileMenu from "../shared/AdminProfileMenu";
+import AdminSidebar from "../shared/AdminSidebar";
+import { logoutAndRedirect, requireAdminAccess } from "../shared/adminSession";
+import { useClickOutside } from "../shared/useClickOutside";
 
 type RegisterMode = "instructor" | "aprendiz";
 
@@ -41,6 +47,7 @@ interface InstructorFormState {
   tipoDocumento: string;
   nombre: string;
   apellido: string;
+  ficha: string;
   especializacion: string;
   telefono: string;
   correo: string;
@@ -123,6 +130,7 @@ const INITIAL_INSTRUCTOR_FORM: InstructorFormState = {
   tipoDocumento: "CC",
   nombre: "",
   apellido: "",
+  ficha: "",
   especializacion: "",
   telefono: "",
   correo: "",
@@ -151,6 +159,10 @@ const IMPORT_REQUIRED_HEADERS = [
   "EMAIL",
   "TIPO DE USUARIO",
 ];
+
+// ---------------------------------------------------------------------------
+// Helpers de normalizacion para formularios e importacion XLSX
+// ---------------------------------------------------------------------------
 
 const normalizeTextValue = (value: unknown) =>
   String(value ?? "").trim();
@@ -296,25 +308,16 @@ const RegistrarUsuariosAdmin = () => {
     INITIAL_APRENDIZ_FORM,
   );
 
+  useClickOutside(menuRef, () => setIsMenuOpen(false));
+
   useEffect(() => {
-    const cedula = localStorage.getItem("userCedula");
-    const roleId = (localStorage.getItem("userRoleId") || "").trim();
-
+    const cedula = requireAdminAccess(navigate);
     if (!cedula) {
-      navigate("/");
       return;
     }
 
-    if (roleId === "2") {
-      navigate("/dashboard-instructor");
-      return;
-    }
-
-    if (roleId && roleId !== "3") {
-      navigate("/student-dashboard");
-      return;
-    }
-
+    // Este bootstrap carga todo lo necesario para registro manual e importacion:
+    // listados existentes, fichas actuales y catalogos derivados del backend.
     const loadData = async () => {
       try {
         const [
@@ -371,17 +374,6 @@ const RegistrarUsuariosAdmin = () => {
     loadData();
   }, [navigate]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const fichasActivas = useMemo(
     () => fichas.filter((item) => item.estado === "Activa"),
     [fichas],
@@ -390,6 +382,11 @@ const RegistrarUsuariosAdmin = () => {
   const fichaSeleccionada = useMemo(
     () => fichasActivas.find((item) => item.numero === aprendizForm.ficha) || null,
     [aprendizForm.ficha, fichasActivas],
+  );
+
+  const instructorFichaSeleccionada = useMemo(
+    () => fichasActivas.find((item) => item.numero === instructorForm.ficha) || null,
+    [instructorForm.ficha, fichasActivas],
   );
 
   const instructorDefaultPassword = useMemo(
@@ -415,11 +412,6 @@ const RegistrarUsuariosAdmin = () => {
       }));
     }
   }, [aprendizForm.ficha, fichaSeleccionada]);
-
-  const confirmLogout = () => {
-    localStorage.clear();
-    navigate("/");
-  };
 
   const buildPendingFichaDrafts = (
     fichaEntries: Array<
@@ -481,6 +473,8 @@ const RegistrarUsuariosAdmin = () => {
   };
 
   const loadFichaCatalogOptions = async () => {
+    // El catalogo se consulta aparte porque puede refrescarse despues de crear
+    // fichas faltantes sin recargar toda la pagina.
     try {
       const response = await fetch(`${API_URL}/fichas/options`);
       if (!response.ok) {
@@ -515,7 +509,26 @@ const RegistrarUsuariosAdmin = () => {
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = event.target;
-    setInstructorForm((prev) => ({ ...prev, [name]: value }));
+    setInstructorForm((prev) => {
+      if (name !== "ficha") {
+        return { ...prev, [name]: value };
+      }
+
+      const programaAnterior =
+        fichasActivas.find((item) => item.numero === prev.ficha)?.programa || "";
+      const programaActual =
+        fichasActivas.find((item) => item.numero === value)?.programa || "";
+      const shouldSyncEspecializacion =
+        !prev.especializacion.trim() || prev.especializacion === programaAnterior;
+
+      return {
+        ...prev,
+        ficha: value,
+        ...(shouldSyncEspecializacion
+          ? { especializacion: programaActual }
+          : {}),
+      };
+    });
   };
 
   const handleAprendizChange = (
@@ -931,6 +944,8 @@ const RegistrarUsuariosAdmin = () => {
   const handleImportFileChange = async (
     event: ChangeEvent<HTMLInputElement>,
   ) => {
+    // La importacion no inserta directo. Primero valida encabezados, normaliza
+    // filas y detecta fichas faltantes para que el admin confirme el contexto.
     const file = event.target.files?.[0];
 
     if (!file) return;
@@ -1155,6 +1170,8 @@ const RegistrarUsuariosAdmin = () => {
   const handleCreateMissingFichas = async () => {
     if (!pendingImport) return;
 
+    // Este paso cierra la brecha entre el archivo importado y la DB real:
+    // primero crea fichas faltantes y luego dispara la importacion pendiente.
     const hasIncompleteFicha = pendingImport.missingFichas.some(
       (item) => !item.nombre.trim() || !item.programa.trim(),
     );
@@ -1257,10 +1274,13 @@ const RegistrarUsuariosAdmin = () => {
   const submitInstructor = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    // El formulario manual de instructor comparte el mismo endpoint de creacion
+    // que la importacion para evitar reglas de negocio duplicadas.
     if (
       !instructorForm.documento.trim() ||
       !instructorForm.nombre.trim() ||
       !instructorForm.apellido.trim() ||
+      !instructorForm.ficha.trim() ||
       !instructorForm.especializacion.trim() ||
       !instructorForm.telefono.trim() ||
       !instructorForm.correo.trim()
@@ -1287,6 +1307,7 @@ const RegistrarUsuariosAdmin = () => {
           tipoDocumento: instructorForm.tipoDocumento,
           nombre: instructorForm.nombre,
           apellidos: instructorForm.apellido,
+          ficha: instructorForm.ficha,
           especializacion: instructorForm.especializacion,
           telefono: instructorForm.telefono,
           correo: instructorForm.correo,
@@ -1330,6 +1351,8 @@ const RegistrarUsuariosAdmin = () => {
   const submitAprendiz = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    // El flujo manual de aprendiz exige programa derivado de la ficha para que
+    // el admin vea en pantalla exactamente lo que se va a persistir.
     if (
       !aprendizForm.documento.trim() ||
       !aprendizForm.nombre.trim() ||
@@ -1404,103 +1427,24 @@ const RegistrarUsuariosAdmin = () => {
   return (
     <div className="dashboard-page">
       <div className="container-dashboard">
-      <aside className="side-card">
-        <div className="brand-block">
-          <img src={senaLogo} alt="Logo SENA" className="logo-lg" />
-          <h2>Gestion de proyectos</h2>
-        </div>
-
-        <nav className="menu">
-          <p className="menu-title">MENU</p>
-          <ul>
-            {ADMIN_MENU_ITEMS.map((item) => (
-              <li
-                key={item.name}
-                onClick={() => navigate(item.path)}
-                className={
-                  item.path === "/dashboard"
-                    ? ["/dashboard", "/dashboard-administrador"].includes(
-                        location.pathname,
-                      )
-                      ? "active"
-                      : ""
-                    : location.pathname === item.path
-                      ? "active"
-                      : ""
-                }
-              >
-                <item.icon size={18} style={{ marginRight: "10px" }} />
-                {item.name}
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <div
-          className="settings-footer"
-          style={{ marginTop: "auto", padding: "10px 0" }}
-        >
-          <p className="menu-title">SETTINGS</p>
-          <div
-            className="support-item"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "10px",
-              cursor: "pointer",
-              fontSize: "0.9rem",
-              color: "#555",
-            }}
-            onClick={() => navigate("/ayuda")}
-          >
-            <HelpCircle
-              size={18}
-              style={{ marginRight: "10px", color: "#39A900" }}
-            />
-            <span>Ayuda y Soporte</span>
-          </div>
-        </div>
-      </aside>
+        <AdminSidebar currentPath={location.pathname} onNavigate={navigate} />
 
       <main className="content">
         <nav className="nav-top">
           <div className="title-section">
             <h1>Registrar usuarios</h1>
           </div>
-
-          <div
-            className="profile-menu"
-            ref={menuRef}
-            onClick={() => setIsMenuOpen((prev) => !prev)}
-          >
-            <img
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(adminName)}&background=39A900&color=fff`}
-              alt="Avatar"
-              className="profile-img"
-            />
-            <span className="profile-name">{adminName}</span>
-            <ChevronDown size={18} />
-
-            {isMenuOpen && (
-              <ul className="dropdown-profile">
-                <li>
-                  <User size={16} style={{ marginRight: "8px" }} />
-                  Mi perfil
-                </li>
-                <li
-                  className="logout"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setIsMenuOpen(false);
-                    setShowLogoutModal(true);
-                  }}
-                >
-                  <LogOut size={16} style={{ marginRight: "8px" }} />
-                  Cerrar sesion
-                </li>
-              </ul>
-            )}
-          </div>
+          <AdminProfileMenu
+            displayName={adminName}
+            isOpen={isMenuOpen}
+            menuRef={menuRef}
+            onToggle={() => setIsMenuOpen((current) => !current)}
+            onLogout={() => {
+              setIsMenuOpen(false);
+              setShowLogoutModal(true);
+            }}
+            showProfileItem
+          />
         </nav>
 
         <section className="dashboard-content register-users-content">
@@ -1636,6 +1580,33 @@ const RegistrarUsuariosAdmin = () => {
                     onChange={handleInstructorChange}
                     placeholder="Ej: Mendoza"
                     required
+                  />
+                </label>
+
+                <label className="register-users-field">
+                  <span>Ficha a cargo</span>
+                  <select
+                    name="ficha"
+                    value={instructorForm.ficha}
+                    onChange={handleInstructorChange}
+                    required
+                  >
+                    <option value="">Selecciona una ficha activa</option>
+                    {fichasActivas.map((item) => (
+                      <option key={item.numero} value={item.numero}>
+                        {item.numero} - {item.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="register-users-field">
+                  <span>Programa de la ficha</span>
+                  <input
+                    type="text"
+                    value={instructorFichaSeleccionada?.programa || ""}
+                    readOnly
+                    placeholder="Se completa al elegir ficha"
                   />
                 </label>
 
@@ -2093,30 +2064,11 @@ const RegistrarUsuariosAdmin = () => {
         </div>
       )}
 
-      {showLogoutModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="warning-icon-container">
-              <AlertTriangle size={45} color="white" strokeWidth={3} />
-            </div>
-            <h2 className="modal-title">Estas seguro?</h2>
-            <div className="modal-buttons">
-              <button
-                className="btn-confirm-logout"
-                onClick={confirmLogout}
-              >
-                Si, Cerrar
-              </button>
-              <button
-                className="btn-cancel-logout"
-                onClick={() => setShowLogoutModal(false)}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminLogoutModal
+        isOpen={showLogoutModal}
+        onCancel={() => setShowLogoutModal(false)}
+        onConfirm={() => logoutAndRedirect(navigate)}
+      />
     </div>
   );
 };

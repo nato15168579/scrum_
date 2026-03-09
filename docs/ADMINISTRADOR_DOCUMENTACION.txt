@@ -1,0 +1,327 @@
+﻿DOCUMENTACION DEL MODULO ADMINISTRADOR
+=====================================
+
+1. OBJETIVO GENERAL
+-------------------
+El modulo administrador es la capa del sistema encargada de:
+- mostrar el dashboard principal del panel admin
+- listar y gestionar aprendices
+- listar y gestionar instructores
+- registrar usuarios manualmente
+- importar usuarios desde Excel
+- administrar fichas usadas por el registro y por la asignacion de instructores
+- consultar y crear proyectos desde el panel administrativo
+
+Esta documentacion describe como esta organizado el codigo, que archivos son clave,
+que partes son delicadas y como intervenir el modulo sin romper el comportamiento actual.
+
+
+2. ESTRUCTURA GENERAL DEL FRONTEND ADMIN
+----------------------------------------
+Ruta base del codigo frontend admin:
+frontend/src/components/dashboard_administrador/
+
+Archivos principales:
+- AdminDashboard.tsx
+  Pantalla principal del admin. Carga resumen, aprendices e instructores.
+- AdminMenuItems.ts
+  Catalogo de navegacion del sidebar.
+- lista_aprendices/ListaAprendices.tsx
+  Lista, filtro, detalle, edicion y eliminacion de aprendices.
+- lista_instructores/ListaInstructoresAdmin.tsx
+  Lista, filtro, detalle, edicion, relacion con fichas y eliminacion de instructores.
+- registrar_usuarios_admin/RegistrarUsuariosAdmin.tsx
+  Registro manual de aprendices e instructores e importacion masiva desde Excel.
+- proyectos_admin/CrearProyectoAdmin.tsx
+  Formulario administrativo para crear proyectos.
+- proyectos_admin/VerProyectos.tsx
+  Consulta rapida de proyectos desde el panel admin.
+
+Utilidades compartidas:
+- shared/adminSession.ts
+  Validacion de rol admin, logout y helpers comunes de avatar / estado activo.
+- shared/AdminSidebar.tsx
+  Sidebar comun de navegacion.
+- shared/AdminProfileMenu.tsx
+  Menu desplegable del perfil admin.
+- shared/AdminLogoutModal.tsx
+  Modal reutilizable para logout, confirmaciones y alertas.
+- shared/useClickOutside.ts
+  Hook utilitario para cerrar dropdowns al hacer click fuera.
+
+
+3. ESTRUCTURA GENERAL DEL BACKEND ADMIN
+---------------------------------------
+Rutas base del codigo backend admin:
+backend/src/dashboard_administrador/
+backend/src/lista_aprendices/
+
+Archivos principales:
+- dashboard_administrador/DashboardController.ts
+  Expone GET /dashboard.
+- dashboard_administrador/DashboardService.ts
+  Calcula metricas globales del panel admin.
+- lista_aprendices/ListaController.ts
+  Expone endpoints REST para aprendices, instructores, fichas y usuarios.
+- lista_aprendices/ListaService.ts
+  Nucleo de negocio del admin. Contiene validaciones, CRUD, importacion y compatibilidad de esquema.
+- lista_aprendices/ListaTypes.ts
+  DTOs y contratos usados por controller y service.
+
+
+4. FLUJO DEL DASHBOARD ADMIN
+----------------------------
+Frontend:
+- AdminDashboard.tsx valida sesion admin con requireAdminAccess.
+- Si la sesion es valida, pide en paralelo:
+  - GET /dashboard?cedula=...
+  - GET /aprendices?cedula=...
+  - GET /instructores?cedula=...
+- Con los listados de aprendices e instructores calcula series por dia, semana, mes y anio.
+- Esas series alimentan el grafico principal.
+
+Backend:
+- DashboardService.ts localiza el usuario administrador.
+- Calcula:
+  - cantidad total de fichas
+  - reuniones observadas en usu_asis
+  - proyectos totales y por estado
+- Devuelve un payload listo para el dashboard.
+
+Punto delicado:
+- El servicio no asume un esquema perfecto. Valida tablas y columnas antes de consultar.
+- Esto evita caidas cuando la base viene de scripts SQL antiguos o heterogeneos.
+
+
+5. FLUJO DE APRENDICES
+----------------------
+Frontend:
+- ListaAprendices.tsx carga aprendices, fichas y datos del admin.
+- Normaliza respuestas para tolerar nombres de campos historicos.
+- Permite:
+  - ver detalle
+  - editar aprendiz
+  - cambiar ficha
+  - eliminar aprendiz
+- La tabla usa filtro por multiples campos y paginacion local.
+
+Backend:
+- GET /aprendices
+  Lista aprendices visibles para el admin o para el instructor segun cedula.
+- PATCH /aprendices/:cedula
+  Actualiza datos y reconstruye su relacion unica en usuario_ficha.
+- DELETE /aprendices/:cedula
+  Elimina al aprendiz y sus referencias.
+- PATCH /aprendices/:cedula/estado
+  Cambia estado Activo/Inactivo.
+
+Punto delicado:
+- Aprendiz solo debe tener una ficha principal.
+- Por eso el backend borra la relacion actual en usuario_ficha y luego inserta la nueva.
+
+
+6. FLUJO DE INSTRUCTORES Y FICHAS A CARGO
+-----------------------------------------
+Frontend:
+- ListaInstructoresAdmin.tsx carga instructores, fichas y datos del dashboard.
+- Muestra la columna Fichas a cargo y un modal para ver el detalle de esas fichas.
+- Al editar un instructor se puede:
+  - cambiar datos personales
+  - asignar o retirar varias fichas
+- Antes de guardar, si cambiaron las fichas, se muestra confirmacion.
+- El modal de alerta usa z-index superior para quedar arriba del modal de edicion.
+
+Backend:
+- GET /instructores
+  Devuelve instructores con fichasCargo y fichasDetalle.
+- PATCH /instructores/:cedula
+  Actualiza instructor.
+- PUT /instructores/:cedula
+  Ruta compatible para despliegues que no usan PATCH.
+- POST /instructores/:cedula
+  Ruta adicional de compatibilidad.
+- DELETE /instructores/:cedula
+  Elimina instructor y relaciones.
+
+Relacion con DB:
+- La relacion instructor-ficha vive en usuario_ficha.
+- No se creo tabla nueva.
+- updateInstructor en ListaService.ts elimina las relaciones previas del instructor y vuelve a insertar exactamente las fichas seleccionadas.
+
+Punto delicado:
+- El frontend intenta PATCH, luego PUT y por ultimo POST.
+- Esto existe porque en algunos despliegues puede haber proxies o instancias viejas que no acepten el mismo verbo HTTP.
+
+
+7. REGISTRO MANUAL DE USUARIOS
+------------------------------
+Frontend:
+- RegistrarUsuariosAdmin.tsx tiene dos modos:
+  - instructor
+  - aprendiz
+- Ambos formularios reutilizan catalogo de fichas y validaciones de sesion admin.
+- El feedback de exito o error se maneja con estado local y modales.
+
+Backend:
+- POST /users
+  Crea instructor o aprendiz segun tipoUsuario.
+- La misma ruta se usa desde el formulario manual y desde la importacion masiva.
+
+Punto delicado:
+- Mantener un solo endpoint de creacion evita que las reglas de negocio diverjan.
+- Cualquier validacion nueva debe agregarse en ListaService.ts, no solo en el frontend.
+
+
+8. IMPORTACION MASIVA DESDE EXCEL
+---------------------------------
+Frontend:
+- RegistrarUsuariosAdmin.tsx usa xlsx para leer la primera hoja del archivo.
+- Valida encabezados obligatorios.
+- Normaliza valores de sexo, tipo de usuario, documento y ficha.
+- Si detecta fichas que no existen o vienen incompletas, no importa de inmediato.
+- Primero abre un modal donde el admin completa area y programa de las fichas faltantes.
+- Luego crea esas fichas y finalmente dispara la importacion.
+
+Backend:
+- POST /users/import
+  Recibe usuarios normalizados.
+- ListaService.ts procesa fila por fila y devuelve:
+  - creados
+  - omitidos
+  - errores
+  - detalles de cada resultado
+
+Puntos dificiles:
+- La importacion no es solo insertar personas. Tambien puede requerir crear fichas.
+- El frontend y el backend deben coincidir en encabezados y tipos de usuario esperados.
+- Las contrasenas temporales se derivan del primer nombre, por lo que cualquier cambio en esa regla debe mantenerse sincronizado en frontend y backend.
+
+
+9. FICHAS Y CATALOGO
+--------------------
+Rutas:
+- GET /fichas
+  Devuelve listado general de fichas.
+- GET /fichas/options
+  Devuelve catalogos de areas, programas y areas agrupadas por programa.
+- POST /fichas
+  Crea una ficha nueva.
+
+Uso dentro del admin:
+- Registro manual de usuarios.
+- Importacion masiva.
+- Edicion de instructores.
+- Asignacion y consulta de fichas a cargo.
+
+Punto delicado:
+- En algunas bases la ficha puede guardar nombre en fic_nombre o fic_area.
+- ListaService.ts detecta cual columna existe y se adapta.
+
+
+10. AUTOAJUSTES DE ESQUEMA EN LISTASERVICE
+------------------------------------------
+ListaService.ts hace varias comprobaciones automaticas antes de operar:
+- asegura que usu_cedula sea BIGINT
+- asegura que exista fecha_registro en usuario
+- asegura que exista usu_estado
+- asegura que exista usu_especializacion
+- asegura que exista usu_sexo
+- asegura que exista usuario_ficha.usf_fecha_asignacion
+- valida presencia de tablas fichas y usuario_ficha
+- detecta si la ficha usa fic_nombre o fic_area
+
+Esto es util porque el proyecto parece haber evolucionado con distintos SQLs.
+Sin estas validaciones, una DB vieja podria romper pantallas completas del admin.
+
+Punto delicado:
+- Estos autoajustes son poderosos, pero tambien sensibles.
+- Si se cambia el esquema principal, hay que revisar todos los ensure* de ListaService.ts.
+
+
+11. MODALES Y CAPA VISUAL
+-------------------------
+El admin usa varios overlays y modales:
+- logout
+- detalle de aprendiz / instructor
+- edicion de aprendiz / instructor
+- eliminacion
+- confirmaciones de cambio
+- feedback de exito y error
+
+Punto dificil:
+- Cuando un modal de confirmacion se abre desde otro modal, debe verse por encima.
+- AdminLogoutModal.tsx ahora acepta zIndex para resolver ese apilamiento.
+- ListaInstructoresAdmin.tsx aprovecha ese zIndex para mostrar la alerta arriba del modal de edicion.
+
+
+12. DONDE TOCAR SI QUIERES CAMBIAR ALGO
+---------------------------------------
+Si quieres cambiar navegacion admin:
+- frontend/src/components/dashboard_administrador/AdminMenuItems.ts
+
+Si quieres cambiar validacion de sesion admin:
+- frontend/src/components/dashboard_administrador/shared/adminSession.ts
+
+Si quieres cambiar el dashboard:
+- frontend/src/components/dashboard_administrador/AdminDashboard.tsx
+- backend/src/dashboard_administrador/DashboardService.ts
+
+Si quieres cambiar CRUD de aprendices:
+- frontend/src/components/dashboard_administrador/lista_aprendices/ListaAprendices.tsx
+- backend/src/lista_aprendices/ListaService.ts
+
+Si quieres cambiar CRUD de instructores o fichas a cargo:
+- frontend/src/components/dashboard_administrador/lista_instructores/ListaInstructoresAdmin.tsx
+- backend/src/lista_aprendices/ListaController.ts
+- backend/src/lista_aprendices/ListaService.ts
+
+Si quieres cambiar registro o importacion:
+- frontend/src/components/dashboard_administrador/registrar_usuarios_admin/RegistrarUsuariosAdmin.tsx
+- backend/src/lista_aprendices/ListaService.ts
+- backend/src/lista_aprendices/ListaTypes.ts
+
+
+13. RIESGOS SI SE MODIFICA SIN CUIDADO
+--------------------------------------
+- Cambiar nombres de campos del backend puede romper normalizadores del frontend.
+- Tocar importacion sin revisar fichas faltantes puede dejar usuarios huérfanos de contexto.
+- Cambiar la logica de usuario_ficha afecta a aprendices e instructores al mismo tiempo.
+- Eliminar autoajustes de esquema puede romper instalaciones viejas de la base de datos.
+- Cambiar modales sin revisar z-index puede volver a ocultar alertas debajo de otros overlays.
+- Duplicar endpoints de creacion o actualizacion puede hacer que frontend manual e importacion empiecen a comportarse distinto.
+
+
+14. RECOMENDACIONES DE MANTENIMIENTO
+------------------------------------
+- Mantener AdminSidebar, AdminProfileMenu y AdminLogoutModal como piezas compartidas.
+- No mover reglas de negocio al frontend si ya existen en ListaService.ts.
+- Si se agrega un nuevo flujo administrativo, documentarlo aqui y en el encabezado del archivo nuevo.
+- Si se cambia el esquema SQL, actualizar tanto ListaService.ts como este documento.
+- Probar siempre:
+  - listado
+  - detalle
+  - edicion
+  - eliminacion
+  - importacion
+  - creacion manual
+  - dashboard
+
+
+15. RESUMEN DE LAS PARTES MAS DIFICILES
+---------------------------------------
+1. Relacion instructor-ficha sin tabla nueva adicional.
+   Todo vive en usuario_ficha y requiere sincronizacion cuidadosa.
+
+2. Importacion masiva con fichas faltantes.
+   El flujo necesita detenerse, pedir datos extra y luego continuar.
+
+3. Compatibilidad de metodos HTTP para actualizar instructores.
+   El frontend puede caer entre PATCH, PUT y POST segun el backend activo.
+
+4. Autoajustes del esquema SQL.
+   ListaService.ts se defiende de diferencias entre versiones de la base.
+
+5. Apilamiento de modales.
+   El sistema necesita overlays reutilizables que puedan quedar por encima de otros.
+
+Fin del documento.

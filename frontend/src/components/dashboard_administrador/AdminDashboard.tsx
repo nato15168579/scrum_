@@ -1,3 +1,15 @@
+/**
+ * Pantalla principal del administrador.
+ *
+ * Responsabilidades:
+ * - valida la sesion del rol administrador
+ * - carga resumen general, aprendices e instructores
+ * - transforma fechas de registro en series para el grafico
+ * - reutiliza el shell comun del panel admin
+ *
+ * Los helpers de fechas se mantienen en este archivo porque solo alimentan la
+ * visualizacion del dashboard y comparten las mismas reglas de agregacion.
+ */
 import { useEffect, useMemo, useState } from "react";
 import {
   Bar,
@@ -9,18 +21,15 @@ import {
   YAxis,
 } from "recharts";
 import {
-  LogOut,
-  User,
-  ChevronDown,
   PenTool,
-  AlertTriangle,
-  HelpCircle,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import senaLogo from "../../assets/sena.png";
 import "./AdminDashboard.css";
 import { API_URL } from "../../config/Api";
-import { ADMIN_MENU_ITEMS } from "./AdminMenuItems";
+import AdminLogoutModal from "./shared/AdminLogoutModal";
+import AdminProfileMenu from "./shared/AdminProfileMenu";
+import AdminSidebar from "./shared/AdminSidebar";
+import { logoutAndRedirect, requireAdminAccess } from "./shared/adminSession";
 
 interface Stat {
   label: string;
@@ -103,6 +112,7 @@ const CHART_LIMIT: Record<PeriodKey, number> = {
   anio: 8,
 };
 
+// Helpers base para generar llaves temporales consistentes en el grafico.
 const twoDigits = (value: number) => String(value).padStart(2, "0");
 
 const toDayKey = (date: Date) =>
@@ -166,6 +176,7 @@ const parseInscripcionDate = (aprendiz: Aprendiz): Date | null => {
   return null;
 };
 
+// Agrupa fechas por dia, semana, mes o anio y las deja listas para Recharts.
 const buildRowsByPeriod = (dates: Date[], period: PeriodKey): ChartRow[] => {
   const grouped = dates.reduce<Record<string, ChartRow>>((acc, date) => {
     if (period === "dia") {
@@ -286,24 +297,13 @@ const AdminDashboard = () => {
   const location = useLocation();
 
   useEffect(() => {
-    const storedCedula = localStorage.getItem("userCedula");
-    const storedRoleId = localStorage.getItem("userRoleId");
-
+    const storedCedula = requireAdminAccess(navigate);
     if (!storedCedula) {
-      navigate("/");
       return;
     }
 
-    if (storedRoleId === "2") {
-      navigate("/dashboard-instructor");
-      return;
-    }
-
-    if (storedRoleId && storedRoleId !== "3") {
-      navigate("/student-dashboard");
-      return;
-    }
-
+    // El dashboard necesita el resumen y tambien los listados crudos para
+    // construir tarjetas y series temporales sin depender de otro endpoint.
     const fetchDashboardData = async () => {
       try {
         const [dashboardResponse, aprendicesResponse, instructoresResponse] =
@@ -343,6 +343,8 @@ const AdminDashboard = () => {
     fetchDashboardData();
   }, [navigate]);
 
+  // Las fechas se derivan una sola vez y luego se reutilizan en todos los memos
+  // que alimentan el grafico y los contadores del periodo actual.
   const fechasInscripcion = useMemo(
     () =>
       aprendices
@@ -430,107 +432,29 @@ const AdminDashboard = () => {
   const registroLabelSingular =
     activeRegistro === "aprendices" ? "Aprendices" : "Instructores";
 
+  // El logout real vive en el helper compartido; el componente solo decide
+  // cuando abrir o confirmar el modal.
   const confirmLogout = () => {
-    localStorage.clear();
-    navigate("/");
+    logoutAndRedirect(navigate);
   };
 
   return (
     <div className="dashboard-page">
       <div className="container-dashboard">
-        <aside className="side-card">
-          <div className="brand-block">
-            <img src={senaLogo} alt="Logo SENA" className="logo-lg" />
-            <h2>Gestion de proyectos</h2>
-          </div>
-
-          <nav className="menu">
-            <p className="menu-title">MENU</p>
-            <ul>
-              {ADMIN_MENU_ITEMS.map((item) => (
-                <li
-                  key={item.name}
-                  onClick={() => navigate(item.path)}
-                  className={
-                    item.path === "/dashboard"
-                      ? ["/dashboard", "/dashboard-administrador"].includes(
-                          location.pathname,
-                        )
-                        ? "active"
-                        : ""
-                      : location.pathname === item.path
-                        ? "active"
-                        : ""
-                  }
-                >
-                  <item.icon size={18} style={{ marginRight: "10px" }} />{" "}
-                  {item.name}
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          <div
-            className="settings-footer"
-            style={{ marginTop: "auto", padding: "10px 0" }}
-          >
-            <p className="menu-title">SETTINGS</p>
-            <div
-              className="support-item"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "10px",
-                cursor: "pointer",
-                fontSize: "0.9rem",
-                color: "#555",
-              }}
-              onClick={() => navigate("/ayuda")}
-            >
-              <HelpCircle
-                size={18}
-                style={{ marginRight: "10px", color: "#39A900" }}
-              />
-              <span>Ayuda y Soporte</span>
-            </div>
-          </div>
-        </aside>
+        <AdminSidebar currentPath={location.pathname} onNavigate={navigate} />
 
         <main className="content">
           <nav className="nav-top">
             <div className="title-section">
               <h1>Panel Admin</h1>
             </div>
-            <div
-              className="profile-menu"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              <img
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(dashboardData.instructor)}&background=39A900&color=fff`}
-                className="profile-img"
-                alt="Avatar"
-              />
-              <span className="profile-name">{dashboardData.instructor}</span>
-              <ChevronDown size={18} />
-
-              {isMenuOpen && (
-                <ul className="dropdown-profile">
-                  <li>
-                    <User size={16} style={{ marginRight: "8px" }} /> Mi Perfil
-                  </li>
-                  <li
-                    className="logout"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowLogoutModal(true);
-                    }}
-                  >
-                    <LogOut size={16} style={{ marginRight: "8px" }} /> Cerrar
-                    Sesion
-                  </li>
-                </ul>
-              )}
-            </div>
+            <AdminProfileMenu
+              displayName={dashboardData.instructor}
+              isOpen={isMenuOpen}
+              onToggle={() => setIsMenuOpen((current) => !current)}
+              onLogout={() => setShowLogoutModal(true)}
+              showProfileItem
+            />
           </nav>
 
           <section className="dashboard-content">
@@ -667,27 +591,11 @@ const AdminDashboard = () => {
         </main>
       </div>
 
-      {showLogoutModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="warning-icon-container">
-              <AlertTriangle size={45} color="white" strokeWidth={3} />
-            </div>
-            <h2 className="modal-title">Estas seguro?</h2>
-            <div className="modal-buttons">
-              <button className="btn-confirm-logout" onClick={confirmLogout}>
-                Si, Cerrar
-              </button>
-              <button
-                className="btn-cancel-logout"
-                onClick={() => setShowLogoutModal(false)}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminLogoutModal
+        isOpen={showLogoutModal}
+        onCancel={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
+      />
     </div>
   );
 };

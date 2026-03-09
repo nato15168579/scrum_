@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, IsNull, DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Usuario } from '../entities/Usuario';
 import { Proyecto } from '../entities/Proyecto';
 
@@ -16,7 +16,7 @@ export class DashboardService {
     private dataSource: DataSource,
   ) {}
 
-  async obtenerDatosDashboard(cedulaInput: any) {
+  async obtenerDatosDashboard(cedulaInput: string | number) {
     try {
       const cedula = Number(cedulaInput);
 
@@ -37,25 +37,26 @@ export class DashboardService {
           'SELECT COUNT(*) as total FROM reuniones WHERE usu_cedula = ?',
           [cedula],
         );
-        reunionesCount = parseInt(queryResult[0].total) || 0;
+        reunionesCount = Number(queryResult[0]?.total || 0);
       } catch (e) {
         const error = e instanceof Error ? e : new Error(String(e));
         this.logger.error('Error al consultar reuniones:', error.message);
       }
 
       // 3. PROYECTOS DEL USUARIO
-      let proyectos = [];
+      let proyectos: Proyecto[] = [];
       let porHacer = 0;
       let enProgreso = 0;
       let hecho = 0;
 
       try {
         proyectos = await this.proyectoRepository.find();
-        porHacer = proyectos.filter((p) => p.estadoId === 1).length;
-        enProgreso = proyectos.filter((p) => p.estadoId === 2).length;
-        hecho = proyectos.filter((p) => p.estadoId === 3).length;
+        porHacer = proyectos.filter((p) => p.detParIdFk === 1).length;
+        enProgreso = proyectos.filter((p) => p.detParIdFk === 2).length;
+        hecho = proyectos.filter((p) => p.detParIdFk === 3).length;
       } catch (e) {
-        this.logger.error('Error al procesar proyectos:', e.message);
+        const error = e instanceof Error ? e : new Error(String(e));
+        this.logger.error('Error al procesar proyectos:', error.message);
       }
 
       // 4. RESPUESTA PARA EL FRONTEND

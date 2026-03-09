@@ -1,18 +1,26 @@
+﻿/**
+ * Vista administrativa para crear proyectos.
+ *
+ * Reutiliza el shell del admin y agrega formularios, ayudas y feedback visual
+ * para el registro de proyectos desde el panel administrativo.
+ */
+
 import { useEffect, useRef, useState } from "react";
 import {
-  ChevronDown,
-  LogOut,
   AlertTriangle,
   HelpCircle,
   CheckCircle2,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import senaLogo from "../../../assets/sena.png";
 import "../../dashboard_instructor/Dashboard.css";
 import "../../crear_proyecto/CrearProyecto.css";
 import { API_URL } from "../../../config/Api";
-import { ADMIN_MENU_ITEMS } from "../AdminMenuItems";
 import { resolveUserName } from "../../../utils/session";
+import AdminLogoutModal from "../shared/AdminLogoutModal";
+import AdminProfileMenu from "../shared/AdminProfileMenu";
+import AdminSidebar from "../shared/AdminSidebar";
+import { logoutAndRedirect, requireAdminAccess } from "../shared/adminSession";
+import { useClickOutside } from "../shared/useClickOutside";
 
 interface ErrorModalState {
   show: boolean;
@@ -52,27 +60,11 @@ const CrearProyectoAdmin = () => {
     fechaFin: "",
   });
 
-  const confirmLogout = () => {
-    localStorage.clear();
-    navigate("/");
-  };
+  useClickOutside(menuRef, () => setIsMenuOpen(false));
 
   useEffect(() => {
-    const cedula = localStorage.getItem("userCedula");
-    const roleId = (localStorage.getItem("userRoleId") || "").trim();
-
+    const cedula = requireAdminAccess(navigate);
     if (!cedula) {
-      navigate("/");
-      return;
-    }
-
-    if (roleId === "2") {
-      navigate("/dashboard-instructor");
-      return;
-    }
-
-    if (roleId && roleId !== "3") {
-      navigate("/student-dashboard");
       return;
     }
 
@@ -84,17 +76,6 @@ const CrearProyectoAdmin = () => {
       })
       .catch(() => setAdminName(resolveUserName(undefined, "Usuario")));
   }, [navigate]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -161,63 +142,11 @@ const CrearProyectoAdmin = () => {
 
   return (
     <div className="dashboard-page">
-      <aside className="side-card">
-        <div className="brand-block">
-          <img src={senaLogo} alt="Logo" className="logo-lg" />
-          <h2>Gestion de proyectos</h2>
-        </div>
-
-        <nav className="menu">
-          <p className="menu-title">MENU</p>
-          <ul>
-            {ADMIN_MENU_ITEMS.map((item) => (
-              <li
-                key={item.name}
-                className={
-                  item.path === "/dashboard"
-                    ? ["/dashboard", "/dashboard-administrador"].includes(
-                        location.pathname,
-                      )
-                      ? "active"
-                      : ""
-                    : location.pathname === item.path
-                      ? "active"
-                      : ""
-                }
-                onClick={() => navigate(item.path)}
-              >
-                <item.icon size={18} style={{ marginRight: "10px" }} />
-                {item.name}
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <div
-          className="settings-footer"
-          style={{ marginTop: "auto", padding: "10px 0" }}
-        >
-          <p className="menu-title">SETTINGS</p>
-          <div
-            className="support-item"
-            onClick={() => setShowHelpModal(true)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "10px",
-              cursor: "pointer",
-              fontSize: "0.9rem",
-              color: "#555",
-            }}
-          >
-            <HelpCircle
-              size={18}
-              style={{ marginRight: "10px", color: "#39A900" }}
-            />
-            <span>Ayuda y Soporte</span>
-          </div>
-        </div>
-      </aside>
+      <AdminSidebar
+        currentPath={location.pathname}
+        onNavigate={navigate}
+        onSupportClick={() => setShowHelpModal(true)}
+      />
 
       <main className="content">
         <nav className="nav-top">
@@ -225,27 +154,13 @@ const CrearProyectoAdmin = () => {
             <h1>Crear Proyecto</h1>
           </div>
 
-          <div
-            className="profile-menu"
-            ref={menuRef}
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            <img
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(adminName)}&background=39A900&color=fff`}
-              className="profile-img"
-              alt="Avatar"
-            />
-            <span className="profile-name">{adminName}</span>
-            <ChevronDown size={18} />
-            {isMenuOpen && (
-              <ul className="dropdown-profile">
-                <li className="logout" onClick={() => setShowLogoutModal(true)}>
-                  <LogOut size={16} style={{ marginRight: "8px" }} /> Cerrar
-                  Sesion
-                </li>
-              </ul>
-            )}
-          </div>
+          <AdminProfileMenu
+            displayName={adminName}
+            isOpen={isMenuOpen}
+            menuRef={menuRef}
+            onToggle={() => setIsMenuOpen((current) => !current)}
+            onLogout={() => setShowLogoutModal(true)}
+          />
         </nav>
 
         <section
@@ -366,30 +281,12 @@ const CrearProyectoAdmin = () => {
         </section>
       </main>
 
-      {showLogoutModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div
-              className="warning-icon-container"
-              style={{ backgroundColor: "#e67e22" }}
-            >
-              <AlertTriangle size={45} color="white" />
-            </div>
-            <h2 className="modal-title">Estas seguro?</h2>
-            <div className="modal-buttons">
-              <button className="btn-confirm-logout" onClick={confirmLogout}>
-                Si, Cerrar
-              </button>
-              <button
-                className="btn-cancel-logout"
-                onClick={() => setShowLogoutModal(false)}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminLogoutModal
+        isOpen={showLogoutModal}
+        iconBackgroundColor="#e67e22"
+        onCancel={() => setShowLogoutModal(false)}
+        onConfirm={() => logoutAndRedirect(navigate)}
+      />
 
       {showHelpModal && (
         <div className="modal-overlay">
@@ -472,3 +369,4 @@ const CrearProyectoAdmin = () => {
 };
 
 export default CrearProyectoAdmin;
+

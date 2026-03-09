@@ -45,6 +45,16 @@ let ListaService = class ListaService {
       `, [tableName]);
         return Number((result === null || result === void 0 ? void 0 : result.total) || 0) > 0;
     }
+    async ensureUsuarioFichaFechaAsignacionColumn() {
+        const hasFechaAsignacion = await this.columnExists('usuario_ficha', 'usf_fecha_asignacion');
+        if (!hasFechaAsignacion) {
+            await this.dataSource.query(`
+        ALTER TABLE usuario_ficha
+        ADD COLUMN usf_fecha_asignacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        COMMENT 'fecha de asignacion del usuario a la ficha'
+      `);
+        }
+    }
     async ensureFechaRegistroColumn() {
         const hasFechaRegistro = await this.columnExists('usuario', 'fecha_registro');
         if (!hasFechaRegistro) {
@@ -185,6 +195,7 @@ let ListaService = class ListaService {
         if (missingTables.length > 0) {
             throw new common_1.InternalServerErrorException(`Faltan tablas requeridas en la base de datos: ${missingTables.join(', ')}. Importa el esquema SQL actualizado.`);
         }
+        await this.ensureUsuarioFichaFechaAsignacionColumn();
         const hasFichaNombre = await this.columnExists('fichas', 'fic_nombre');
         const hasFichaArea = await this.columnExists('fichas', 'fic_area');
         if (!hasFichaNombre && !hasFichaArea) {
@@ -325,9 +336,9 @@ let ListaService = class ListaService {
             return null;
         return {
             ficha: String(row.ficha),
-            nombre: row.fichaNombre || 'Sin nombre',
-            programa: row.programa || 'Sin programa',
-            estado: row.fichaEstado || 'Sin estado',
+            nombre: String(row.fichaNombre || 'Sin nombre'),
+            programa: String(row.programa || 'Sin programa'),
+            estado: String(row.fichaEstado || 'Sin estado'),
             fechaCreacion: this.formatDateToIso(row.fichaFechaCreacion),
         };
     }
@@ -440,16 +451,16 @@ let ListaService = class ListaService {
     mapAprendizResponse(row) {
         return {
             documento: String(row.documento),
-            tipoDocumento: row.tipoDocumento || 'CC',
+            tipoDocumento: String(row.tipoDocumento || 'CC'),
             ficha: row.ficha ? String(row.ficha) : 'Sin ficha',
-            area: row.fichaNombre || 'Sin area',
-            fichaNombre: row.fichaNombre || 'Sin nombre de ficha',
-            programa: row.programa || 'Sin programa',
-            nombre: row.nombre || '',
-            apellido: row.apellido || '',
-            telefono: row.telefono || '',
-            email: row.email || '',
-            sexo: row.sexo || '',
+            area: String(row.fichaNombre || 'Sin area'),
+            fichaNombre: String(row.fichaNombre || 'Sin nombre de ficha'),
+            programa: String(row.programa || 'Sin programa'),
+            nombre: String(row.nombre || ''),
+            apellido: String(row.apellido || ''),
+            telefono: String(row.telefono || ''),
+            email: String(row.email || ''),
+            sexo: String(row.sexo || ''),
             fechaInscripcion: this.formatDateToIso(row.fechaInscripcion),
             estado: this.normalizeEstado(row.estado),
         };
@@ -484,9 +495,9 @@ let ListaService = class ListaService {
     `);
         return (fichas || []).map((ficha) => ({
             numero: String(ficha.numero),
-            nombre: ficha.nombre || 'Sin nombre',
-            programa: ficha.programa || 'Sin programa',
-            estado: ficha.estado || 'Sin estado',
+            nombre: String(ficha.nombre || 'Sin nombre'),
+            programa: String(ficha.programa || 'Sin programa'),
+            estado: String(ficha.estado || 'Sin estado'),
             fechaCreacion: this.formatDateToIso(ficha.fechaCreacion),
         }));
     }
@@ -820,13 +831,14 @@ let ListaService = class ListaService {
         return Array.from(aprendicesMap.values());
     }
     async findAllInstructores(_cedulaSolicitante) {
+        void _cedulaSolicitante;
         await this.ensureUsuarioColumns();
         await this.ensureFichaSchema();
         const fichaNombreSelect = await this.getFichaNombreSelect('f');
         const rows = await this.dataSource.query(`
       SELECT
         u.usu_cedula AS documento,
-        u.usu_tipo_documento AS tipoDocumento,
+        u.usu_tipodedocumento AS tipoDocumento,
         u.usu_especializacion AS especializacion,
         u.usu_nombres AS nombre,
         u.usu_apellidos AS apellido,
@@ -903,6 +915,9 @@ let ListaService = class ListaService {
         const sexoNormalizado = sexo ? sexo : null;
         let fichaNumero = null;
         let ficha = null;
+        if (tipoUsuario === 'instructor' && !fichaRaw) {
+            throw new common_1.BadRequestException('La ficha es obligatoria para el instructor y debe ser numerica.');
+        }
         if (fichaRaw) {
             await this.ensureFichaSchema();
             fichaNumero = Number(fichaRaw);

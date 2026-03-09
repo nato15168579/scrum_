@@ -1,3 +1,9 @@
+﻿/*
+ * Estilos de la vista administrativa de consulta de proyectos.
+ *
+ * Define filtros, tarjetas y contenedores visuales del listado de proyectos.
+ */
+
 /* src/components/VerProyectos.css */
 
 /* --- Contenedor Principal --- */
@@ -10,7 +16,7 @@
     padding-bottom: 30px;
 }
 
-/* --- Encabezado: Título y Buscador --- */
+/* --- Encabezado: TÃ­tulo y Buscador --- */
 .vp-header-row {
     display: flex;
     justify-content: space-between;
@@ -34,7 +40,7 @@
     margin: 0;
 }
 
-/* Buscador Estilo "Píldora" */
+/* Buscador Estilo "PÃ­ldora" */
 .vp-search-box {
     display: flex;
     align-items: center;
@@ -144,7 +150,7 @@
     font-size: 0.95rem;
 }
 
-/* Estilos específicos de celdas */
+/* Estilos especÃ­ficos de celdas */
 .vp-name-cell {
     font-weight: 700;
     color: #111827;
@@ -182,13 +188,13 @@
 /* 2. EN PROGRESO (Azul) */
 .badge-progreso {
     background-color: #e0f2fe; /* Azul cielo */
-    color: #0369a1;           /* Texto azul océano */
+    color: #0369a1;           /* Texto azul ocÃ©ano */
     border: 1px solid #7dd3fc;
 }
 
 /* 3. POR HACER (Rojo/Rosa) */
 .badge-por-hacer {
-    background-color: #fee2e2; /* Rojo pálido */
+    background-color: #fee2e2; /* Rojo pÃ¡lido */
     color: #991b1b;           /* Texto rojo oscuro */
     border: 1px solid #fca5a5;
 }
@@ -200,7 +206,7 @@
     border: 1px solid #d1d5db;
 }
 
-/* --- Botón de Acción "Ver más" --- */
+/* --- BotÃ³n de AcciÃ³n "Ver mÃ¡s" --- */
 .vp-btn-ver-mas {
     background-color: #39A900; /* Verde SENA */
     color: white;
@@ -224,7 +230,7 @@
     transform: translateY(0);
 }
 
-/* --- Footer: Paginación --- */
+/* --- Footer: PaginaciÃ³n --- */
 .vp-pagination-footer {
     display: flex;
     justify-content: flex-end;
@@ -275,3 +281,4 @@
         width: 100%;
     }
 }
+

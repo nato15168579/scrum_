@@ -9,7 +9,7 @@ export declare class DashboardService {
     private tableExists;
     private columnExists;
     private getProyectoStats;
-    obtenerDatosDashboard(cedulaInput: any): Promise<{
+    obtenerDatosDashboard(cedulaInput: string | number): Promise<{
         error: string;
         instructor?: undefined;
         correo?: undefined;

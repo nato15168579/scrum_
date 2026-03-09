@@ -1,4 +1,4 @@
-import { Repository, DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Usuario } from '../entities/Usuario';
 import { Proyecto } from '../entities/Proyecto';
 export declare class DashboardService {
@@ -7,7 +7,7 @@ export declare class DashboardService {
     private dataSource;
     private readonly logger;
     constructor(usuarioRepository: Repository<Usuario>, proyectoRepository: Repository<Proyecto>, dataSource: DataSource);
-    obtenerDatosDashboard(cedulaInput: any): Promise<{
+    obtenerDatosDashboard(cedulaInput: string | number): Promise<{
         error: string;
         instructor?: undefined;
         correo?: undefined;

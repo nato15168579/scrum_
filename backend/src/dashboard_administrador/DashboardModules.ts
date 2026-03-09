@@ -1,3 +1,10 @@
+﻿/**
+ * Modulo del dashboard administrador.
+ *
+ * Registra controlador, servicio y entidades necesarias para las metricas del
+ * panel principal del administrador.
+ */
+
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DashboardController } from './DashboardController';

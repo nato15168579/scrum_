@@ -1,61 +1,13 @@
 import { DataSource, Repository } from 'typeorm';
 import { EstadoUsuario, Usuario } from '../entities/Usuario';
-interface CreateUsuarioDto {
-    cedula: string | number;
-    nombre: string;
-    apellidos: string;
-    correo?: string;
-    telefono?: string;
-    ficha?: string;
-    tipoDocumento?: string;
-    sexo?: string;
-    especializacion?: string;
-    tipoUsuario?: 'aprendiz' | 'instructor';
-    password?: string;
-}
-interface CreateFichaDto {
-    numero: string | number;
-    nombre: string;
-    programa: string;
-    estado?: 'Activa' | 'Inactiva';
-    allowCustomCatalogValues?: boolean;
-}
-interface ImportUsuarioDto {
-    documento: string | number;
-    tipoDocumento?: string;
-    ficha?: string | number;
-    nombre: string;
-    apellido: string;
-    sexo?: string;
-    telefono?: string;
-    email?: string;
-    especializacion?: string;
-    tipoUsuario?: 'aprendiz' | 'instructor' | string;
-}
-interface UpdateAprendizDto {
-    nombre?: string;
-    apellidos?: string;
-    correo?: string;
-    telefono?: string;
-    sexo?: string;
-    ficha?: string | number;
-    estado?: string;
-}
-interface UpdateInstructorDto {
-    nombre?: string;
-    apellidos?: string;
-    correo?: string;
-    telefono?: string;
-    sexo?: string;
-    especializacion?: string;
-    fichas?: Array<string | number>;
-}
+import { AprendizResponse, CreateFichaDto, CreateUsuarioDto, ImportUsuarioDto, InstructorResponse, UpdateAprendizDto, UpdateInstructorDto } from './ListaTypes';
 export declare class ListaService {
     private readonly usuarioRepository;
     private readonly dataSource;
     constructor(usuarioRepository: Repository<Usuario>, dataSource: DataSource);
     private columnExists;
     private tableExists;
+    private ensureUsuarioFichaFechaAsignacionColumn;
     private ensureFechaRegistroColumn;
     private ensureEstadoColumn;
     private ensureEspecializacionColumn;
@@ -119,8 +71,8 @@ export declare class ListaService {
             message: string;
         }[];
     }>;
-    findAllAprendices(cedulaSolicitante?: string): Promise<any[]>;
-    findAllInstructores(_cedulaSolicitante?: string): Promise<any[]>;
+    findAllAprendices(cedulaSolicitante?: string): Promise<AprendizResponse[]>;
+    findAllInstructores(_cedulaSolicitante?: string): Promise<InstructorResponse[]>;
     createUsuario(payload: CreateUsuarioDto): Promise<{
         ok: boolean;
         mensaje: string;
@@ -132,8 +84,8 @@ export declare class ListaService {
             especializacion: string;
             sexo: string;
             ficha: string;
-            fichaNombre: any;
-            programa: any;
+            fichaNombre: string;
+            programa: string;
             telefono: string;
             email: string;
             fechaInscripcion: string;
@@ -152,8 +104,8 @@ export declare class ListaService {
             especializacion: string;
             sexo: string;
             ficha: string;
-            fichaNombre: any;
-            programa: any;
+            fichaNombre: string;
+            programa: string;
             telefono: string;
             email: string;
             fechaInscripcion: string;
@@ -167,12 +119,12 @@ export declare class ListaService {
         aprendiz: {
             documento: string;
             tipoDocumento: string;
-            area: any;
+            area: string;
             nombre: string;
             apellido: string;
             ficha: string;
-            fichaNombre: any;
-            programa: any;
+            fichaNombre: string;
+            programa: string;
             email: string;
             telefono: string;
             sexo: string;
@@ -237,4 +189,3 @@ export declare class ListaService {
         instructor: string;
     }>;
 }
-export {};

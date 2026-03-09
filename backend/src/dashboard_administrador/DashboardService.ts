@@ -1,7 +1,22 @@
+/**
+ * Servicio del dashboard administrador.
+ *
+ * Resume informacion operativa del sistema sin asumir que el esquema este
+ * perfectamente normalizado. Por eso incluye verificaciones dinamicas sobre
+ * tablas y columnas antes de calcular metricas.
+ */
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { Usuario } from "../entities/Usuario";
+
+interface CountRow {
+  total?: number | string | null;
+}
+
+interface EstadoRow {
+  estado?: number | string | null;
+}
 
 @Injectable()
 export class DashboardService {
@@ -13,6 +28,7 @@ export class DashboardService {
     private dataSource: DataSource,
   ) {}
 
+  // Envuelve nombres dinamicos de tablas o columnas para evitar SQL invalido.
   private wrapIdentifier(identifier: string) {
     return `\`${identifier.replace(/`/g, "``")}\``;
   }
@@ -46,6 +62,8 @@ export class DashboardService {
     return Number(row?.total || 0) > 0;
   }
 
+  // Algunos despliegues traen variaciones de nombres en la tabla de proyectos;
+  // este metodo se adapta y devuelve metricas aunque falten ciertas columnas.
   private async getProyectoStats() {
     const tableCandidates = ["proyecto", " proyecto"];
     let proyectoTable: string | null = null;
@@ -63,9 +81,9 @@ export class DashboardService {
 
     const tableRef = this.wrapIdentifier(proyectoTable);
 
-    const [totalRow] = await this.dataSource.query(
+    const [totalRow] = (await this.dataSource.query(
       `SELECT COUNT(*) AS total FROM ${tableRef}`,
-    );
+    )) as CountRow[];
     const total = Number(totalRow?.total || 0);
 
     const statusCandidates = ["det_par_ID_FK", "det_par_id_fk"];
@@ -83,22 +101,21 @@ export class DashboardService {
     }
 
     const statusRef = this.wrapIdentifier(statusColumn);
-    const statusRows = await this.dataSource.query(
+    const statusRows = (await this.dataSource.query(
       `SELECT ${statusRef} AS estado FROM ${tableRef}`,
-    );
+    )) as EstadoRow[];
 
-    const porHacer = statusRows.filter((row: any) => Number(row.estado) === 1)
+    const porHacer = statusRows.filter((row) => Number(row.estado) === 1)
       .length;
-    const enProgreso = statusRows.filter(
-      (row: any) => Number(row.estado) === 2,
-    ).length;
-    const hecho = statusRows.filter((row: any) => Number(row.estado) === 3)
+    const enProgreso = statusRows.filter((row) => Number(row.estado) === 2)
+      .length;
+    const hecho = statusRows.filter((row) => Number(row.estado) === 3)
       .length;
 
     return { total, porHacer, enProgreso, hecho };
   }
 
-  async obtenerDatosDashboard(cedulaInput: any) {
+  async obtenerDatosDashboard(cedulaInput: string | number) {
     try {
       const cedula = Number(cedulaInput);
 
@@ -113,37 +130,42 @@ export class DashboardService {
 
       let reunionesCount = 0;
       try {
-        const queryResult = await this.dataSource.query(
+        const queryResult = (await this.dataSource.query(
           "SELECT COUNT(*) as total FROM usu_asis WHERE usu_cedula = ?",
           [cedula],
-        );
-        reunionesCount = parseInt(queryResult[0].total) || 0;
-      } catch (e: any) {
+        )) as CountRow[];
+        reunionesCount = Number(queryResult[0]?.total || 0);
+      } catch (e) {
+        const error = e instanceof Error ? e : new Error(String(e));
         this.logger.error(
           "Error al consultar la tabla intermedia usu_asis:",
-          e.message,
+          error.message,
         );
       }
 
       let totalFichasSena = 0;
       try {
         if (await this.tableExists("fichas")) {
-          const [fichasRow] = await this.dataSource.query(
+          const [fichasRow] = (await this.dataSource.query(
             "SELECT COUNT(*) AS total FROM fichas",
-          );
+          )) as CountRow[];
           totalFichasSena = Number(fichasRow?.total || 0);
         }
-      } catch (e: any) {
-        this.logger.error("Error al calcular fichas:", e.message);
+      } catch (e) {
+        const error = e instanceof Error ? e : new Error(String(e));
+        this.logger.error("Error al calcular fichas:", error.message);
       }
 
       let proyectosStats = { total: 0, porHacer: 0, enProgreso: 0, hecho: 0 };
       try {
         proyectosStats = await this.getProyectoStats();
-      } catch (e: any) {
-        this.logger.error("Error al calcular proyectos:", e.message);
+      } catch (e) {
+        const error = e instanceof Error ? e : new Error(String(e));
+        this.logger.error("Error al calcular proyectos:", error.message);
       }
 
+      // El payload final mezcla datos de perfil y metricas generales para que el
+      // frontend admin pueda construir el panel sin pedir mas endpoints.
       return {
         instructor:
           `${usuario.usuNombres || ""} ${usuario.usuApellidos || ""}`.trim(),
@@ -162,9 +184,10 @@ export class DashboardService {
           hecho: proyectosStats.hecho,
         },
       };
-    } catch (error: any) {
-      this.logger.error("Error critico en DashboardService:", error.message);
-      throw new Error(`Error interno: ${error.message}`);
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger.error("Error critico en DashboardService:", err.message);
+      throw new Error(`Error interno: ${err.message}`);
     }
   }
 }

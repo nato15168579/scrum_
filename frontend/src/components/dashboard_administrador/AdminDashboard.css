@@ -1,3 +1,10 @@
+﻿/*
+ * Estilos del dashboard administrador.
+ *
+ * Define layout general, tarjetas, grafico principal y modales de la pagina de
+ * inicio del panel admin.
+ */
+
 /* src/components/Dashboard.css */
 
 /* --- 1. RESET GLOBAL --- */
@@ -25,7 +32,7 @@ body, html {
     height: 100vh; 
     min-height: 100vh;
     
-    /* POSICIÓN FIJA */
+    /* POSICIÃ“N FIJA */
     position: fixed;
     top: 0;
     left: 0;
@@ -63,7 +70,7 @@ body, html {
     margin: 0;
 }
 
-/* Menú */
+/* MenÃº */
 .menu-title {
     font-size: 0.75rem;
     color: #999;
@@ -271,7 +278,7 @@ body, html {
     font-weight: 600;
 }
 
-/* Descripción */
+/* DescripciÃ³n */
 .description-section {
     background: white;
     padding: 30px;
@@ -301,7 +308,7 @@ body, html {
     color: #555;
 }
 
-/* --- 5. RESUMEN GLOBAL (GRÁFICA) --- */
+/* --- 5. RESUMEN GLOBAL (GRÃFICA) --- */
 .summary-card-full {
     background: white;
     padding: 30px;
@@ -642,3 +649,4 @@ body, html {
         height: 280px;
     }
 }
+

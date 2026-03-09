@@ -1,5 +1,10 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AsigProyectoService } from './AsigproyectoService';
+
+interface AssignmentInput {
+  cedula: number;
+  rolId: number;
+}
 
 @Controller()
 export class AsigProyectoController {
@@ -21,7 +26,9 @@ export class AsigProyectoController {
   }
 
   @Post('asignar-integrantes')
-  async asignar(@Body() body: { projectId: number; assignments: any[] }) {
+  async asignar(
+    @Body() body: { projectId: number; assignments: AssignmentInput[] },
+  ) {
     return this.asigService.asignarIntegrantes(body.projectId, body.assignments);
   }
 }

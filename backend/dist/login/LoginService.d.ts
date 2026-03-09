@@ -12,6 +12,7 @@ export declare class LoginService {
         usuTelefono: string | null;
         usuEspecializacion: string | null;
         usuSexo: import("../entities/Usuario").SexoUsuario | null;
+        usuContrasena: string | null;
         fechaRegistro: Date;
         rolSisIdFk: number | null;
         usuEstado: import("../entities/Usuario").EstadoUsuario | null;

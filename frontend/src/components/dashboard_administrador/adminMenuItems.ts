@@ -1,3 +1,10 @@
+﻿/**
+ * Catalogo central de navegacion del modulo administrador.
+ *
+ * Este archivo evita rutas duplicadas y mantiene sincronizados el sidebar,
+ * el orden visual del menu y la deteccion del item activo.
+ */
+
 import {
   FolderOpen,
   Home,
@@ -26,3 +33,4 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     path: "/registrar-usuarios-admin",
   },
 ];
+

@@ -59,7 +59,7 @@ let DashboardService = DashboardService_1 = class DashboardService {
             return { total: 0, porHacer: 0, enProgreso: 0, hecho: 0 };
         }
         const tableRef = this.wrapIdentifier(proyectoTable);
-        const [totalRow] = await this.dataSource.query(`SELECT COUNT(*) AS total FROM ${tableRef}`);
+        const [totalRow] = (await this.dataSource.query(`SELECT COUNT(*) AS total FROM ${tableRef}`));
         const total = Number((totalRow === null || totalRow === void 0 ? void 0 : totalRow.total) || 0);
         const statusCandidates = ["det_par_ID_FK", "det_par_id_fk"];
         let statusColumn = null;
@@ -73,15 +73,17 @@ let DashboardService = DashboardService_1 = class DashboardService {
             return { total, porHacer: 0, enProgreso: 0, hecho: 0 };
         }
         const statusRef = this.wrapIdentifier(statusColumn);
-        const statusRows = await this.dataSource.query(`SELECT ${statusRef} AS estado FROM ${tableRef}`);
+        const statusRows = (await this.dataSource.query(`SELECT ${statusRef} AS estado FROM ${tableRef}`));
         const porHacer = statusRows.filter((row) => Number(row.estado) === 1)
             .length;
-        const enProgreso = statusRows.filter((row) => Number(row.estado) === 2).length;
+        const enProgreso = statusRows.filter((row) => Number(row.estado) === 2)
+            .length;
         const hecho = statusRows.filter((row) => Number(row.estado) === 3)
             .length;
         return { total, porHacer, enProgreso, hecho };
     }
     async obtenerDatosDashboard(cedulaInput) {
+        var _a;
         try {
             const cedula = Number(cedulaInput);
             const usuario = await this.usuarioRepository.findOneBy({
@@ -93,28 +95,31 @@ let DashboardService = DashboardService_1 = class DashboardService {
             }
             let reunionesCount = 0;
             try {
-                const queryResult = await this.dataSource.query("SELECT COUNT(*) as total FROM usu_asis WHERE usu_cedula = ?", [cedula]);
-                reunionesCount = parseInt(queryResult[0].total) || 0;
+                const queryResult = (await this.dataSource.query("SELECT COUNT(*) as total FROM usu_asis WHERE usu_cedula = ?", [cedula]));
+                reunionesCount = Number(((_a = queryResult[0]) === null || _a === void 0 ? void 0 : _a.total) || 0);
             }
             catch (e) {
-                this.logger.error("Error al consultar la tabla intermedia usu_asis:", e.message);
+                const error = e instanceof Error ? e : new Error(String(e));
+                this.logger.error("Error al consultar la tabla intermedia usu_asis:", error.message);
             }
             let totalFichasSena = 0;
             try {
                 if (await this.tableExists("fichas")) {
-                    const [fichasRow] = await this.dataSource.query("SELECT COUNT(*) AS total FROM fichas");
+                    const [fichasRow] = (await this.dataSource.query("SELECT COUNT(*) AS total FROM fichas"));
                     totalFichasSena = Number((fichasRow === null || fichasRow === void 0 ? void 0 : fichasRow.total) || 0);
                 }
             }
             catch (e) {
-                this.logger.error("Error al calcular fichas:", e.message);
+                const error = e instanceof Error ? e : new Error(String(e));
+                this.logger.error("Error al calcular fichas:", error.message);
             }
             let proyectosStats = { total: 0, porHacer: 0, enProgreso: 0, hecho: 0 };
             try {
                 proyectosStats = await this.getProyectoStats();
             }
             catch (e) {
-                this.logger.error("Error al calcular proyectos:", e.message);
+                const error = e instanceof Error ? e : new Error(String(e));
+                this.logger.error("Error al calcular proyectos:", error.message);
             }
             return {
                 instructor: `${usuario.usuNombres || ""} ${usuario.usuApellidos || ""}`.trim(),
@@ -134,8 +139,9 @@ let DashboardService = DashboardService_1 = class DashboardService {
             };
         }
         catch (error) {
-            this.logger.error("Error critico en DashboardService:", error.message);
-            throw new Error(`Error interno: ${error.message}`);
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error("Error critico en DashboardService:", err.message);
+            throw new Error(`Error interno: ${err.message}`);
         }
     }
 };

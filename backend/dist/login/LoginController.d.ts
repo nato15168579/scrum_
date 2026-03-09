@@ -1,8 +1,12 @@
 import { LoginService } from './LoginService';
+interface LoginRequestBody {
+    cedula: string;
+    pass: string;
+}
 export declare class LoginController {
     private readonly loginService;
     constructor(loginService: LoginService);
-    login(body: any): Promise<{
+    login(body: LoginRequestBody): Promise<{
         usuCedula: number;
         usuTipoDocumento: string | null;
         usuNombres: string | null;
@@ -11,6 +15,7 @@ export declare class LoginController {
         usuTelefono: string | null;
         usuEspecializacion: string | null;
         usuSexo: import("../entities/Usuario").SexoUsuario | null;
+        usuContrasena: string | null;
         fechaRegistro: Date;
         rolSisIdFk: number | null;
         usuEstado: import("../entities/Usuario").EstadoUsuario | null;
@@ -21,3 +26,4 @@ export declare class LoginController {
         usuProDetPars: import("../entities/UsuProDetPar").UsuProDetPar[];
     }>;
 }
+export {};

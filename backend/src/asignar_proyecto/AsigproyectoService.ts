@@ -1,6 +1,11 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
+interface AssignmentInput {
+  cedula: number;
+  rolId: number;
+}
+
 @Injectable()
 export class AsigProyectoService {
   constructor(private dataSource: DataSource) {}
@@ -66,7 +71,7 @@ export class AsigProyectoService {
   }
 
   // Lógica para insertar la asignación en la tabla intermedia
-  async asignarIntegrantes(projectId: number, assignments: any[]) {
+  async asignarIntegrantes(projectId: number, assignments: AssignmentInput[]) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();

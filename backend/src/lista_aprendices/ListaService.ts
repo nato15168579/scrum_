@@ -1,3 +1,11 @@
+/**
+ * Servicio administrativo de usuarios, instructores, aprendices y fichas.
+ *
+ * Este archivo es el nucleo operativo del panel admin. Reune validaciones de
+ * negocio, lectura de catalogos, importacion masiva y tareas de compatibilidad
+ * de esquema para que el sistema siga funcionando incluso si la base de datos
+ * proviene de versiones anteriores del proyecto.
+ */
 import {
   BadRequestException,
   ConflictException,
@@ -9,69 +17,22 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { EstadoUsuario, SexoUsuario, Usuario } from '../entities/Usuario';
 import * as bcrypt from 'bcrypt';
-
-interface CreateUsuarioDto {
-  cedula: string | number;
-  nombre: string;
-  apellidos: string;
-  correo?: string;
-  telefono?: string;
-  ficha?: string;
-  tipoDocumento?: string;
-  sexo?: string;
-  especializacion?: string;
-  tipoUsuario?: 'aprendiz' | 'instructor';
-  password?: string;
-}
-
-interface CreateFichaDto {
-  numero: string | number;
-  nombre: string;
-  programa: string;
-  estado?: 'Activa' | 'Inactiva';
-  allowCustomCatalogValues?: boolean;
-}
-
-interface ImportUsuarioDto {
-  documento: string | number;
-  tipoDocumento?: string;
-  ficha?: string | number;
-  nombre: string;
-  apellido: string;
-  sexo?: string;
-  telefono?: string;
-  email?: string;
-  especializacion?: string;
-  tipoUsuario?: 'aprendiz' | 'instructor' | string;
-}
-
-interface UpdateAprendizDto {
-  nombre?: string;
-  apellidos?: string;
-  correo?: string;
-  telefono?: string;
-  sexo?: string;
-  ficha?: string | number;
-  estado?: string;
-}
-
-interface UpdateInstructorDto {
-  nombre?: string;
-  apellidos?: string;
-  correo?: string;
-  telefono?: string;
-  sexo?: string;
-  especializacion?: string;
-  fichas?: Array<string | number>;
-}
-
-interface FichaDetalle {
-  ficha: string;
-  nombre: string;
-  programa: string;
-  estado: string;
-  fechaCreacion: string | null;
-}
+import {
+  AprendizQueryRow,
+  AprendizResponse,
+  CreateFichaDto,
+  CreateUsuarioDto,
+  FichaAsignadaRow,
+  FichaCatalogRow,
+  FichaDetalle,
+  FichaDetalleRow,
+  FichaRecord,
+  ImportUsuarioDto,
+  InstructorResponse,
+  QueryExecutor,
+  UpdateAprendizDto,
+  UpdateInstructorDto,
+} from './ListaTypes';
 
 const ESTADOS_USUARIO: EstadoUsuario[] = ['Activo', 'Inactivo'];
 const SEXOS_USUARIO: SexoUsuario[] = ['Hombre', 'Mujer'];
@@ -84,6 +45,10 @@ export class ListaService {
     private readonly usuarioRepository: Repository<Usuario>,
     private readonly dataSource: DataSource,
   ) {}
+
+  // ---------------------------------------------------------------------------
+  // Compatibilidad y autoajustes del esquema
+  // ---------------------------------------------------------------------------
 
   private async columnExists(tableName: string, columnName: string) {
     const [result] = await this.dataSource.query(
@@ -112,6 +77,21 @@ export class ListaService {
     );
 
     return Number(result?.total || 0) > 0;
+  }
+
+  private async ensureUsuarioFichaFechaAsignacionColumn() {
+    const hasFechaAsignacion = await this.columnExists(
+      'usuario_ficha',
+      'usf_fecha_asignacion',
+    );
+
+    if (!hasFechaAsignacion) {
+      await this.dataSource.query(`
+        ALTER TABLE usuario_ficha
+        ADD COLUMN usf_fecha_asignacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        COMMENT 'fecha de asignacion del usuario a la ficha'
+      `);
+    }
   }
 
   private async ensureFechaRegistroColumn() {
@@ -281,6 +261,8 @@ export class ListaService {
     await this.ensureSexoColumn();
   }
 
+  // Verifica que el modulo admin tenga disponibles las tablas y columnas
+  // minimas para resolver relaciones usuario-ficha y catalogo de fichas.
   private async ensureFichaSchema() {
     const missingTables: string[] = [];
 
@@ -297,6 +279,8 @@ export class ListaService {
         `Faltan tablas requeridas en la base de datos: ${missingTables.join(', ')}. Importa el esquema SQL actualizado.`,
       );
     }
+
+    await this.ensureUsuarioFichaFechaAsignacionColumn();
 
     const hasFichaNombre = await this.columnExists('fichas', 'fic_nombre');
     const hasFichaArea = await this.columnExists('fichas', 'fic_area');
@@ -335,6 +319,10 @@ export class ListaService {
       'La tabla fichas debe tener la columna fic_nombre o fic_area.',
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // Normalizacion de catalogos y ayuda para consultas
+  // ---------------------------------------------------------------------------
 
   private normalizeCatalogValue(value: unknown) {
     return this.sanitizeText(value)
@@ -490,14 +478,14 @@ export class ListaService {
     return parsedDate.toISOString();
   }
 
-  private buildFichaDetalle(row: any): FichaDetalle | null {
+  private buildFichaDetalle(row: FichaDetalleRow): FichaDetalle | null {
     if (!row?.ficha) return null;
 
     return {
       ficha: String(row.ficha),
-      nombre: row.fichaNombre || 'Sin nombre',
-      programa: row.programa || 'Sin programa',
-      estado: row.fichaEstado || 'Sin estado',
+      nombre: String(row.fichaNombre || 'Sin nombre'),
+      programa: String(row.programa || 'Sin programa'),
+      estado: String(row.fichaEstado || 'Sin estado'),
       fechaCreacion: this.formatDateToIso(row.fichaFechaCreacion),
     };
   }
@@ -528,12 +516,12 @@ export class ListaService {
     );
 
     return (rows || [])
-      .map((row: any) => Number(row.ficha))
+      .map((row) => Number((row as FichaAsignadaRow).ficha))
       .filter((ficha: number) => !Number.isNaN(ficha));
   }
 
   private async ensureUsuarioFichaAssignment(
-    queryExecutor: { query: (query: string, parameters?: any[]) => Promise<any> },
+    queryExecutor: QueryExecutor,
     cedula: number,
     fichaNumero: number,
   ) {
@@ -642,7 +630,7 @@ export class ListaService {
     );
 
     return (rows || [])
-      .map((row: any) => this.buildFichaDetalle(row))
+      .map((row) => this.buildFichaDetalle(row as FichaDetalleRow))
       .filter((row: FichaDetalle | null): row is FichaDetalle => Boolean(row));
   }
 
@@ -658,25 +646,32 @@ export class ListaService {
     };
   }
 
-  private mapAprendizResponse(row: any) {
+  // ---------------------------------------------------------------------------
+  // CRUD y procesos administrativos
+  // ---------------------------------------------------------------------------
+
+  private mapAprendizResponse(row: AprendizQueryRow): AprendizResponse {
     return {
       documento: String(row.documento),
-      tipoDocumento: row.tipoDocumento || 'CC',
+      tipoDocumento: String(row.tipoDocumento || 'CC'),
       ficha: row.ficha ? String(row.ficha) : 'Sin ficha',
-      area: row.fichaNombre || 'Sin area',
-      fichaNombre: row.fichaNombre || 'Sin nombre de ficha',
-      programa: row.programa || 'Sin programa',
-      nombre: row.nombre || '',
-      apellido: row.apellido || '',
-      telefono: row.telefono || '',
-      email: row.email || '',
-      sexo: row.sexo || '',
+      area: String(row.fichaNombre || 'Sin area'),
+      fichaNombre: String(row.fichaNombre || 'Sin nombre de ficha'),
+      programa: String(row.programa || 'Sin programa'),
+      nombre: String(row.nombre || ''),
+      apellido: String(row.apellido || ''),
+      telefono: String(row.telefono || ''),
+      email: String(row.email || ''),
+      sexo: String(row.sexo || ''),
       fechaInscripcion: this.formatDateToIso(row.fechaInscripcion),
       estado: this.normalizeEstado(row.estado),
     };
   }
 
-  private async deleteUsuarioReferences(queryRunner: any, cedula: number) {
+  private async deleteUsuarioReferences(
+    queryRunner: QueryExecutor,
+    cedula: number,
+  ) {
     const references = await queryRunner.query(
       `
         SELECT
@@ -713,12 +708,14 @@ export class ListaService {
       ORDER BY f.fic_estado = 'Activa' DESC, f.fic_numero ASC
     `);
 
-    return (fichas || []).map((ficha: any) => ({
-      numero: String(ficha.numero),
-      nombre: ficha.nombre || 'Sin nombre',
-      programa: ficha.programa || 'Sin programa',
-      estado: ficha.estado || 'Sin estado',
-      fechaCreacion: this.formatDateToIso(ficha.fechaCreacion),
+    return (fichas || []).map((ficha) => ({
+      numero: String((ficha as FichaCatalogRow).numero),
+      nombre: String((ficha as FichaCatalogRow).nombre || 'Sin nombre'),
+      programa: String((ficha as FichaCatalogRow).programa || 'Sin programa'),
+      estado: String((ficha as FichaCatalogRow).estado || 'Sin estado'),
+      fechaCreacion: this.formatDateToIso(
+        (ficha as FichaCatalogRow).fechaCreacion,
+      ),
     }));
   }
 
@@ -856,6 +853,8 @@ export class ListaService {
   }
 
   async importUsuarios(rows: ImportUsuarioDto[]) {
+    // La importacion trabaja fila por fila para poder devolver detalle de
+    // exitos, duplicados, errores y fichas pendientes en un solo resultado.
     await this.ensureUsuarioColumns();
     await this.ensureFichaSchema();
 
@@ -1158,7 +1157,7 @@ export class ListaService {
       params,
     );
 
-    const aprendicesMap = new Map<string, any>();
+    const aprendicesMap = new Map<string, AprendizResponse>();
 
     for (const row of rows || []) {
       const documento = String(row.documento);
@@ -1180,6 +1179,7 @@ export class ListaService {
   }
 
   async findAllInstructores(_cedulaSolicitante?: string) {
+    void _cedulaSolicitante;
     await this.ensureUsuarioColumns();
     await this.ensureFichaSchema();
     const fichaNombreSelect = await this.getFichaNombreSelect('f');
@@ -1187,7 +1187,7 @@ export class ListaService {
     const rows = await this.dataSource.query(`
       SELECT
         u.usu_cedula AS documento,
-        u.usu_tipo_documento AS tipoDocumento,
+        u.usu_tipodedocumento AS tipoDocumento,
         u.usu_especializacion AS especializacion,
         u.usu_nombres AS nombre,
         u.usu_apellidos AS apellido,
@@ -1207,7 +1207,7 @@ export class ListaService {
       ORDER BY u.fecha_registro DESC, u.usu_cedula DESC, f.fic_numero ASC
     `);
 
-    const instructoresMap = new Map<string, any>();
+    const instructoresMap = new Map<string, InstructorResponse>();
 
     for (const row of rows || []) {
       const documento = String(row.documento);
@@ -1244,6 +1244,8 @@ export class ListaService {
   }
 
   async createUsuario(payload: CreateUsuarioDto) {
+    // Este metodo unifica creacion manual e importacion masiva. La meta es que
+    // toda insercion pase por las mismas validaciones y relaciones.
     await this.ensureUsuarioColumns();
 
     const tipoUsuario =
@@ -1284,7 +1286,13 @@ export class ListaService {
     const sexoNormalizado = sexo ? (sexo as SexoUsuario) : null;
 
     let fichaNumero: number | null = null;
-    let ficha: any = null;
+    let ficha: FichaRecord | null = null;
+
+    if (tipoUsuario === 'instructor' && !fichaRaw) {
+      throw new BadRequestException(
+        'La ficha es obligatoria para el instructor y debe ser numerica.',
+      );
+    }
 
     if (fichaRaw) {
       await this.ensureFichaSchema();
@@ -1592,6 +1600,8 @@ export class ListaService {
 
       await queryRunner.manager.save(Usuario, aprendiz);
 
+      // Aprendiz mantiene una sola ficha principal, por eso la relacion se
+      // reconstruye completa cada vez que cambia.
       await queryRunner.query(
         'DELETE FROM usuario_ficha WHERE usu_cedula_FK = ?',
         [documento],
@@ -1723,6 +1733,9 @@ export class ListaService {
       await queryRunner.manager.save(Usuario, instructor);
 
       if (shouldUpdateFichas) {
+        // Instructor puede tener multiples fichas a cargo; la relacion se
+        // recrea por completo para que la seleccion visible en admin sea la
+        // misma que queda persistida en usuario_ficha.
         await queryRunner.query(
           'DELETE FROM usuario_ficha WHERE usu_cedula_FK = ?',
           [documento],

@@ -27,6 +27,7 @@ let DashboardService = DashboardService_1 = class DashboardService {
         this.logger = new common_1.Logger(DashboardService_1.name);
     }
     async obtenerDatosDashboard(cedulaInput) {
+        var _a;
         try {
             const cedula = Number(cedulaInput);
             const usuario = await this.usuarioRepository.findOneBy({
@@ -39,7 +40,7 @@ let DashboardService = DashboardService_1 = class DashboardService {
             let reunionesCount = 0;
             try {
                 const queryResult = await this.dataSource.query('SELECT COUNT(*) as total FROM reuniones WHERE usu_cedula = ?', [cedula]);
-                reunionesCount = parseInt(queryResult[0].total) || 0;
+                reunionesCount = Number(((_a = queryResult[0]) === null || _a === void 0 ? void 0 : _a.total) || 0);
             }
             catch (e) {
                 const error = e instanceof Error ? e : new Error(String(e));
@@ -51,12 +52,13 @@ let DashboardService = DashboardService_1 = class DashboardService {
             let hecho = 0;
             try {
                 proyectos = await this.proyectoRepository.find();
-                porHacer = proyectos.filter((p) => p.estadoId === 1).length;
-                enProgreso = proyectos.filter((p) => p.estadoId === 2).length;
-                hecho = proyectos.filter((p) => p.estadoId === 3).length;
+                porHacer = proyectos.filter((p) => p.detParIdFk === 1).length;
+                enProgreso = proyectos.filter((p) => p.detParIdFk === 2).length;
+                hecho = proyectos.filter((p) => p.detParIdFk === 3).length;
             }
             catch (e) {
-                this.logger.error('Error al procesar proyectos:', e.message);
+                const error = e instanceof Error ? e : new Error(String(e));
+                this.logger.error('Error al procesar proyectos:', error.message);
             }
             return {
                 instructor: `${usuario.usuNombres || ''} ${usuario.usuApellidos || ''}`.trim(),

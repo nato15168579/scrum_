@@ -57,7 +57,8 @@ export class LoginService {
 
     console.log('[LoginService] Contrasena valida');
 
-    const { usuContrasena, ...datos } = usuario;
+    const datos = { ...usuario };
+    delete datos.usuContrasena;
 
     console.log('[LoginService] Devolviendo datos del usuario:', {
       usuCedula: datos.usuCedula,

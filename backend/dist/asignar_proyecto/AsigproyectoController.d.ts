@@ -1,4 +1,8 @@
 import { AsigProyectoService } from './AsigproyectoService';
+interface AssignmentInput {
+    cedula: number;
+    rolId: number;
+}
 export declare class AsigProyectoController {
     private readonly asigService;
     constructor(asigService: AsigProyectoService);
@@ -7,8 +11,9 @@ export declare class AsigProyectoController {
     getRolesScrum(): Promise<any>;
     asignar(body: {
         projectId: number;
-        assignments: any[];
+        assignments: AssignmentInput[];
     }): Promise<{
         success: boolean;
     }>;
 }
+export {};

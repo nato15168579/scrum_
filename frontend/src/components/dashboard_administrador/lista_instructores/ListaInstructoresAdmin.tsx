@@ -1,24 +1,37 @@
+/**
+ * Lista administrativa de instructores.
+ *
+ * Esta pantalla concentra:
+ * - consulta y filtrado de instructores
+ * - visualizacion de fichas a cargo
+ * - edicion de datos personales y reasignacion de fichas
+ * - eliminacion con resumen previo
+ *
+ * El archivo contiene bastante logica de compatibilidad porque el backend y la
+ * base de datos manejan relaciones instructor-ficha que han evolucionado con el
+ * tiempo y pueden llegar con formas ligeramente distintas.
+ */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import {
   Search,
-  User,
-  ChevronDown,
-  LogOut,
   AlertTriangle,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  HelpCircle,
   Eye,
   Pencil,
   Trash2,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import senaLogo from "../../../assets/sena.png";
 import "./ListaInstructores.css";
 import { API_URL } from "../../../config/Api";
-import { ADMIN_MENU_ITEMS } from "../AdminMenuItems";
 import { resolveUserName } from "../../../utils/session";
+import AdminLogoutModal from "../shared/AdminLogoutModal";
+import AdminProfileMenu from "../shared/AdminProfileMenu";
+import AdminSidebar from "../shared/AdminSidebar";
+import { logoutAndRedirect, requireAdminAccess } from "../shared/adminSession";
+import { useClickOutside } from "../shared/useClickOutside";
 
 interface FichaDetalle {
   ficha: string;
@@ -68,6 +81,16 @@ interface EditInstructorForm {
   fichasSeleccionadas: string[];
 }
 
+interface StyledModalState {
+  title: string;
+  description?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  iconBackgroundColor?: string;
+  showCancelButton?: boolean;
+  zIndex?: number;
+}
+
 type FilterKey =
   | "todos"
   | "documento"
@@ -80,6 +103,10 @@ type FilterKey =
   | "fichasCargo";
 
 const ITEMS_PER_PAGE = 10;
+
+// ---------------------------------------------------------------------------
+// Normalizadores y helpers de compatibilidad
+// ---------------------------------------------------------------------------
 
 const formatFechaRegistro = (value?: string | null) => {
   if (!value) return "Sin registro";
@@ -133,6 +160,62 @@ const normalizeFichasDetalle = (value: unknown): FichaDetalle[] => {
       fechaCreacion: (item as FichaDetalle)?.fechaCreacion || null,
     }))
     .filter((item) => item.ficha);
+};
+
+const extractApiMessage = (payload: unknown, fallback: string) => {
+  if (typeof payload === "string") {
+    return payload.trim() || fallback;
+  }
+
+  if (Array.isArray((payload as { message?: unknown })?.message)) {
+    return (
+      (payload as { message?: string[] }).message
+        ?.map((item) => normalizeText(item))
+        .filter(Boolean)
+        .join(", ") || fallback
+    );
+  }
+
+  const message = normalizeText((payload as { message?: unknown })?.message);
+  return message || fallback;
+};
+
+const parseApiResponse = async (response: Response) => {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return await response.json().catch(() => null);
+  }
+
+  const text = await response.text().catch(() => "");
+  return text.trim() || null;
+};
+
+const getFichaSelectionChanges = (currentFichas: string[], nextFichas: string[]) => {
+  const currentSet = new Set(currentFichas);
+  const nextSet = new Set(nextFichas);
+
+  return {
+    added: nextFichas.filter((item) => !currentSet.has(item)),
+    removed: currentFichas.filter((item) => !nextSet.has(item)),
+  };
+};
+
+const isUnsupportedUpdateMethod = (
+  response: Response,
+  payload: unknown,
+  method: "PATCH" | "PUT" | "POST",
+) => {
+  if (response.ok || ![404, 405].includes(response.status)) {
+    return false;
+  }
+
+  const message = extractApiMessage(payload, "").toLowerCase();
+  return (
+    !message ||
+    message.includes(`cannot ${method.toLowerCase()}`) ||
+    message.includes("method not allowed")
+  );
 };
 
 const buildFichaSearchValue = (item: Instructor) => {
@@ -262,35 +345,26 @@ const ListaInstructoresAdmin = () => {
   const [editFichaSearchTerm, setEditFichaSearchTerm] = useState("");
   const [isSavingInstructor, setIsSavingInstructor] = useState(false);
   const [isDeletingInstructor, setIsDeletingInstructor] = useState(false);
+  const [saveConfirmationModal, setSaveConfirmationModal] =
+    useState<StyledModalState | null>(null);
+  const [feedbackModal, setFeedbackModal] = useState<StyledModalState | null>(
+    null,
+  );
   const menuRef = useRef<HTMLDivElement>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterKey>("todos");
 
-  const confirmLogout = () => {
-    localStorage.clear();
-    navigate("/");
-  };
+  useClickOutside(menuRef, () => setIsMenuOpen(false));
 
   useEffect(() => {
-    const cedula = localStorage.getItem("userCedula");
-    const roleId = (localStorage.getItem("userRoleId") || "").trim();
-
+    const cedula = requireAdminAccess(navigate);
     if (!cedula) {
-      navigate("/");
       return;
     }
 
-    if (roleId === "2") {
-      navigate("/dashboard-instructor");
-      return;
-    }
-
-    if (roleId && roleId !== "3") {
-      navigate("/student-dashboard");
-      return;
-    }
-
+    // Se cargan instructores, dashboard y catalogo de fichas en paralelo porque
+    // la vista necesita las tres fuentes para mostrar perfil, tabla y modales.
     const fetchData = async () => {
       try {
         const [instructoresRes, dashboardRes, fichasRes] = await Promise.all([
@@ -345,17 +419,6 @@ const ListaInstructoresAdmin = () => {
 
     fetchData();
   }, [navigate]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const filteredData = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -439,6 +502,7 @@ const ListaInstructoresAdmin = () => {
     setEditingInstructor(null);
     setEditForm(null);
     setEditFichaSearchTerm("");
+    setSaveConfirmationModal(null);
   };
 
   const openDeleteModal = (instructor: Instructor) => {
@@ -483,66 +547,89 @@ const ListaInstructoresAdmin = () => {
     );
   }, [editFichaSearchTerm, fichasDisponibles]);
 
-  const handleSaveEdit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const submitInstructorEdit = async () => {
     if (!editingInstructor || !editForm) {
       return;
     }
 
+    // Se intenta PATCH primero por semantica REST. Si la instancia activa del
+    // backend no expone ese verbo, la vista cae a PUT y luego POST para no
+    // bloquear la operacion en despliegues heredados o proxies restrictivos.
     setIsSavingInstructor(true);
 
     try {
-      const response = await fetch(
-        `${API_URL}/instructores/${editingInstructor.documento}`,
-        {
-          method: "PATCH",
+      const payload = {
+        nombre: editForm.nombre,
+        apellidos: editForm.apellido,
+        correo: editForm.email,
+        telefono: editForm.telefono,
+        sexo: editForm.sexo,
+        especializacion: editForm.especializacion,
+        fichas: editForm.fichasSeleccionadas,
+      };
+      const endpoint = `${API_URL}/instructores/${editingInstructor.documento}`;
+
+      const methods: Array<"PATCH" | "PUT" | "POST"> = ["PATCH", "PUT", "POST"];
+      let response: Response | null = null;
+      let data: unknown = null;
+
+      for (const method of methods) {
+        response = await fetch(endpoint, {
+          method,
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            nombre: editForm.nombre,
-            apellidos: editForm.apellido,
-            correo: editForm.email,
-            telefono: editForm.telefono,
-            sexo: editForm.sexo,
-            especializacion: editForm.especializacion,
-            fichas: editForm.fichasSeleccionadas,
-          }),
-        },
-      );
+          body: JSON.stringify(payload),
+        });
 
-      const data = await response.json().catch(() => null);
+        data = await parseApiResponse(response);
+
+        if (response.ok || !isUnsupportedUpdateMethod(response, data, method)) {
+          break;
+        }
+      }
+      
+      if (!response) {
+        throw new Error("No se pudo establecer comunicacion con el servidor.");
+      }
 
       if (!response.ok) {
         throw new Error(
-          data?.message || "No se pudo actualizar la informacion del instructor.",
+          extractApiMessage(
+            data,
+            "No se pudo actualizar la informacion del instructor.",
+          ),
         );
       }
 
+      const updatedInstructor = (data as { instructor?: Partial<Instructor> } | null)
+        ?.instructor;
+
+      // El estado local se sincroniza con la respuesta final para que la tabla,
+      // el modal de fichas y futuras ediciones trabajen sobre la misma fuente.
       setInstructores((prev) =>
         prev.map((item) =>
           item.documento === editingInstructor.documento
             ? {
                 ...item,
-                nombre: normalizeText(data?.instructor?.nombre) || editForm.nombre,
+                nombre: normalizeText(updatedInstructor?.nombre) || editForm.nombre,
                 apellido:
-                  normalizeText(data?.instructor?.apellido) || editForm.apellido,
+                  normalizeText(updatedInstructor?.apellido) || editForm.apellido,
                 especializacion:
-                  normalizeText(data?.instructor?.especializacion) ||
+                  normalizeText(updatedInstructor?.especializacion) ||
                   editForm.especializacion,
-                sexo: normalizeText(data?.instructor?.sexo) || editForm.sexo,
+                sexo: normalizeText(updatedInstructor?.sexo) || editForm.sexo,
                 telefono:
-                  normalizeText(data?.instructor?.telefono) || editForm.telefono,
-                email: normalizeText(data?.instructor?.email) || editForm.email,
+                  normalizeText(updatedInstructor?.telefono) || editForm.telefono,
+                email: normalizeText(updatedInstructor?.email) || editForm.email,
                 tipoDocumento:
-                  normalizeText(data?.instructor?.tipoDocumento) ||
+                  normalizeText(updatedInstructor?.tipoDocumento) ||
                   item.tipoDocumento,
                 fechaInscripcion:
-                  data?.instructor?.fechaInscripcion || item.fechaInscripcion,
-                fichasCargo: normalizeFichasCargo(data?.instructor?.fichasCargo),
+                  updatedInstructor?.fechaInscripcion || item.fechaInscripcion,
+                fichasCargo: normalizeFichasCargo(updatedInstructor?.fichasCargo),
                 fichasDetalle: normalizeFichasDetalle(
-                  data?.instructor?.fichasDetalle,
+                  updatedInstructor?.fichasDetalle,
                 ),
               }
             : item,
@@ -550,16 +637,72 @@ const ListaInstructoresAdmin = () => {
       );
 
       closeEditModal();
-      window.alert(data?.mensaje || "Instructor actualizado correctamente.");
+      setFeedbackModal({
+        title: "Instructor actualizado",
+        description: extractApiMessage(
+          data,
+          "La informacion del instructor y sus fichas a cargo se guardaron correctamente.",
+        ),
+        confirmLabel: "Entendido",
+        iconBackgroundColor: "#39A900",
+        showCancelButton: false,
+        zIndex: 2600,
+      });
     } catch (error) {
-      window.alert(
-        error instanceof Error
-          ? error.message
-          : "No se pudo actualizar el instructor.",
-      );
+      setFeedbackModal({
+        title: "No se pudo actualizar",
+        description:
+          error instanceof Error
+            ? error.message
+            : "No se pudo actualizar el instructor.",
+        confirmLabel: "Cerrar",
+        iconBackgroundColor: "#d9534f",
+        showCancelButton: false,
+        zIndex: 2600,
+      });
     } finally {
       setIsSavingInstructor(false);
     }
+  };
+
+  const handleSaveEdit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!editingInstructor || !editForm) {
+      return;
+    }
+
+    const currentFichas = getInstructorFichas(editingInstructor).map(
+      (item) => item.ficha,
+    );
+    const { added, removed } = getFichaSelectionChanges(
+      currentFichas,
+      editForm.fichasSeleccionadas,
+    );
+
+    // Si hubo cambios en fichas, se exige confirmacion explicita porque esa
+    // relacion define el alcance operativo del instructor dentro del sistema.
+    if (added.length === 0 && removed.length === 0) {
+      void submitInstructorEdit();
+      return;
+    }
+
+    const description = [
+      "Se actualizaran las fichas a cargo del instructor.",
+      added.length > 0 ? `Agregar: ${added.join(", ")}` : "",
+      removed.length > 0 ? `Retirar: ${removed.join(", ")}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    setSaveConfirmationModal({
+      title: "Deseas guardar los cambios?",
+      description,
+      confirmLabel: "Si, guardar",
+      cancelLabel: "Cancelar",
+      iconBackgroundColor: "#39A900",
+      zIndex: 2600,
+    });
   };
 
   const handleDeleteInstructor = async () => {
@@ -567,6 +710,8 @@ const ListaInstructoresAdmin = () => {
       return;
     }
 
+    // La eliminacion muestra feedback modal para no mezclar alertas nativas con
+    // el resto del sistema de overlays administrativos.
     setIsDeletingInstructor(true);
 
     try {
@@ -587,13 +732,29 @@ const ListaInstructoresAdmin = () => {
         prev.filter((item) => item.documento !== instructorToDelete.documento),
       );
       closeDeleteModal();
-      window.alert(data?.mensaje || "Instructor eliminado correctamente.");
+      setFeedbackModal({
+        title: "Instructor eliminado",
+        description: extractApiMessage(
+          data,
+          "Instructor eliminado correctamente.",
+        ),
+        confirmLabel: "Entendido",
+        iconBackgroundColor: "#39A900",
+        showCancelButton: false,
+        zIndex: 2600,
+      });
     } catch (error) {
-      window.alert(
-        error instanceof Error
-          ? error.message
-          : "No se pudo eliminar el instructor.",
-      );
+      setFeedbackModal({
+        title: "No se pudo eliminar",
+        description:
+          error instanceof Error
+            ? error.message
+            : "No se pudo eliminar el instructor.",
+        confirmLabel: "Cerrar",
+        iconBackgroundColor: "#d9534f",
+        showCancelButton: false,
+        zIndex: 2600,
+      });
     } finally {
       setIsDeletingInstructor(false);
     }
@@ -612,83 +773,21 @@ const ListaInstructoresAdmin = () => {
 
   return (
     <div className="dashboard-page">
-      <aside className="side-card">
-        <div className="brand-block">
-          <img src={senaLogo} alt="Logo" className="logo-lg" />
-          <h2>Gestion de proyectos</h2>
-        </div>
-        <nav className="menu">
-          <p className="menu-title">MENU</p>
-          <ul>
-            {ADMIN_MENU_ITEMS.map((item) => (
-              <li
-                key={item.name}
-                className={location.pathname === item.path ? "active" : ""}
-                onClick={() => navigate(item.path)}
-              >
-                <item.icon size={18} style={{ marginRight: "10px" }} />{" "}
-                {item.name}
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <div
-          className="settings-footer"
-          style={{ marginTop: "auto", padding: "10px 0" }}
-        >
-          <p className="menu-title">SETTINGS</p>
-          <div
-            className="support-item"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "10px",
-              cursor: "pointer",
-              fontSize: "0.9rem",
-              color: "#555",
-            }}
-            onClick={() => navigate("/ayuda")}
-          >
-            <HelpCircle
-              size={18}
-              style={{ marginRight: "10px", color: "#39A900" }}
-            />
-            <span>Ayuda y Soporte</span>
-          </div>
-        </div>
-      </aside>
+      <AdminSidebar currentPath={location.pathname} onNavigate={navigate} />
 
       <main className="content">
         <nav className="nav-top">
           <div className="title-section">
             <h1>Lista de Instructores</h1>
           </div>
-
-          <div
-            className="profile-menu"
-            ref={menuRef}
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            <img
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(adminName)}&background=39A900&color=fff`}
-              className="profile-img"
-              alt="Avatar"
-            />
-            <span className="profile-name">{adminName}</span>
-            <ChevronDown size={18} />
-
-            {isMenuOpen && (
-              <ul className="dropdown-profile">
-                <li>
-                  <User size={16} style={{ marginRight: "8px" }} /> Mi Perfil
-                </li>
-                <li className="logout" onClick={() => setShowLogoutModal(true)}>
-                  <LogOut size={16} style={{ marginRight: "8px" }} /> Cerrar
-                  Sesion
-                </li>
-              </ul>
-            )}
-          </div>
+          <AdminProfileMenu
+            displayName={adminName}
+            isOpen={isMenuOpen}
+            menuRef={menuRef}
+            onToggle={() => setIsMenuOpen((current) => !current)}
+            onLogout={() => setShowLogoutModal(true)}
+            showProfileItem
+          />
         </nav>
 
         <div className="lista-container">
@@ -852,27 +951,37 @@ const ListaInstructoresAdmin = () => {
         </div>
       </main>
 
-      {showLogoutModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="warning-icon-container">
-              <AlertTriangle size={45} color="white" />
-            </div>
-            <h2 className="modal-title">Estas seguro?</h2>
-            <div className="modal-buttons">
-              <button className="btn-confirm-logout" onClick={confirmLogout}>
-                Si, Cerrar
-              </button>
-              <button
-                className="btn-cancel-logout"
-                onClick={() => setShowLogoutModal(false)}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminLogoutModal
+        isOpen={showLogoutModal}
+        onCancel={() => setShowLogoutModal(false)}
+        onConfirm={() => logoutAndRedirect(navigate)}
+      />
+      <AdminLogoutModal
+        isOpen={Boolean(saveConfirmationModal)}
+        title={saveConfirmationModal?.title}
+        description={saveConfirmationModal?.description}
+        confirmLabel={saveConfirmationModal?.confirmLabel}
+        cancelLabel={saveConfirmationModal?.cancelLabel}
+        iconBackgroundColor={saveConfirmationModal?.iconBackgroundColor}
+        zIndex={saveConfirmationModal?.zIndex}
+        onCancel={() => setSaveConfirmationModal(null)}
+        onConfirm={() => {
+          setSaveConfirmationModal(null);
+          void submitInstructorEdit();
+        }}
+      />
+      <AdminLogoutModal
+        isOpen={Boolean(feedbackModal)}
+        title={feedbackModal?.title}
+        description={feedbackModal?.description}
+        confirmLabel={feedbackModal?.confirmLabel}
+        cancelLabel={feedbackModal?.cancelLabel}
+        iconBackgroundColor={feedbackModal?.iconBackgroundColor}
+        showCancelButton={feedbackModal?.showCancelButton}
+        zIndex={feedbackModal?.zIndex}
+        onCancel={() => setFeedbackModal(null)}
+        onConfirm={() => setFeedbackModal(null)}
+      />
 
       {fichasModalData && (
         <div

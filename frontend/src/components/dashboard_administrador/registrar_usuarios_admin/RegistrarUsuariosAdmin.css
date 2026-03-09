@@ -1,3 +1,10 @@
+﻿/*
+ * Estilos del modulo de registro administrativo de usuarios.
+ *
+ * Organiza formularios manuales, bloques estadisticos, importacion XLSX y
+ * modales auxiliares para feedback y reconciliacion de fichas faltantes.
+ */
+
 .register-users-content {
   display: flex;
   flex-direction: column;
@@ -814,3 +821,4 @@
     font-size: 0.72rem;
   }
 }
+

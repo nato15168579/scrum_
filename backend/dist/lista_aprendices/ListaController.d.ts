@@ -1,8 +1,9 @@
 import { ListaService } from './ListaService';
+import { CreateFichaDto, CreateUsuarioDto, ImportUsuarioDto, UpdateAprendizDto, UpdateInstructorDto } from './ListaTypes';
 export declare class ListaController {
     private readonly listaService;
     constructor(listaService: ListaService);
-    getAprendices(cedula?: string): Promise<any[]>;
+    getAprendices(cedula?: string): Promise<import("./ListaTypes").AprendizResponse[]>;
     updateAprendizEstado(cedula: string, payload: {
         estado: string;
     }): Promise<{
@@ -10,15 +11,7 @@ export declare class ListaController {
         documento: string;
         estado: import("../entities/Usuario").EstadoUsuario;
     }>;
-    updateAprendiz(cedula: string, payload: {
-        nombre?: string;
-        apellidos?: string;
-        correo?: string;
-        telefono?: string;
-        sexo?: string;
-        ficha?: string | number;
-        estado?: string;
-    }): Promise<{
+    updateAprendiz(cedula: string, payload: UpdateAprendizDto): Promise<{
         ok: boolean;
         mensaje: string;
         aprendiz: {
@@ -42,16 +35,42 @@ export declare class ListaController {
         documento: string;
         mensaje: string;
     }>;
-    getInstructores(cedula?: string): Promise<any[]>;
-    updateInstructor(cedula: string, payload: {
-        nombre?: string;
-        apellidos?: string;
-        correo?: string;
-        telefono?: string;
-        sexo?: string;
-        especializacion?: string;
-        fichas?: Array<string | number>;
-    }): Promise<{
+    getInstructores(cedula?: string): Promise<import("./ListaTypes").InstructorResponse[]>;
+    updateInstructor(cedula: string, payload: UpdateInstructorDto): Promise<{
+        ok: boolean;
+        mensaje: string;
+        instructor: {
+            documento: string;
+            tipoDocumento: string;
+            nombre: string;
+            apellido: string;
+            especializacion: string;
+            sexo: string;
+            telefono: string;
+            email: string;
+            fechaInscripcion: string;
+            fichasCargo: any;
+            fichasDetalle: any;
+        };
+    }>;
+    replaceInstructor(cedula: string, payload: UpdateInstructorDto): Promise<{
+        ok: boolean;
+        mensaje: string;
+        instructor: {
+            documento: string;
+            tipoDocumento: string;
+            nombre: string;
+            apellido: string;
+            especializacion: string;
+            sexo: string;
+            telefono: string;
+            email: string;
+            fechaInscripcion: string;
+            fichasCargo: any;
+            fichasDetalle: any;
+        };
+    }>;
+    updateInstructorCompat(cedula: string, payload: UpdateInstructorDto): Promise<{
         ok: boolean;
         mensaje: string;
         instructor: {
@@ -79,13 +98,7 @@ export declare class ListaController {
         programas: any[];
         areasByPrograma: Record<string, string[]>;
     }>;
-    createFicha(payload: {
-        numero: string | number;
-        nombre: string;
-        programa: string;
-        estado?: 'Activa' | 'Inactiva';
-        allowCustomCatalogValues?: boolean;
-    }): Promise<{
+    createFicha(payload: CreateFichaDto): Promise<{
         ok: boolean;
         mensaje: string;
         ficha: {
@@ -98,19 +111,7 @@ export declare class ListaController {
     getStats(cedula: string): Promise<{
         instructor: string;
     }>;
-    createUsuario(payload: {
-        cedula: string | number;
-        nombre: string;
-        apellidos: string;
-        correo?: string;
-        telefono?: string;
-        ficha?: string;
-        tipoDocumento?: string;
-        sexo?: string;
-        especializacion?: string;
-        tipoUsuario?: 'aprendiz' | 'instructor';
-        password?: string;
-    }): Promise<{
+    createUsuario(payload: CreateUsuarioDto): Promise<{
         ok: boolean;
         mensaje: string;
         instructor: {
@@ -121,8 +122,8 @@ export declare class ListaController {
             especializacion: string;
             sexo: string;
             ficha: string;
-            fichaNombre: any;
-            programa: any;
+            fichaNombre: string;
+            programa: string;
             telefono: string;
             email: string;
             fechaInscripcion: string;
@@ -141,8 +142,8 @@ export declare class ListaController {
             especializacion: string;
             sexo: string;
             ficha: string;
-            fichaNombre: any;
-            programa: any;
+            fichaNombre: string;
+            programa: string;
             telefono: string;
             email: string;
             fechaInscripcion: string;
@@ -156,12 +157,12 @@ export declare class ListaController {
         aprendiz: {
             documento: string;
             tipoDocumento: string;
-            area: any;
+            area: string;
             nombre: string;
             apellido: string;
             ficha: string;
-            fichaNombre: any;
-            programa: any;
+            fichaNombre: string;
+            programa: string;
             email: string;
             telefono: string;
             sexo: string;
@@ -172,18 +173,7 @@ export declare class ListaController {
         fichaAsignada?: undefined;
     }>;
     importUsuarios(payload: {
-        usuarios: Array<{
-            documento: string | number;
-            tipoDocumento?: string;
-            ficha?: string | number;
-            nombre: string;
-            apellido: string;
-            sexo?: string;
-            telefono?: string;
-            email?: string;
-            especializacion?: string;
-            tipoUsuario?: 'aprendiz' | 'instructor' | string;
-        }>;
+        usuarios: ImportUsuarioDto[];
     }): Promise<{
         ok: boolean;
         total: number;

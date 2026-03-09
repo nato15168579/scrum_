@@ -37,6 +37,12 @@ let ListaController = class ListaController {
     async updateInstructor(cedula, payload) {
         return await this.listaService.updateInstructor(cedula, payload);
     }
+    async replaceInstructor(cedula, payload) {
+        return await this.listaService.updateInstructor(cedula, payload);
+    }
+    async updateInstructorCompat(cedula, payload) {
+        return await this.listaService.updateInstructor(cedula, payload);
+    }
     async deleteInstructor(cedula) {
         return await this.listaService.deleteInstructor(cedula);
     }
@@ -105,6 +111,22 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "updateInstructor", null);
+__decorate([
+    (0, common_1.Put)('instructores/:cedula'),
+    __param(0, (0, common_1.Param)('cedula')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "replaceInstructor", null);
+__decorate([
+    (0, common_1.Post)('instructores/:cedula'),
+    __param(0, (0, common_1.Param)('cedula')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "updateInstructorCompat", null);
 __decorate([
     (0, common_1.Delete)('instructores/:cedula'),
     __param(0, (0, common_1.Param)('cedula')),
