@@ -159,6 +159,16 @@
   background-color: #f1f8e9;
 }
 
+.custom-table tbody tr {
+  transition: opacity 420ms ease, transform 420ms ease;
+}
+
+.custom-table tbody tr.row-fade-out {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+}
+
 .btn-fichas-modal {
   border: 1px solid #39a900;
   background: #f0f9eb;

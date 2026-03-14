@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Modal reutilizable para confirmaciones y alertas del administrador.
  *
  * Aunque nacio para cierre de sesion, hoy tambien sirve para confirmaciones,
@@ -37,16 +37,16 @@ const AdminLogoutModal = ({
     return null;
   }
 
-  const overlayStyle: CSSProperties | undefined = zIndex
-    ? { zIndex }
-    : undefined;
+  const overlayStyle: CSSProperties | undefined = zIndex ? { zIndex } : undefined;
 
   return (
     <div className="modal-overlay" style={overlayStyle}>
       <div className="modal-content">
         <div
           className="warning-icon-container"
-          style={iconBackgroundColor ? { backgroundColor: iconBackgroundColor } : undefined}
+          style={
+            iconBackgroundColor ? { backgroundColor: iconBackgroundColor } : undefined
+          }
         >
           <AlertTriangle size={45} color="white" />
         </div>

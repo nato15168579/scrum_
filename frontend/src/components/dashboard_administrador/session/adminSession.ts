@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Utilidades compartidas de sesion para vistas del administrador.
  *
  * Centraliza validacion de rol, cierre de sesion y helpers de presentacion
@@ -9,7 +9,8 @@ import type { NavigateFunction } from "react-router-dom";
 
 const ADMIN_ROLE_ID = "3";
 
-const getStoredValue = (key: string) => String(localStorage.getItem(key) || "").trim();
+const getStoredValue = (key: string) =>
+  String(localStorage.getItem(key) || "").trim();
 
 export const requireAdminAccess = (navigate: NavigateFunction) => {
   const cedula = getStoredValue("userCedula");
@@ -43,7 +44,7 @@ export const isAdminMenuItemActive = (pathname: string, itemPath: string) => {
     return ["/dashboard", "/dashboard-administrador"].includes(pathname);
   }
 
-  return pathname === itemPath;
+  return pathname === itemPath || pathname.startsWith(`${itemPath}/`);
 };
 
 export const buildAvatarUrl = (displayName: string) =>

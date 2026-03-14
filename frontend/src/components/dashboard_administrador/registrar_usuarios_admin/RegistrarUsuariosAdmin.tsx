@@ -18,14 +18,14 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { API_URL } from "../../../config/Api";
-import { resolveUserName } from "../../../utils/session";
+import { resolveUserName } from "../../../session/session";
 import "../AdminDashboard.css";
 import "./RegistrarUsuariosAdmin.css";
-import AdminLogoutModal from "../shared/AdminLogoutModal";
-import AdminProfileMenu from "../shared/AdminProfileMenu";
-import AdminSidebar from "../shared/AdminSidebar";
-import { logoutAndRedirect, requireAdminAccess } from "../shared/adminSession";
-import { useClickOutside } from "../shared/useClickOutside";
+import AdminLogoutModal from "../modals/AdminLogoutModal";
+import AdminProfileMenu from "../layout/AdminProfileMenu";
+import AdminSidebar from "../layout/AdminSidebar";
+import { logoutAndRedirect, requireAdminAccess } from "../session/adminSession";
+import { useClickOutside } from "../hooks/useClickOutside";
 
 type RegisterMode = "instructor" | "aprendiz";
 

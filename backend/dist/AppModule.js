@@ -17,6 +17,7 @@ const CrearproModules_1 = require("./crear_proyecto/CrearproModules");
 const AsigproyectoModules_1 = require("./asignar_proyecto/AsigproyectoModules");
 const AsigproverModules_1 = require("./asignar_proyecto/asignar_proyecto_vermas/AsigproverModules");
 const VerproModules_1 = require("./ver_proyecto/VerproModules");
+const CambiosSistemaModule_1 = require("./cambios_sistema/CambiosSistemaModule");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -41,6 +42,7 @@ exports.AppModule = AppModule = __decorate([
             AsigproyectoModules_1.AsigProyectoModule,
             AsigproverModules_1.AsigProVerModule,
             VerproModules_1.VerproModule,
+            CambiosSistemaModule_1.CambiosSistemaModule,
         ],
     })
 ], AppModule);

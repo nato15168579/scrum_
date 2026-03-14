@@ -1,0 +1,76 @@
+.admin-timed-alert {
+  position: relative;
+}
+
+.admin-timed-alert-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: #6b7280;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.admin-timed-alert-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+  transform: translateY(-1px);
+}
+
+.admin-timed-alert-close:active {
+  transform: translateY(0);
+}
+
+.admin-timed-alert-icon-shell {
+  width: 92px;
+  height: 92px;
+  position: relative;
+  margin: 0 auto 18px;
+  display: grid;
+  place-items: center;
+}
+
+.admin-timed-alert-icon-bg {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 12px 24px rgba(22, 163, 74, 0.22);
+}
+
+.admin-timed-alert-progress {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.admin-timed-alert-progress-bg {
+  fill: none;
+  stroke: rgba(229, 231, 235, 0.95);
+  stroke-width: 4.5;
+}
+
+.admin-timed-alert-progress-fg {
+  fill: none;
+  stroke: #16a34a;
+  stroke-width: 4.5;
+  stroke-linecap: round;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-timed-alert-progress-fg {
+    transition: none;
+  }
+}
+

@@ -26,10 +26,10 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import "./AdminDashboard.css";
 import { API_URL } from "../../config/Api";
-import AdminLogoutModal from "./shared/AdminLogoutModal";
-import AdminProfileMenu from "./shared/AdminProfileMenu";
-import AdminSidebar from "./shared/AdminSidebar";
-import { logoutAndRedirect, requireAdminAccess } from "./shared/adminSession";
+import AdminLogoutModal from "./modals/AdminLogoutModal";
+import AdminProfileMenu from "./layout/AdminProfileMenu";
+import AdminSidebar from "./layout/AdminSidebar";
+import { logoutAndRedirect, requireAdminAccess } from "./session/adminSession";
 
 interface Stat {
   label: string;

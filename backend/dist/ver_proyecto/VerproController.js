@@ -22,6 +22,9 @@ let VerproController = class VerproController {
     async getProyectos() {
         return await this.verproService.findAll();
     }
+    async getProyectoDetalleAdmin(id) {
+        return await this.verproService.findAdminDetalle(id);
+    }
     async getProyectoById(id) {
         return await this.verproService.findOne(id);
     }
@@ -33,6 +36,13 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], VerproController.prototype, "getProyectos", null);
+__decorate([
+    (0, common_1.Get)(':id/detalle-admin'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "getProyectoDetalleAdmin", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

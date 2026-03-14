@@ -25,26 +25,26 @@ let ListaController = class ListaController {
     async updateAprendizEstado(cedula, payload) {
         return await this.listaService.updateAprendizEstado(cedula, payload.estado);
     }
-    async updateAprendiz(cedula, payload) {
-        return await this.listaService.updateAprendiz(cedula, payload);
+    async updateAprendiz(cedula, payload, actorCedula) {
+        return await this.listaService.updateAprendiz(cedula, payload, actorCedula);
     }
-    async deleteAprendiz(cedula) {
-        return await this.listaService.deleteAprendiz(cedula);
+    async deleteAprendiz(cedula, actorCedula) {
+        return await this.listaService.deleteAprendiz(cedula, actorCedula);
     }
     async getInstructores(cedula) {
         return await this.listaService.findAllInstructores(cedula);
     }
-    async updateInstructor(cedula, payload) {
-        return await this.listaService.updateInstructor(cedula, payload);
+    async updateInstructor(cedula, payload, actorCedula) {
+        return await this.listaService.updateInstructor(cedula, payload, actorCedula);
     }
-    async replaceInstructor(cedula, payload) {
-        return await this.listaService.updateInstructor(cedula, payload);
+    async replaceInstructor(cedula, payload, actorCedula) {
+        return await this.listaService.updateInstructor(cedula, payload, actorCedula);
     }
-    async updateInstructorCompat(cedula, payload) {
-        return await this.listaService.updateInstructor(cedula, payload);
+    async updateInstructorCompat(cedula, payload, actorCedula) {
+        return await this.listaService.updateInstructor(cedula, payload, actorCedula);
     }
-    async deleteInstructor(cedula) {
-        return await this.listaService.deleteInstructor(cedula);
+    async deleteInstructor(cedula, actorCedula) {
+        return await this.listaService.deleteInstructor(cedula, actorCedula);
     }
     async getFichas() {
         return await this.listaService.findAllFichas();
@@ -54,6 +54,24 @@ let ListaController = class ListaController {
     }
     async createFicha(payload) {
         return await this.listaService.createFicha(payload);
+    }
+    async updateFicha(numero, payload, actorCedula) {
+        return await this.listaService.updateFicha(numero, payload, actorCedula);
+    }
+    async deleteFicha(numero, actorCedula) {
+        return await this.listaService.deleteFicha(numero, actorCedula);
+    }
+    async renamePrograma(payload, actorCedula) {
+        return await this.listaService.renamePrograma(payload, actorCedula);
+    }
+    async deletePrograma(payload, actorCedula) {
+        return await this.listaService.deletePrograma(payload, actorCedula);
+    }
+    async renameArea(payload, actorCedula) {
+        return await this.listaService.renameArea(payload, actorCedula);
+    }
+    async deleteArea(payload, actorCedula) {
+        return await this.listaService.deleteArea(payload, actorCedula);
     }
     async getStats(cedula) {
         return await this.listaService.getInstructorStats(cedula);
@@ -85,15 +103,17 @@ __decorate([
     (0, common_1.Patch)('aprendices/:cedula'),
     __param(0, (0, common_1.Param)('cedula')),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Query)('actorCedula')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, Object, String]),
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "updateAprendiz", null);
 __decorate([
     (0, common_1.Delete)('aprendices/:cedula'),
     __param(0, (0, common_1.Param)('cedula')),
+    __param(1, (0, common_1.Query)('actorCedula')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "deleteAprendiz", null);
 __decorate([
@@ -107,31 +127,35 @@ __decorate([
     (0, common_1.Patch)('instructores/:cedula'),
     __param(0, (0, common_1.Param)('cedula')),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Query)('actorCedula')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, Object, String]),
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "updateInstructor", null);
 __decorate([
     (0, common_1.Put)('instructores/:cedula'),
     __param(0, (0, common_1.Param)('cedula')),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Query)('actorCedula')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, Object, String]),
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "replaceInstructor", null);
 __decorate([
     (0, common_1.Post)('instructores/:cedula'),
     __param(0, (0, common_1.Param)('cedula')),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Query)('actorCedula')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, Object, String]),
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "updateInstructorCompat", null);
 __decorate([
     (0, common_1.Delete)('instructores/:cedula'),
     __param(0, (0, common_1.Param)('cedula')),
+    __param(1, (0, common_1.Query)('actorCedula')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "deleteInstructor", null);
 __decorate([
@@ -153,6 +177,55 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], ListaController.prototype, "createFicha", null);
+__decorate([
+    (0, common_1.Patch)('fichas/:numero'),
+    __param(0, (0, common_1.Param)('numero')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Query)('actorCedula')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, String]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "updateFicha", null);
+__decorate([
+    (0, common_1.Delete)('fichas/:numero'),
+    __param(0, (0, common_1.Param)('numero')),
+    __param(1, (0, common_1.Query)('actorCedula')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "deleteFicha", null);
+__decorate([
+    (0, common_1.Patch)('catalogos/programas'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Query)('actorCedula')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "renamePrograma", null);
+__decorate([
+    (0, common_1.Post)('catalogos/programas/eliminar'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Query)('actorCedula')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "deletePrograma", null);
+__decorate([
+    (0, common_1.Patch)('catalogos/areas'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Query)('actorCedula')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "renameArea", null);
+__decorate([
+    (0, common_1.Post)('catalogos/areas/eliminar'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Query)('actorCedula')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], ListaController.prototype, "deleteArea", null);
 __decorate([
     (0, common_1.Get)('stats'),
     __param(0, (0, common_1.Query)('cedula')),

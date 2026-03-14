@@ -22,6 +22,7 @@ export class CrearproController {
       fechaInicio?: string;
       fechaFin?: string;
       cedula: number;
+      fichaNumero?: number | string | null;
     },
   ) {
     return await this.crearproService.createProject(body);

@@ -8,7 +8,7 @@ import senaLogo from '../../assets/sena.png';
 import '../dashboard_instructor/Dashboard.css'; 
 import './VerProyectos.css'; 
 import { API_URL } from '../../config/Api';
-import { resolveUserName } from '../../utils/session';
+import { resolveUserName } from '../../session/session';
 
 // --- INTERFACES ---
 interface Proyecto {

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Sidebar compartido del modulo administrador.
  *
  * Encapsula branding, navegacion principal y acceso a ayuda para reutilizar la
@@ -9,7 +9,7 @@ import { HelpCircle } from "lucide-react";
 import type { NavigateFunction } from "react-router-dom";
 import senaLogo from "../../../assets/sena.png";
 import { ADMIN_MENU_ITEMS } from "../AdminMenuItems";
-import { isAdminMenuItemActive } from "./adminSession";
+import { isAdminMenuItemActive } from "../session/adminSession";
 
 interface AdminSidebarProps {
   currentPath: string;
@@ -37,7 +37,9 @@ const AdminSidebar = ({
           {ADMIN_MENU_ITEMS.map((item) => (
             <li
               key={item.name}
-              className={isAdminMenuItemActive(currentPath, item.path) ? "active" : ""}
+              className={
+                isAdminMenuItemActive(currentPath, item.path) ? "active" : ""
+              }
               onClick={() => onNavigate(item.path)}
             >
               <item.icon size={18} style={{ marginRight: "10px" }} />
@@ -76,4 +78,3 @@ const AdminSidebar = ({
 };
 
 export default AdminSidebar;
-

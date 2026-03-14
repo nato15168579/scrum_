@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Hook minimo para cerrar menus o dropdowns cuando el click ocurre fuera.
  *
  * Se usa sobre todo en el menu de perfil del administrador para evitar

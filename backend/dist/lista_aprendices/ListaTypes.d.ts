@@ -19,6 +19,12 @@ export interface CreateFichaDto {
     estado?: 'Activa' | 'Inactiva';
     allowCustomCatalogValues?: boolean;
 }
+export interface UpdateFichaDto {
+    nombre?: string;
+    programa?: string;
+    estado?: 'Activa' | 'Inactiva';
+    allowCustomCatalogValues?: boolean;
+}
 export interface ImportUsuarioDto {
     documento: string | number;
     tipoDocumento?: string;

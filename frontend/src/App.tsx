@@ -7,6 +7,8 @@ import StudentDashboard from './components/StudentsDashboard/StudentDashboard';
 import ListaAprendices from './components/lista_aprendices/ListaAprendices';
 import ListaAprendicesAdmin from './components/dashboard_administrador/lista_aprendices/ListaAprendices';
 import ListaInstructoresAdmin from './components/dashboard_administrador/lista_instructores/ListaInstructoresAdmin';
+import CambiosDelSistemaAdmin from "./components/dashboard_administrador/cambios-del-sistema/CambiosDelSistemaAdmin";
+import HistorialObservacionesAdmin from "./components/dashboard_administrador/cambios-del-sistema/HistorialObservacionesAdmin";
 import CrearProyectoInstructor from './components/crear_proyecto/CrearProyecto';
 import CrearProyectoAdmin from './components/dashboard_administrador/proyectos_admin/CrearProyectoAdmin';
 import AsignarProyecto from './components/asignar_proyecto/AsignarProyecto';
@@ -55,6 +57,11 @@ function App() {
       <Route path="/lista-aprendices" element={<ListaAprendices />} />
       <Route path="/lista-aprendices-admin" element={<ListaAprendicesAdmin />} />
       <Route path="/lista-instructores-admin" element={<ListaInstructoresAdmin />} />
+      <Route path="/cambios-del-sistema" element={<CambiosDelSistemaAdmin />} />
+      <Route
+        path="/cambios-del-sistema/historial"
+        element={<HistorialObservacionesAdmin />}
+      />
       {/* 4. ruta de crear proyecto */}
       <Route path="/crear-proyecto" element={<CrearProyectoByRole />} />
       {/* 5. ruta de asignar proyecto */}

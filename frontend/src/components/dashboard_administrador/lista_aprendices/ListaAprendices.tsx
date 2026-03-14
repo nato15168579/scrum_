@@ -23,12 +23,13 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import "./ListaAprendices.css";
 import { API_URL } from "../../../config/Api";
-import { resolveUserName } from "../../../utils/session";
-import AdminLogoutModal from "../shared/AdminLogoutModal";
-import AdminProfileMenu from "../shared/AdminProfileMenu";
-import AdminSidebar from "../shared/AdminSidebar";
-import { logoutAndRedirect, requireAdminAccess } from "../shared/adminSession";
-import { useClickOutside } from "../shared/useClickOutside";
+import { resolveUserName } from "../../../session/session";
+import AdminLogoutModal from "../modals/AdminLogoutModal";
+import AdminTimedAlert from "../feedback/AdminTimedAlert";
+import AdminProfileMenu from "../layout/AdminProfileMenu";
+import AdminSidebar from "../layout/AdminSidebar";
+import { logoutAndRedirect, requireAdminAccess } from "../session/adminSession";
+import { useClickOutside } from "../hooks/useClickOutside";
 
 type EstadoAprendiz = "Activo" | "Inactivo";
 
@@ -85,6 +86,7 @@ type FilterKey =
   | "estado";
 
 const ITEMS_PER_PAGE = 10;
+const ROW_FADE_DURATION_MS = 420;
 
 // Helpers de normalizacion para mantener estable la UI aunque el backend haya
 // enviado nombres de campo distintos en etapas anteriores del proyecto.
@@ -196,9 +198,20 @@ const ListaAprendicesAdmin = () => {
   const [adminName, setAdminName] = useState(() =>
     resolveUserName(undefined, "Usuario"),
   );
+  const [adminCedula, setAdminCedula] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const [timedAlert, setTimedAlert] = useState<{
+    id: number;
+    title: string;
+    description?: string;
+  } | null>(null);
+  const [pendingRowRemovalDocumento, setPendingRowRemovalDocumento] =
+    useState<string | null>(null);
+  const [rowsLeaving, setRowsLeaving] = useState<Record<string, boolean>>({});
+  const rowRemovalTimeoutsRef = useRef<Record<string, number>>({});
 
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterKey>("todos");
@@ -206,10 +219,21 @@ const ListaAprendicesAdmin = () => {
   useClickOutside(menuRef, () => setIsMenuOpen(false));
 
   useEffect(() => {
+    const timeouts = rowRemovalTimeoutsRef.current;
+    return () => {
+      Object.values(timeouts).forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+    };
+  }, []);
+
+  useEffect(() => {
     const cedula = requireAdminAccess(navigate);
     if (!cedula) {
       return;
     }
+
+    setAdminCedula(cedula);
 
     // Se cargan por separado aprendices, fichas y datos del perfil admin para
     // que cada flujo tenga fallos aislados y feedback independiente.
@@ -328,7 +352,11 @@ const ListaAprendicesAdmin = () => {
     setIsSavingEdit(true);
 
     try {
-      const response = await fetch(`${API_URL}/aprendices/${editingAprendiz.documento}`, {
+      const endpoint = adminCedula
+        ? `${API_URL}/aprendices/${editingAprendiz.documento}?actorCedula=${encodeURIComponent(adminCedula)}`
+        : `${API_URL}/aprendices/${editingAprendiz.documento}`;
+
+      const response = await fetch(endpoint, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -371,6 +399,11 @@ const ListaAprendicesAdmin = () => {
       );
 
       resetEditModal();
+      setTimedAlert({
+        id: Date.now(),
+        title: "Cambios guardados correctamente",
+        description: "La informacion del usuario se actualizo correctamente.",
+      });
     } catch (error) {
       console.error("Error actualizando aprendiz:", error);
       window.alert("No fue posible guardar los cambios del aprendiz.");
@@ -400,7 +433,11 @@ const ListaAprendicesAdmin = () => {
     setIsDeletingAprendiz(true);
 
     try {
-      const response = await fetch(`${API_URL}/aprendices/${aprendizToDelete.documento}`, {
+      const endpoint = adminCedula
+        ? `${API_URL}/aprendices/${aprendizToDelete.documento}?actorCedula=${encodeURIComponent(adminCedula)}`
+        : `${API_URL}/aprendices/${aprendizToDelete.documento}`;
+
+      const response = await fetch(endpoint, {
         method: "DELETE",
       });
 
@@ -412,10 +449,17 @@ const ListaAprendicesAdmin = () => {
         );
       }
 
-      setAprendices((prev) =>
-        prev.filter((item) => item.documento !== aprendizToDelete.documento),
-      );
+      const deletedDocumento = aprendizToDelete.documento;
+      const deletedName = `${aprendizToDelete.nombre} ${aprendizToDelete.apellido}`.trim();
       resetDeleteModal();
+      setPendingRowRemovalDocumento(deletedDocumento);
+      setTimedAlert({
+        id: Date.now(),
+        title: "Usuario eliminado correctamente",
+        description: deletedName
+          ? `El usuario ${deletedName} se ha eliminado correctamente.`
+          : "El usuario se ha eliminado correctamente.",
+      });
     } catch (error) {
       console.error("Error eliminando aprendiz:", error);
       window.alert("No fue posible eliminar el aprendiz.");
@@ -456,6 +500,35 @@ const ListaAprendicesAdmin = () => {
       return searchableFields[activeFilter](item).includes(query);
     });
   }, [aprendices, searchTerm, activeFilter]);
+
+  const startRowRemovalAnimation = (documento: string) => {
+    setRowsLeaving((prev) => (prev[documento] ? prev : { ...prev, [documento]: true }));
+
+    if (rowRemovalTimeoutsRef.current[documento]) {
+      window.clearTimeout(rowRemovalTimeoutsRef.current[documento]);
+    }
+
+    rowRemovalTimeoutsRef.current[documento] = window.setTimeout(() => {
+      setAprendices((prev) => prev.filter((item) => item.documento !== documento));
+      setRowsLeaving((prev) => {
+        if (!prev[documento]) return prev;
+        const next = { ...prev };
+        delete next[documento];
+        return next;
+      });
+      delete rowRemovalTimeoutsRef.current[documento];
+    }, ROW_FADE_DURATION_MS);
+  };
+
+  const closeTimedAlert = () => {
+    setTimedAlert(null);
+
+    if (pendingRowRemovalDocumento) {
+      const documento = pendingRowRemovalDocumento;
+      setPendingRowRemovalDocumento(null);
+      startRowRemovalAnimation(documento);
+    }
+  };
 
   const totalItems = filteredData.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
@@ -583,7 +656,10 @@ const ListaAprendicesAdmin = () => {
                 {displayData.length > 0 ? (
                   displayData.map((row) => {
                     return (
-                      <tr key={row.documento}>
+                      <tr
+                        key={row.documento}
+                        className={rowsLeaving[row.documento] ? "row-fade-out" : undefined}
+                      >
                         <td>{row.documento}</td>
                         <td>{row.ficha}</td>
                         <td>{row.programa || "Sin programa"}</td>
@@ -678,6 +754,17 @@ const ListaAprendicesAdmin = () => {
         onCancel={() => setShowLogoutModal(false)}
         onConfirm={() => logoutAndRedirect(navigate)}
       />
+
+      {timedAlert ? (
+        <AdminTimedAlert
+          key={timedAlert.id}
+          title={timedAlert.title}
+          description={timedAlert.description}
+          durationMs={5000}
+          zIndex={2600}
+          onClose={closeTimedAlert}
+        />
+      ) : null}
 
       {viewingAprendiz && (
         <div className="modal-overlay">

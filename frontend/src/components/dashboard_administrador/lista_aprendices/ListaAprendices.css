@@ -161,6 +161,16 @@
     background-color: #f1f8e9;
 }
 
+.custom-table tbody tr {
+    transition: opacity 420ms ease, transform 420ms ease;
+}
+
+.custom-table tbody tr.row-fade-out {
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+}
+
 /* --- CONTROLES DE PAGINACION --- */
 .pagination-controls {
     display: flex;

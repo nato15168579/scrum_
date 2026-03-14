@@ -1,6 +1,6 @@
 import { DataSource, Repository } from 'typeorm';
 import { EstadoUsuario, Usuario } from '../entities/Usuario';
-import { AprendizResponse, CreateFichaDto, CreateUsuarioDto, ImportUsuarioDto, InstructorResponse, UpdateAprendizDto, UpdateInstructorDto } from './ListaTypes';
+import { AprendizResponse, CreateFichaDto, CreateUsuarioDto, ImportUsuarioDto, InstructorResponse, UpdateAprendizDto, UpdateFichaDto, UpdateInstructorDto } from './ListaTypes';
 export declare class ListaService {
     private readonly usuarioRepository;
     private readonly dataSource;
@@ -31,6 +31,12 @@ export declare class ListaService {
     private getFichasAsignadasUsuario;
     private ensureUsuarioFichaAssignment;
     private sanitizeText;
+    private normalizeCedula;
+    private formatCambioSistemaValue;
+    private formatCambioSistemaList;
+    private pushCambioSistemaIfDifferent;
+    private pushCambioSistemaListIfDifferent;
+    private insertCambioSistema;
     private buildDefaultPassword;
     private getFichaActualUsuario;
     private getFichaByNumero;
@@ -52,6 +58,73 @@ export declare class ListaService {
             programa: string;
             estado: string;
         };
+    }>;
+    updateFicha(numero: string, payload: UpdateFichaDto, actorCedula?: string): Promise<{
+        ok: boolean;
+        mensaje: string;
+        ficha: {
+            numero: string;
+            nombre: string;
+            programa: string;
+            estado: string;
+        };
+    }>;
+    deleteFicha(numero: string, actorCedula?: string): Promise<{
+        ok: boolean;
+        mensaje: string;
+    }>;
+    renamePrograma(payload: {
+        programaActual: string;
+        programaNuevo: string;
+    }, actorCedula?: string): Promise<{
+        ok: boolean;
+        mensaje: string;
+        fichasAfectadas?: undefined;
+        antes?: undefined;
+        despues?: undefined;
+    } | {
+        ok: boolean;
+        mensaje: string;
+        fichasAfectadas: number;
+        antes: string;
+        despues: string;
+    }>;
+    deletePrograma(payload: {
+        programa: string;
+    }, actorCedula?: string): Promise<{
+        ok: boolean;
+        mensaje: string;
+        fichasAfectadas: number;
+        programa: string;
+    }>;
+    renameArea(payload: {
+        programa?: string | null;
+        areaActual: string;
+        areaNueva: string;
+    }, actorCedula?: string): Promise<{
+        ok: boolean;
+        mensaje: string;
+        fichasAfectadas?: undefined;
+        antes?: undefined;
+        despues?: undefined;
+        programa?: undefined;
+    } | {
+        ok: boolean;
+        mensaje: string;
+        fichasAfectadas: number;
+        antes: string;
+        despues: string;
+        programa: string;
+    }>;
+    deleteArea(payload: {
+        programa?: string | null;
+        area: string;
+    }, actorCedula?: string): Promise<{
+        ok: boolean;
+        mensaje: string;
+        fichasAfectadas: number;
+        area: string;
+        programa: string;
     }>;
     importUsuarios(rows: ImportUsuarioDto[]): Promise<{
         ok: boolean;
@@ -134,7 +207,7 @@ export declare class ListaService {
         instructor?: undefined;
         fichaAsignada?: undefined;
     }>;
-    updateAprendiz(cedula: string, payload: UpdateAprendizDto): Promise<{
+    updateAprendiz(cedula: string, payload: UpdateAprendizDto, actorCedula?: string): Promise<{
         ok: boolean;
         mensaje: string;
         aprendiz: {
@@ -153,7 +226,7 @@ export declare class ListaService {
             estado: EstadoUsuario;
         };
     }>;
-    updateInstructor(cedula: string, payload: UpdateInstructorDto): Promise<{
+    updateInstructor(cedula: string, payload: UpdateInstructorDto, actorCedula?: string): Promise<{
         ok: boolean;
         mensaje: string;
         instructor: {
@@ -170,12 +243,12 @@ export declare class ListaService {
             fichasDetalle: any;
         };
     }>;
-    deleteAprendiz(cedula: string): Promise<{
+    deleteAprendiz(cedula: string, actorCedula?: string): Promise<{
         ok: boolean;
         documento: string;
         mensaje: string;
     }>;
-    deleteInstructor(cedula: string): Promise<{
+    deleteInstructor(cedula: string, actorCedula?: string): Promise<{
         ok: boolean;
         documento: string;
         mensaje: string;

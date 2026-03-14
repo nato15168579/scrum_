@@ -8,6 +8,7 @@ import { CrearproModule } from './crear_proyecto/CrearproModules';
 import { AsigProyectoModule } from './asignar_proyecto/AsigproyectoModules';
 import { AsigProVerModule } from './asignar_proyecto/asignar_proyecto_vermas/AsigproverModules';
 import { VerproModule } from './ver_proyecto/VerproModules';
+import { CambiosSistemaModule } from "./cambios_sistema/CambiosSistemaModule";
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { VerproModule } from './ver_proyecto/VerproModules';
     AsigProyectoModule,
     AsigProVerModule,
     VerproModule,
+    CambiosSistemaModule,
   ],
 })
 export class AppModule {}

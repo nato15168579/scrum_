@@ -12,6 +12,7 @@ import {
   CreateUsuarioDto,
   ImportUsuarioDto,
   UpdateAprendizDto,
+  UpdateFichaDto,
   UpdateInstructorDto,
 } from './ListaTypes';
 
@@ -36,13 +37,17 @@ export class ListaController {
   async updateAprendiz(
     @Param('cedula') cedula: string,
     @Body() payload: UpdateAprendizDto,
+    @Query('actorCedula') actorCedula?: string,
   ) {
-    return await this.listaService.updateAprendiz(cedula, payload);
+    return await this.listaService.updateAprendiz(cedula, payload, actorCedula);
   }
 
   @Delete('aprendices/:cedula')
-  async deleteAprendiz(@Param('cedula') cedula: string) {
-    return await this.listaService.deleteAprendiz(cedula);
+  async deleteAprendiz(
+    @Param('cedula') cedula: string,
+    @Query('actorCedula') actorCedula?: string,
+  ) {
+    return await this.listaService.deleteAprendiz(cedula, actorCedula);
   }
 
   @Get('instructores')
@@ -54,29 +59,35 @@ export class ListaController {
   async updateInstructor(
     @Param('cedula') cedula: string,
     @Body() payload: UpdateInstructorDto,
+    @Query('actorCedula') actorCedula?: string,
   ) {
-    return await this.listaService.updateInstructor(cedula, payload);
+    return await this.listaService.updateInstructor(cedula, payload, actorCedula);
   }
 
   @Put('instructores/:cedula')
   async replaceInstructor(
     @Param('cedula') cedula: string,
     @Body() payload: UpdateInstructorDto,
+    @Query('actorCedula') actorCedula?: string,
   ) {
-    return await this.listaService.updateInstructor(cedula, payload);
+    return await this.listaService.updateInstructor(cedula, payload, actorCedula);
   }
 
   @Post('instructores/:cedula')
   async updateInstructorCompat(
     @Param('cedula') cedula: string,
     @Body() payload: UpdateInstructorDto,
+    @Query('actorCedula') actorCedula?: string,
   ) {
-    return await this.listaService.updateInstructor(cedula, payload);
+    return await this.listaService.updateInstructor(cedula, payload, actorCedula);
   }
 
   @Delete('instructores/:cedula')
-  async deleteInstructor(@Param('cedula') cedula: string) {
-    return await this.listaService.deleteInstructor(cedula);
+  async deleteInstructor(
+    @Param('cedula') cedula: string,
+    @Query('actorCedula') actorCedula?: string,
+  ) {
+    return await this.listaService.deleteInstructor(cedula, actorCedula);
   }
 
   @Get('fichas')
@@ -94,6 +105,56 @@ export class ListaController {
     @Body() payload: CreateFichaDto,
   ) {
     return await this.listaService.createFicha(payload);
+  }
+
+  @Patch('fichas/:numero')
+  async updateFicha(
+    @Param('numero') numero: string,
+    @Body() payload: UpdateFichaDto,
+    @Query('actorCedula') actorCedula?: string,
+  ) {
+    return await this.listaService.updateFicha(numero, payload, actorCedula);
+  }
+
+  @Delete('fichas/:numero')
+  async deleteFicha(
+    @Param('numero') numero: string,
+    @Query('actorCedula') actorCedula?: string,
+  ) {
+    return await this.listaService.deleteFicha(numero, actorCedula);
+  }
+
+  @Patch('catalogos/programas')
+  async renamePrograma(
+    @Body() payload: { programaActual: string; programaNuevo: string },
+    @Query('actorCedula') actorCedula?: string,
+  ) {
+    return await this.listaService.renamePrograma(payload, actorCedula);
+  }
+
+  @Post('catalogos/programas/eliminar')
+  async deletePrograma(
+    @Body() payload: { programa: string },
+    @Query('actorCedula') actorCedula?: string,
+  ) {
+    return await this.listaService.deletePrograma(payload, actorCedula);
+  }
+
+  @Patch('catalogos/areas')
+  async renameArea(
+    @Body()
+    payload: { programa?: string | null; areaActual: string; areaNueva: string },
+    @Query('actorCedula') actorCedula?: string,
+  ) {
+    return await this.listaService.renameArea(payload, actorCedula);
+  }
+
+  @Post('catalogos/areas/eliminar')
+  async deleteArea(
+    @Body() payload: { programa?: string | null; area: string },
+    @Query('actorCedula') actorCedula?: string,
+  ) {
+    return await this.listaService.deleteArea(payload, actorCedula);
   }
 
   @Get('stats')

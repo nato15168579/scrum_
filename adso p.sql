@@ -1,4 +1,3 @@
--- holax
 /*
 SQLyog Ultimate v13.1.1 (64 bit)
 MySQL - 10.4.32-MariaDB : Database - pro_scrum
@@ -25,7 +24,7 @@ CREATE TABLE `criterios_aceptacion` (
   `cri_ID` int(11) NOT NULL COMMENT 'id de criterio de aceptacion',
   `his_ID_FK` int(11) NOT NULL COMMENT 'id de la historia de usuario',
   `pro_ID_his_FK` int(11) NOT NULL COMMENT 'id del proyecto',
-  `usu_cedula_FK` bigint(20) NOT NULL COMMENT 'cedula del usuario',
+  `usu_cedula_FK` bigint(20) NOT NULL,
   `estado_FK` int(11) NOT NULL COMMENT 'Estado del criterio (pendiente, en proceso, finalizado)',
   `cri_tiempo` varchar(50) DEFAULT NULL COMMENT 'defina cuanto tiempo en horas va a ejercer cada criterio',
   `cri_descripcion` varchar(500) DEFAULT NULL COMMENT 'descripcion del criterio de aceptacion',
@@ -359,6 +358,30 @@ insert  into `detalle_parametro`(`det_par_ID`,`det_par_descripcion`,`par_ID_FK`)
 (27,'administrar el ingreso de todos los usuarios',5),
 (28,'crear proyectos formativos',5);
 
+/*Table structure for table `fichas` */
+
+DROP TABLE IF EXISTS `fichas`;
+
+CREATE TABLE `fichas` (
+  `fic_numero` int(11) NOT NULL COMMENT 'numero de ficha',
+  `fic_area` enum('ADSO','REDES','MULTIMEDIA','SISO','REPARACIÓN') NOT NULL COMMENT 'nombre de la ficha',
+  `fic_programa` enum('SISTEMAS','AVIACIÓN','SST','ARTES GRÁFICAS') DEFAULT NULL COMMENT 'programa asociado a la ficha',
+  `fic_fecha_creacion` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'fecha de creacion de la ficha',
+  `fic_estado` enum('Activa','Inactiva') NOT NULL DEFAULT 'Activa' COMMENT 'estado de la ficha',
+  PRIMARY KEY (`fic_numero`),
+  KEY `idx_fichas_estado` (`fic_estado`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `fichas` */
+
+insert  into `fichas`(`fic_numero`,`fic_area`,`fic_programa`,`fic_fecha_creacion`,`fic_estado`) values 
+(1234567,'SISO','SST','2026-03-07 14:24:32','Activa'),
+(2998937,'ADSO','SISTEMAS','2026-01-18 17:33:09','Activa'),
+(8713657,'REPARACIÓN','AVIACIÓN','2026-03-07 16:09:51','Activa'),
+(8923567,'REPARACIÓN','AVIACIÓN','2025-09-24 06:24:19','Activa'),
+(8924511,'ADSO','SISTEMAS','2026-03-07 16:09:51','Activa'),
+(8924517,'MULTIMEDIA','ARTES GRÁFICAS','2026-03-07 16:09:51','Activa');
+
 /*Table structure for table `historia_usuario` */
 
 DROP TABLE IF EXISTS `historia_usuario`;
@@ -595,6 +618,29 @@ insert  into `proyecto`(`pro_ID`,`pro_codigo`,`pro_nombre`,`pro_objetivo_general
 (8,'PRO-000008','proyecto p..','hola mundos','N/A','hola mundos','2028-10-30',NULL,'N/A',1,'0000-00-00 00:00:00'),
 (9,'PRO-000009','hola','hola p','N/A','hola p',NULL,NULL,'N/A',1,'0000-00-00 00:00:00');
 
+/*Table structure for table `ficha_proyecto` */
+
+DROP TABLE IF EXISTS `ficha_proyecto`;
+
+CREATE TABLE `ficha_proyecto` (
+  `pro_ID_FK` int(11) NOT NULL COMMENT 'id del proyecto asociado a la ficha',
+  `fic_numero_FK` int(11) NOT NULL COMMENT 'numero de ficha asociada al proyecto',
+  `fip_fecha_asignacion` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'fecha de asignacion del proyecto a la ficha',
+  PRIMARY KEY (`pro_ID_FK`),
+  KEY `fic_numero_FK` (`fic_numero_FK`),
+  CONSTRAINT `ficha_proyecto_ibfk_1` FOREIGN KEY (`pro_ID_FK`) REFERENCES `proyecto` (`pro_ID`),
+  CONSTRAINT `ficha_proyecto_ibfk_2` FOREIGN KEY (`fic_numero_FK`) REFERENCES `fichas` (`fic_numero`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+/*Data for the table `ficha_proyecto` */
+
+insert  into `ficha_proyecto`(`pro_ID_FK`,`fic_numero_FK`) values 
+(1,2998937),
+(2,2998937),
+(3,2998937),
+(4,2998937),
+(5,2998937);
+
 /*Table structure for table `reuniones` */
 
 DROP TABLE IF EXISTS `reuniones`;
@@ -689,7 +735,7 @@ DROP TABLE IF EXISTS `usu_asis`;
 
 CREATE TABLE `usu_asis` (
   `reu_asistente_FK` int(50) NOT NULL COMMENT 'asistencia de los participantes en las reuniones',
-  `usu_cedula` bigint(20) NOT NULL COMMENT 'cedula del usuario',
+  `usu_cedula` bigint(20) NOT NULL,
   PRIMARY KEY (`reu_asistente_FK`,`usu_cedula`),
   KEY `reu_asistente` (`reu_asistente_FK`),
   KEY `usu_cedula` (`usu_cedula`),
@@ -704,7 +750,7 @@ CREATE TABLE `usu_asis` (
 DROP TABLE IF EXISTS `usu_pro_det_par`;
 
 CREATE TABLE `usu_pro_det_par` (
-  `usu_cedula` bigint(20) NOT NULL COMMENT 'cedula del usuario',
+  `usu_cedula` bigint(20) NOT NULL,
   `det_par_ID_` int(11) NOT NULL COMMENT 'id del detalle parametro',
   `pro_ID` int(11) NOT NULL COMMENT 'id del proyecto',
   PRIMARY KEY (`usu_cedula`,`det_par_ID_`,`pro_ID`),
@@ -731,26 +777,6 @@ insert  into `usu_pro_det_par`(`usu_cedula`,`det_par_ID_`,`pro_ID`) values
 (1085046441,3,1),
 (1130267265,1,1);
 
-/*Table structure for table `fichas` */
-
-DROP TABLE IF EXISTS `fichas`;
-
-CREATE TABLE `fichas` (
-  `fic_numero` int(11) NOT NULL COMMENT 'numero de ficha',
-  `fic_nombre` varchar(150) NOT NULL COMMENT 'nombre de la ficha',
-  `fic_programa` varchar(100) DEFAULT NULL COMMENT 'programa asociado a la ficha',
-  `fic_fecha_creacion` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'fecha de creacion de la ficha',
-  `fic_estado` enum('Activa','Inactiva') NOT NULL DEFAULT 'Activa' COMMENT 'estado de la ficha',
-  PRIMARY KEY (`fic_numero`),
-  KEY `idx_fichas_estado` (`fic_estado`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-/*Data for the table `fichas` */
-
-insert  into `fichas`(`fic_numero`,`fic_nombre`,`fic_programa`,`fic_fecha_creacion`,`fic_estado`) values
-(2998937,'Ficha ADSO 2998937','ADSO','2026-01-18 17:33:09','Activa'),
-(8923567,'Ficha AVIACION 8923567','AVIACION','2025-09-24 06:24:19','Activa');
-
 /*Table structure for table `usuario` */
 
 DROP TABLE IF EXISTS `usuario`;
@@ -775,49 +801,68 @@ CREATE TABLE `usuario` (
 
 /*Data for the table `usuario` */
 
-insert  into `usuario`(`usu_cedula`,`usu_nombres`,`usu_apellidos`,`usu_correo`,`usu_telefono`,`usu_contraseña`,`fecha_registro`,`rol_sis_ID_FK`,`usu_especializacion`,`usu_tipodedocumento`) values 
-(1000000001,'juan','olivares','juanolivares@gmail.com','3100000000','$2b$10$MXzo.RloxM1IcceK4nMrhe0LOC7izc0YtTtjCUQfsK4LuF5qoGV1C','2025-09-24 06:24:19',2,'Ing Software','CC'),
-(1000000002,'katherine paola','blanco','kathe@gmail.com','3200000000','kathe123','2026-02-27 22:04:25',2,'Ing en base de datos','CC'),
-(1001855307,'jocy hans','charris fernandez','Jocy@gmail.com','3002201010','j123','2026-01-19 17:20:36',1,NULL,'CC'),
-(1010006601,'jean carlos','coronell castro','jean@gmail.com','4235386883','jean123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1016011848,'madeleine','castillo cardenas','madeleine@gmail.com','3000000005','made123','2026-01-18 17:33:09',1,NULL,'CC'),
-(1042251558,'edgar dario','badillo macias','edgar.badillo@gmail.com','3000000001','edgar123','2026-02-27 17:33:42',1,NULL,'CC'),
-(1042251706,'moises','garcia urda','moises@gmail.com','3148687899','moises123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1042254436,'daniel david','muñoz montoya','daniel@gmail.com','3000000003','daniel123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1042852867,'gabriella ','julio cantillo','gabriella@gmail.com','3000000001','gabriella123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1043134580,'franklin ','munzon herrera','franklin@gmail.com','3000000002','franklin123','2026-03-02 07:34:30',1,NULL,'CC'),
-(1043665064,'jorge enrique','burgos lopez','jorgeburgos@gmail.com','3254649897','jorgeburgos','2026-03-05 19:51:55',1,NULL,'CC'),
-(1044600666,'carlos alfonso','arango de la cruz','carlos@gmail.com','3128609809','carlos123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1044604785,'santiago','celin garcia','santiago.celin@gmail.com','3000000004','santiago123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1044607032,'juan david','gutierrez montes','juan@gmail.com','3129800768','juan123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1044607427,'guillermo ','rodriguez trocha','guillermorod@gmail.com','3216475538','guillermo123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1044619072,'isaac david','cantillo julio','isaaccantillo@gmail.com','3127009807','isaaccantillo','2026-03-05 19:51:55',1,NULL,'CC'),
-(1046696769,'santiago jose','fernandez perez','Fernandezsantiago152@gmail.com','3004504333','santiago123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1046813010,'jailer de jesus','lara pineda','jailer@gmail.com','3000000005','jailer123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1047043541,'isaac david','jimenez perea','isaacjim1706@gmail.com','3017110394','$2b$10$2HX4vqeImjt/CyuBmAB.4uWIWurBj0Rg6dD4YNScZcmLB6ejLQHKq','2026-02-27 16:08:26',1,NULL,'CC'),
-(1047222805,'jhon carlos','sarmiento rodriguez','jhon.sarmiento@gmail.com','3000000006','jhon123','2025-10-14 18:26:15',1,NULL,'CC'),
-(1047336800,'luis gabriel','villareal chico','luis@gmail.com','3006574678','luis123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1048068189,'edgar isacc ','aroca yanes','edgar.aroca@gmail.com','3000000002','edgar123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1048069515,'juan david','orozco almanza','juanorozco@gmail.com','3241756688','juanorozco','2026-02-27 22:03:47',1,NULL,'CC'),
-(1048277496,'ricardo rafael','retamoso gutierrez','ricardo@gmail.com','3000000004','ricardo123','2026-01-31 18:26:03',1,NULL,'CC'),
-(1049931166,'estuardo jesus','villadiego obrian','estuardo@gmail.com','3000000003','estuardo123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1080570745,'briyith lorena','padilla alfaro','briyith@gmail.com','3246757886','briyith123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1081914694,'luisa fernanda','arrieta marquez','luisa@gmail.com','3127688966','luisa123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1085046441,'Jorje luis','Oliveros Mora','oliverosmorjorgeluis@gmail.com','3148606444','jorge123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1129534383,'camilo andres ','villalobos fernandez','camilo@gmail.com ','3247648989','camilo123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1130267265,'yeilis paola','mendoza blanco','yeilismendoza26@gmail.com','3106298355','yeilis123','2026-03-05 19:51:55',1,NULL,'CC'),
-(1234567890,'Elemir elias','Gomez zarso','isaacjim1706@gmail.com','3013677446','$2b$10$9Yi.nACflwrIn68G0gSbteSxLg90rHD9k35Z.0sybzu5N66i3MWJi','2026-03-05 19:51:55',3,NULL,'CC');
+insert  into `usuario`(`usu_cedula`,`usu_nombres`,`usu_apellidos`,`usu_correo`,`usu_telefono`,`usu_contraseña`,`fecha_registro`,`rol_sis_ID_FK`,`usu_estado`,`usu_especializacion`,`usu_sexo`,`usu_tipodedocumento`) values 
+(1678922,'Yeleimis','Vides','yl@gmail.com','9283742964','$2b$10$09mXKviMTD7MY3DnkxuA8eNICGtXG3h/UgG6LaLB0LfFkg0Yt/Fs6','2026-03-07 16:09:52',1,'Activo',NULL,'Mujer','CC'),
+(7812455,'Benjamin','camargo','bjc@gmail.com','1726354907','$2b$10$.XQV7Yj7w934KPbDSfk7.uAUB/0Oqst9aZXVFpi51DauFDhxbbcce','2026-03-07 16:09:51',2,'Activo','SISTEMAS',NULL,'CC'),
+(990000001,'Prueba','Instructor','prueba.instructor.test@sena.edu.co','3000000001','$2b$10$.oORRAKBydeOTuPAcVAxYeEsk5eGyldUKJ2cvBa2szZdM3EC.Qh3C','2026-03-07 15:37:25',2,'Activo','SISTEMAS',NULL,'CC'),
+(1000000001,'juan','olivares','juanolivares@gmail.com','3100000000','$2b$10$MXzo.RloxM1IcceK4nMrhe0LOC7izc0YtTtjCUQfsK4LuF5qoGV1C','2025-09-24 06:24:19',2,'Activo','Ing Software',NULL,'CC'),
+(1000000002,'katherine paola','blanco','kathe@gmail.com','3200000000','kathe123','2026-02-27 22:04:25',2,'Activo','Ing en base de datos',NULL,'CC'),
+(1001855307,'jocy hans','charris fernandez','Jocy@gmail.com','3002201010','j123','2026-01-19 17:20:36',1,'Activo',NULL,NULL,'CC'),
+(1010006601,'jean carlos','coronell castro','jean@gmail.com','4235386883','jean123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1016011848,'madeleine','castillo cardenas','madeleine@gmail.com','3000000005','made123','2026-01-18 17:33:09',1,'Activo',NULL,NULL,'CC'),
+(1042251558,'edgar dario','badillo macias','edgar.badillo@gmail.com','3000000001','edgar123','2026-02-27 17:33:42',1,'Activo',NULL,NULL,'CC'),
+(1042251706,'moises','garcia urda','moises@gmail.com','3148687899','moises123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1042254436,'daniel david','muñoz montoya','daniel@gmail.com','3000000003','daniel123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1042852867,'gabriella ','julio cantillo','gabriella@gmail.com','3000000001','gabriella123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1043134580,'franklin ','munzon herrera','franklin@gmail.com','3000000002','franklin123','2026-03-02 07:34:30',1,'Activo',NULL,NULL,'CC'),
+(1043665064,'jorge enrique','burgos lopez','jorgeburgos@gmail.com','3254649897','jorgeburgos','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1044600666,'carlos alfonso','arango de la cruz','carlos@gmail.com','3128609809','carlos123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1044604785,'santiago','celin garcia','santiago.celin@gmail.com','3000000004','santiago123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1044607032,'juan david','gutierrez montes','juan@gmail.com','3129800768','juan123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1044607427,'guillermo ','rodriguez trocha','guillermorod@gmail.com','3216475538','guillermo123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1044619072,'isaac david','cantillo julio','isaaccantillo@gmail.com','3127009807','isaaccantillo','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1046696769,'santiago jose','fernandez perez','Fernandezsantiago152@gmail.com','3004504333','santiago123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1046813010,'jailer de jesus','lara pineda','jailer@gmail.com','3000000005','jailer123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1047043541,'isaac david','jimenez perea','isaacjim1706@gmail.com','3017110394','$2b$10$2HX4vqeImjt/CyuBmAB.4uWIWurBj0Rg6dD4YNScZcmLB6ejLQHKq','2026-02-27 16:08:26',1,'Inactivo',NULL,NULL,'CC'),
+(1047222805,'jhon carlos','sarmiento rodriguez','jhon.sarmiento@gmail.com','3000000006','jhon123','2025-10-14 18:26:15',1,'Activo',NULL,NULL,'CC'),
+(1047336800,'luis gabriel','villareal chico','luis@gmail.com','3006574678','luis123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1048068189,'edgar isacc ','aroca yanes','edgar.aroca@gmail.com','3000000002','edgar123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1048069515,'juan david','orozco almanza','juanorozco@gmail.com','3241756688','juanorozco','2026-02-27 22:03:47',1,'Activo',NULL,NULL,'CC'),
+(1048277496,'ricardo rafael','retamoso gutierrez','ricardo@gmail.com','3000000004','ricardo123','2026-01-31 18:26:03',1,'Activo',NULL,NULL,'CC'),
+(1049931166,'estuardo jesus','villadiego obrian','estuardo@gmail.com','3000000003','estuardo123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1080570745,'briyith lorena','padilla alfaro','briyith@gmail.com','3246757886','briyith123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1081914694,'luisa fernanda','arrieta marquez','luisa@gmail.com','3127688966','luisa123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1085046441,'Jorje luis','Oliveros Mora','oliverosmorjorgeluis@gmail.com','3148606444','jorge123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1129534383,'camilo andres ','villalobos fernandez','camilo@gmail.com ','3247648989','camilo123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1130267265,'yeilis paola','mendoza blanco','yeilismendoza26@gmail.com','3106298355','yeilis123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC'),
+(1234567890,'Elemir elias','Gomez zarso','isaacjim1706@gmail.com','3013677446','$2b$10$9Yi.nACflwrIn68G0gSbteSxLg90rHD9k35Z.0sybzu5N66i3MWJi','2026-03-05 19:51:55',3,'Activo',NULL,NULL,'CC'),
+(1526781502,'Angie','Vides','an.v@gmail.com','3247823561','$2b$10$HbPugRK1J3g/OMkFoXN8ROPv/iWjWC5xAMZX/NF1Kz4K4.uAUN41e','2026-03-07 16:09:51',1,'Activo',NULL,'Mujer','TI'),
+(1890725347,'Andres David','Riveras Castro','andres@gmail.com','3678923451','$2b$10$/jtPPikA4qfkpnh3gKPJteLu3blXP.u.2qUlVb1REIWZT3URJYUmO','2026-03-07 13:07:49',1,'Activo',NULL,'Hombre','CC'),
+(3789156322,'Adriana','Buelvas','sther@hotmail.com','3561238946','$2b$10$R2dNgl2kZrVwjUO1qH/60eTDNPJVp75WmFYKbUEwarblfCg2sLzJ6','2026-03-07 16:09:51',2,'Activo','ARTES GRÁFICAS',NULL,'CC');
 
-UPDATE `usuario`
-SET `usu_estado` = 'Inactivo'
-WHERE `usu_cedula` = 1047043541;
+/*Table structure for table `cambios_sistema` */
+
+DROP TABLE IF EXISTS `cambios_sistema`;
+
+CREATE TABLE `cambios_sistema` (
+  `cam_ID` int(11) NOT NULL AUTO_INCREMENT COMMENT 'id del cambio del sistema',
+  `cam_descripcion` varchar(500) NOT NULL COMMENT 'descripcion del cambio',
+  `usu_cedula_FK` bigint(20) NOT NULL COMMENT 'cedula del usuario que realiza el cambio',
+  `cam_observado` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0 pendiente, 1 observado',
+  `cam_fecha` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'fecha del cambio',
+  `cam_fecha_observado` datetime DEFAULT NULL COMMENT 'fecha en que se marco como observado',
+  PRIMARY KEY (`cam_ID`),
+  KEY `idx_cam_observado` (`cam_observado`),
+  KEY `usu_cedula_FK` (`usu_cedula_FK`),
+  CONSTRAINT `cambios_sistema_ibfk_1` FOREIGN KEY (`usu_cedula_FK`) REFERENCES `usuario` (`usu_cedula`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Table structure for table `usuario_ficha` */
 
 DROP TABLE IF EXISTS `usuario_ficha`;
 
 CREATE TABLE `usuario_ficha` (
-  `usu_cedula_FK` bigint(20) NOT NULL COMMENT 'cedula del usuario',
+  `usu_cedula_FK` bigint(20) NOT NULL,
   `fic_numero_FK` int(11) NOT NULL COMMENT 'numero de la ficha',
   `usf_fecha_asignacion` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'fecha de asignacion del usuario a la ficha',
   PRIMARY KEY (`usu_cedula_FK`,`fic_numero_FK`),
@@ -828,26 +873,53 @@ CREATE TABLE `usuario_ficha` (
 
 /*Data for the table `usuario_ficha` */
 
-insert into `usuario_ficha`(`usu_cedula_FK`,`fic_numero_FK`,`usf_fecha_asignacion`) values
+insert  into `usuario_ficha`(`usu_cedula_FK`,`fic_numero_FK`,`usf_fecha_asignacion`) values 
+(1678922,8713657,'2026-03-07 16:09:52'),
+(7812455,8924511,'2026-03-07 16:09:51'),
+(990000001,2998937,'2026-03-07 15:37:25'),
+(1000000001,1234567,'2025-11-26 14:30:23'),
+(1000000001,2998937,'2026-03-07 14:28:09'),
 (1000000001,8923567,'2025-09-24 06:24:19'),
-(1000000002,2998937,'2026-02-27 22:04:25');
+(1000000002,2998937,'2026-02-27 22:04:25'),
+(1001855307,2998937,'2026-01-19 17:20:36'),
+(1010006601,2998937,'2026-03-05 19:51:55'),
+(1016011848,2998937,'2026-01-18 17:33:09'),
+(1042251558,2998937,'2026-02-27 17:33:42'),
+(1042251706,2998937,'2026-03-05 19:51:55'),
+(1042254436,2998937,'2026-03-05 19:51:55'),
+(1042852867,2998937,'2026-03-05 19:51:55'),
+(1043134580,2998937,'2026-03-02 07:34:30'),
+(1043665064,2998937,'2026-03-05 19:51:55'),
+(1044600666,2998937,'2026-03-05 19:51:55'),
+(1044604785,2998937,'2026-03-05 19:51:55'),
+(1044607032,2998937,'2026-03-05 19:51:55'),
+(1044607427,2998937,'2026-03-05 19:51:55'),
+(1044619072,2998937,'2026-03-05 19:51:55'),
+(1046696769,2998937,'2026-03-05 19:51:55'),
+(1046813010,2998937,'2026-03-05 19:51:55'),
+(1047043541,2998937,'2026-02-27 16:08:26'),
+(1047222805,2998937,'2025-10-14 18:26:15'),
+(1047336800,2998937,'2026-03-05 19:51:55'),
+(1048068189,2998937,'2026-03-05 19:51:55'),
+(1048069515,2998937,'2026-02-27 22:03:47'),
+(1048277496,2998937,'2026-01-31 18:26:03'),
+(1049931166,2998937,'2026-03-05 19:51:55'),
+(1080570745,2998937,'2026-03-05 19:51:55'),
+(1081914694,2998937,'2026-03-05 19:51:55'),
+(1085046441,2998937,'2026-03-05 19:51:55'),
+(1129534383,2998937,'2026-03-05 19:51:55'),
+(1130267265,2998937,'2026-03-05 19:51:55'),
+(1526781502,2998937,'2026-03-07 16:09:51'),
+(1890725347,2998937,'2026-03-07 13:07:49'),
+(3789156322,8924517,'2026-03-07 16:09:51');
 
-insert into `usuario_ficha`(`usu_cedula_FK`,`fic_numero_FK`,`usf_fecha_asignacion`)
-select
-  `usu_cedula`,
-  2998937,
-  `fecha_registro`
-from `usuario`
-where `rol_sis_ID_FK` = 1;
-
-DROP TRIGGER IF EXISTS `trg_usuario_ficha_validar_insert`;
-DROP TRIGGER IF EXISTS `trg_usuario_ficha_validar_update`;
+/* Trigger structure for table `usuario_ficha` */
 
 DELIMITER $$
 
-CREATE TRIGGER `trg_usuario_ficha_validar_insert`
-BEFORE INSERT ON `usuario_ficha`
-FOR EACH ROW
+/*!50003 DROP TRIGGER*//*!50032 IF EXISTS */ /*!50003 `trg_usuario_ficha_validar_insert` */$$
+
+/*!50003 CREATE */ /*!50017 DEFINER = 'root'@'localhost' */ /*!50003 TRIGGER `trg_usuario_ficha_validar_insert` BEFORE INSERT ON `usuario_ficha` FOR EACH ROW 
 BEGIN
   DECLARE v_rol int;
 
@@ -864,7 +936,7 @@ BEGIN
 
   IF v_rol NOT IN (1,2) THEN
     SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'Solo aprendices e instructores pueden tener Fichas a Cargo.';
+      SET MESSAGE_TEXT = 'Solo aprendices e instructores pueden tener fichas asignadas.';
   END IF;
 
   IF v_rol = 1 AND EXISTS (
@@ -875,11 +947,18 @@ BEGIN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'Un aprendiz solo puede tener una ficha asignada.';
   END IF;
-END$$
+END */$$
 
-CREATE TRIGGER `trg_usuario_ficha_validar_update`
-BEFORE UPDATE ON `usuario_ficha`
-FOR EACH ROW
+
+DELIMITER ;
+
+/* Trigger structure for table `usuario_ficha` */
+
+DELIMITER $$
+
+/*!50003 DROP TRIGGER*//*!50032 IF EXISTS */ /*!50003 `trg_usuario_ficha_validar_update` */$$
+
+/*!50003 CREATE */ /*!50017 DEFINER = 'root'@'localhost' */ /*!50003 TRIGGER `trg_usuario_ficha_validar_update` BEFORE UPDATE ON `usuario_ficha` FOR EACH ROW 
 BEGIN
   DECLARE v_rol int;
 
@@ -896,7 +975,7 @@ BEGIN
 
   IF v_rol NOT IN (1,2) THEN
     SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'Solo aprendices e instructores pueden tener Fichas a Cargo.';
+      SET MESSAGE_TEXT = 'Solo aprendices e instructores pueden tener fichas asignadas.';
   END IF;
 
   IF v_rol = 1 AND EXISTS (
@@ -911,7 +990,8 @@ BEGIN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'Un aprendiz solo puede tener una ficha asignada.';
   END IF;
-END$$
+END */$$
+
 
 DELIMITER ;
 

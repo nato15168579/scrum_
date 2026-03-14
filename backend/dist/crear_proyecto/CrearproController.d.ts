@@ -12,5 +12,6 @@ export declare class CrearproController {
         fechaInicio?: string;
         fechaFin?: string;
         cedula: number;
+        fichaNumero?: number | string | null;
     }): Promise<import("../entities/Proyecto").Proyecto>;
 }

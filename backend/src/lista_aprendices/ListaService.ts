@@ -31,6 +31,7 @@ import {
   InstructorResponse,
   QueryExecutor,
   UpdateAprendizDto,
+  UpdateFichaDto,
   UpdateInstructorDto,
 } from './ListaTypes';
 
@@ -553,6 +554,114 @@ export class ListaService {
     return String(value ?? '').trim();
   }
 
+  private normalizeCedula(value?: string) {
+    const parsed = Number(this.sanitizeText(value));
+    if (!parsed || Number.isNaN(parsed)) {
+      return null;
+    }
+
+    return parsed;
+  }
+
+  private formatCambioSistemaValue(value: unknown, maxLen = 90) {
+    const raw = this.sanitizeText(value);
+    const printable = raw ? raw : '(vacio)';
+    const clipped =
+      printable.length > maxLen
+        ? `${printable.slice(0, Math.max(0, maxLen - 3))}...`
+        : printable;
+
+    return JSON.stringify(clipped);
+  }
+
+  private formatCambioSistemaList(values: number[], maxLen = 220) {
+    const normalized = Array.from(new Set(values))
+      .filter((item) => !Number.isNaN(item) && item > 0)
+      .sort((a, b) => a - b);
+
+    const json = JSON.stringify(normalized);
+    if (json.length <= maxLen) {
+      return json;
+    }
+
+    return `${json.slice(0, Math.max(0, maxLen - 3))}...`;
+  }
+
+  private pushCambioSistemaIfDifferent(
+    cambios: string[],
+    label: string,
+    before: unknown,
+    after: unknown,
+  ) {
+    const beforeValue = this.sanitizeText(before);
+    const afterValue = this.sanitizeText(after);
+    if (beforeValue === afterValue) {
+      return;
+    }
+
+    cambios.push(
+      `${label}: ${this.formatCambioSistemaValue(before)} -> ${this.formatCambioSistemaValue(after)}`,
+    );
+  }
+
+  private pushCambioSistemaListIfDifferent(
+    cambios: string[],
+    label: string,
+    before: number[],
+    after: number[],
+  ) {
+    const beforeNormalized = Array.from(new Set(before))
+      .filter((item) => !Number.isNaN(item) && item > 0)
+      .sort((a, b) => a - b);
+    const afterNormalized = Array.from(new Set(after))
+      .filter((item) => !Number.isNaN(item) && item > 0)
+      .sort((a, b) => a - b);
+
+    const sameLength = beforeNormalized.length === afterNormalized.length;
+    const sameItems =
+      sameLength &&
+      beforeNormalized.every((value, index) => value === afterNormalized[index]);
+
+    if (sameItems) {
+      return;
+    }
+
+    cambios.push(
+      `${label}: ${this.formatCambioSistemaList(beforeNormalized)} -> ${this.formatCambioSistemaList(afterNormalized)}`,
+    );
+  }
+
+  private async insertCambioSistema(
+    queryExecutor: QueryExecutor,
+    actorCedula: number | null,
+    descripcion: string,
+  ) {
+    if (!actorCedula) {
+      return;
+    }
+
+    const mensaje = this.sanitizeText(descripcion).slice(0, 500);
+    if (!mensaje) {
+      return;
+    }
+
+    try {
+      if (!(await this.tableExists('cambios_sistema'))) {
+        return;
+      }
+
+      await queryExecutor.query(
+        `
+          INSERT INTO cambios_sistema (cam_descripcion, usu_cedula_FK)
+          VALUES (?, ?)
+        `,
+        [mensaje, actorCedula],
+      );
+    } catch {
+      // No bloquear operaciones del panel admin si la tabla no esta disponible.
+    }
+  }
+
   private buildDefaultPassword(nombre: string) {
     const normalizedFirstName = this.sanitizeText(nombre)
       .split(/\s+/)
@@ -850,6 +959,622 @@ export class ListaService {
         estado: fichaEstado,
       },
     };
+  }
+
+  async updateFicha(numero: string, payload: UpdateFichaDto, actorCedula?: string) {
+    await this.ensureFichaSchema();
+
+    const fichaNumero = Number(this.sanitizeText(numero));
+    if (!fichaNumero || Number.isNaN(fichaNumero)) {
+      throw new BadRequestException('El numero de ficha es invalido.');
+    }
+
+    const actorDocumento = this.normalizeCedula(actorCedula);
+    const fichaExistente = await this.getFichaByNumero(fichaNumero);
+
+    if (!fichaExistente) {
+      throw new NotFoundException(`No se encontro la ficha ${fichaNumero}.`);
+    }
+
+    const fichaNombreColumn = await this.getFichaNombreColumn();
+    const allowCustomCatalogValues = Boolean(payload.allowCustomCatalogValues);
+
+    const nombre = this.sanitizeText(payload.nombre ?? fichaExistente.fichaNombre);
+    const programa = this.sanitizeText(
+      payload.programa ?? fichaExistente.programa ?? fichaExistente.fic_programa,
+    );
+    const estado = this.sanitizeText(
+      payload.estado ?? fichaExistente.estado ?? fichaExistente.fic_estado,
+    );
+
+    if (!nombre) {
+      throw new BadRequestException('El area o nombre de la ficha es obligatorio.');
+    }
+
+    if (!programa) {
+      throw new BadRequestException('El programa de la ficha es obligatorio.');
+    }
+
+    if (estado && !ESTADOS_FICHA.includes(estado as (typeof ESTADOS_FICHA)[number])) {
+      throw new BadRequestException('El estado de la ficha debe ser Activa o Inactiva.');
+    }
+
+    const allowedAreas = await this.getEnumColumnOptions('fichas', fichaNombreColumn);
+    const allowedProgramas = await this.getEnumColumnOptions('fichas', 'fic_programa');
+
+    let normalizedPrograma = allowedProgramas.length
+      ? this.resolveCatalogValue(programa, allowedProgramas)
+      : programa;
+
+    if (!normalizedPrograma) {
+      if (!allowCustomCatalogValues) {
+        throw new BadRequestException(
+          `El programa de la ficha debe ser uno de: ${allowedProgramas.join(', ')}.`,
+        );
+      }
+
+      normalizedPrograma = await this.ensureEnumColumnValue(
+        'fichas',
+        'fic_programa',
+        programa,
+      );
+    }
+
+    let normalizedNombre = allowedAreas.length
+      ? this.resolveCatalogValue(nombre, allowedAreas)
+      : nombre;
+
+    if (!normalizedNombre) {
+      if (!allowCustomCatalogValues) {
+        throw new BadRequestException(
+          `El area de la ficha debe ser una de: ${allowedAreas.join(', ')}.`,
+        );
+      }
+
+      normalizedNombre = await this.ensureEnumColumnValue(
+        'fichas',
+        fichaNombreColumn,
+        nombre,
+      );
+    }
+
+    const fichaEstado = estado || 'Activa';
+    const cambios: string[] = [];
+
+    this.pushCambioSistemaIfDifferent(
+      cambios,
+      'Programa',
+      fichaExistente.programa ?? fichaExistente.fic_programa,
+      normalizedPrograma,
+    );
+    this.pushCambioSistemaIfDifferent(
+      cambios,
+      'Area',
+      fichaExistente.fichaNombre,
+      normalizedNombre,
+    );
+    this.pushCambioSistemaIfDifferent(
+      cambios,
+      'Estado ficha',
+      fichaExistente.estado ?? fichaExistente.fic_estado,
+      fichaEstado,
+    );
+
+    const descripcionCambio =
+      cambios.length > 0
+        ? `Ficha ${fichaNumero} actualizada. ${cambios.join('; ')}`
+        : `Ficha ${fichaNumero} editada. Sin cambios detectados.`;
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.query(
+        `
+          UPDATE fichas
+          SET ${fichaNombreColumn} = ?, fic_programa = ?, fic_estado = ?
+          WHERE fic_numero = ?
+        `,
+        [normalizedNombre, normalizedPrograma, fichaEstado, fichaNumero],
+      );
+
+      await this.insertCambioSistema(queryRunner, actorDocumento, descripcionCambio);
+      await queryRunner.commitTransaction();
+
+      return {
+        ok: true,
+        mensaje: cambios.length > 0
+          ? `Ficha ${fichaNumero} actualizada correctamente.`
+          : `No se detectaron cambios para la ficha ${fichaNumero}.`,
+        ficha: {
+          numero: String(fichaNumero),
+          nombre: normalizedNombre,
+          programa: normalizedPrograma,
+          estado: fichaEstado,
+        },
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      const err = error as { message?: string };
+      throw new InternalServerErrorException(
+        `No se pudo actualizar la ficha: ${err?.message || 'Error interno.'}`,
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async deleteFicha(numero: string, actorCedula?: string) {
+    await this.ensureFichaSchema();
+
+    const fichaNumero = Number(this.sanitizeText(numero));
+    if (!fichaNumero || Number.isNaN(fichaNumero)) {
+      throw new BadRequestException('El numero de ficha es invalido.');
+    }
+
+    const actorDocumento = this.normalizeCedula(actorCedula);
+    const fichaExistente = await this.getFichaByNumero(fichaNumero);
+
+    if (!fichaExistente) {
+      throw new NotFoundException(`No se encontro la ficha ${fichaNumero}.`);
+    }
+
+    const estadoActual = this.sanitizeText(
+      fichaExistente.estado ?? fichaExistente.fic_estado,
+    ) || 'Activa';
+
+    if (estadoActual === 'Inactiva') {
+      return {
+        ok: true,
+        mensaje: `La ficha ${fichaNumero} ya se encuentra Inactiva.`,
+      };
+    }
+
+    const cambios: string[] = [];
+    this.pushCambioSistemaIfDifferent(cambios, 'Estado ficha', estadoActual, 'Inactiva');
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.query(
+        `UPDATE fichas SET fic_estado = 'Inactiva' WHERE fic_numero = ?`,
+        [fichaNumero],
+      );
+
+      await this.insertCambioSistema(
+        queryRunner,
+        actorDocumento,
+        `Ficha ${fichaNumero} eliminada. ${cambios.join('; ')}`,
+      );
+
+      await queryRunner.commitTransaction();
+
+      return {
+        ok: true,
+        mensaje: `Ficha ${fichaNumero} eliminada correctamente.`,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      const err = error as { message?: string };
+      throw new InternalServerErrorException(
+        `No se pudo eliminar la ficha: ${err?.message || 'Error interno.'}`,
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async renamePrograma(
+    payload: { programaActual: string; programaNuevo: string },
+    actorCedula?: string,
+  ) {
+    await this.ensureFichaSchema();
+
+    const actorDocumento = this.normalizeCedula(actorCedula);
+    const programaActualRaw = this.sanitizeText(payload?.programaActual);
+    const programaNuevoRaw = this.sanitizeText(payload?.programaNuevo);
+
+    if (!programaActualRaw) {
+      throw new BadRequestException('El programa actual es obligatorio.');
+    }
+
+    if (!programaNuevoRaw) {
+      throw new BadRequestException('El programa nuevo es obligatorio.');
+    }
+
+    const allowedProgramas = await this.getEnumColumnOptions('fichas', 'fic_programa');
+    const programaActual = allowedProgramas.length
+      ? this.resolveCatalogValue(programaActualRaw, allowedProgramas)
+      : programaActualRaw;
+
+    if (!programaActual) {
+      throw new BadRequestException(
+        `El programa actual debe ser uno de: ${allowedProgramas.join(', ')}.`,
+      );
+    }
+
+    let programaNuevo = allowedProgramas.length
+      ? this.resolveCatalogValue(programaNuevoRaw, allowedProgramas)
+      : programaNuevoRaw;
+
+    if (!programaNuevo) {
+      programaNuevo = await this.ensureEnumColumnValue('fichas', 'fic_programa', programaNuevoRaw);
+    }
+
+    if (this.sanitizeText(programaActual) === this.sanitizeText(programaNuevo)) {
+      return {
+        ok: true,
+        mensaje: 'No se detectaron cambios en el programa.',
+      };
+    }
+
+    const [countRow] = await this.dataSource.query(
+      'SELECT COUNT(*) AS total FROM fichas WHERE fic_programa = ?',
+      [programaActual],
+    );
+
+    const total = Number(countRow?.total || 0);
+    if (!total) {
+      throw new NotFoundException('No se encontraron fichas con el programa indicado.');
+    }
+
+    const cambios: string[] = [];
+    this.pushCambioSistemaIfDifferent(cambios, 'Programa', programaActual, programaNuevo);
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.query(
+        'UPDATE fichas SET fic_programa = ? WHERE fic_programa = ?',
+        [programaNuevo, programaActual],
+      );
+
+      await this.insertCambioSistema(
+        queryRunner,
+        actorDocumento,
+        `Catalogo de programas actualizado. ${cambios.join('; ')}. Fichas afectadas: ${total}.`,
+      );
+
+      await queryRunner.commitTransaction();
+
+      return {
+        ok: true,
+        mensaje: 'Programa actualizado correctamente.',
+        fichasAfectadas: total,
+        antes: programaActual,
+        despues: programaNuevo,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      const err = error as { message?: string };
+      throw new InternalServerErrorException(
+        `No se pudo actualizar el programa: ${err?.message || 'Error interno.'}`,
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async deletePrograma(payload: { programa: string }, actorCedula?: string) {
+    await this.ensureFichaSchema();
+
+    const actorDocumento = this.normalizeCedula(actorCedula);
+    const programaRaw = this.sanitizeText(payload?.programa);
+
+    if (!programaRaw) {
+      throw new BadRequestException('El programa es obligatorio.');
+    }
+
+    const allowedProgramas = await this.getEnumColumnOptions('fichas', 'fic_programa');
+    const programa = allowedProgramas.length
+      ? this.resolveCatalogValue(programaRaw, allowedProgramas)
+      : programaRaw;
+
+    if (!programa) {
+      throw new BadRequestException(
+        `El programa debe ser uno de: ${allowedProgramas.join(', ')}.`,
+      );
+    }
+
+    const [countRow] = await this.dataSource.query(
+      'SELECT COUNT(*) AS total FROM fichas WHERE fic_programa = ?',
+      [programa],
+    );
+
+    const total = Number(countRow?.total || 0);
+    if (!total) {
+      throw new NotFoundException('No se encontraron fichas con el programa indicado.');
+    }
+
+    const column = await this.getColumnMetadata('fichas', 'fic_programa');
+    const isNullable = String(column?.isNullable || '').toUpperCase() === 'YES';
+
+    let replacementValue: string | null = null;
+
+    if (!isNullable) {
+      replacementValue = await this.ensureEnumColumnValue('fichas', 'fic_programa', 'Sin programa');
+    }
+
+    const cambios: string[] = [];
+    this.pushCambioSistemaIfDifferent(cambios, 'Programa', programa, replacementValue ?? '');
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      if (replacementValue === null) {
+        await queryRunner.query(
+          'UPDATE fichas SET fic_programa = NULL WHERE fic_programa = ?',
+          [programa],
+        );
+      } else {
+        await queryRunner.query(
+          'UPDATE fichas SET fic_programa = ? WHERE fic_programa = ?',
+          [replacementValue, programa],
+        );
+      }
+
+      await this.insertCambioSistema(
+        queryRunner,
+        actorDocumento,
+        `Programa eliminado. ${cambios.join('; ')}. Fichas afectadas: ${total}.`,
+      );
+
+      await queryRunner.commitTransaction();
+
+      return {
+        ok: true,
+        mensaje: 'Programa eliminado correctamente.',
+        fichasAfectadas: total,
+        programa,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      const err = error as { message?: string };
+      throw new InternalServerErrorException(
+        `No se pudo eliminar el programa: ${err?.message || 'Error interno.'}`,
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async renameArea(
+    payload: { programa?: string | null; areaActual: string; areaNueva: string },
+    actorCedula?: string,
+  ) {
+    await this.ensureFichaSchema();
+
+    const actorDocumento = this.normalizeCedula(actorCedula);
+    const fichaNombreColumn = await this.getFichaNombreColumn();
+
+    const programaRaw = this.sanitizeText(payload?.programa);
+    const areaActualRaw = this.sanitizeText(payload?.areaActual);
+    const areaNuevaRaw = this.sanitizeText(payload?.areaNueva);
+
+    if (!areaActualRaw) {
+      throw new BadRequestException('El area actual es obligatoria.');
+    }
+
+    if (!areaNuevaRaw) {
+      throw new BadRequestException('El area nueva es obligatoria.');
+    }
+
+    const allowedAreas = await this.getEnumColumnOptions('fichas', fichaNombreColumn);
+    const allowedProgramas = await this.getEnumColumnOptions('fichas', 'fic_programa');
+
+    const areaActual = allowedAreas.length
+      ? this.resolveCatalogValue(areaActualRaw, allowedAreas)
+      : areaActualRaw;
+
+    if (!areaActual) {
+      throw new BadRequestException(
+        `El area actual debe ser una de: ${allowedAreas.join(', ')}.`,
+      );
+    }
+
+    let areaNueva = allowedAreas.length
+      ? this.resolveCatalogValue(areaNuevaRaw, allowedAreas)
+      : areaNuevaRaw;
+
+    if (!areaNueva) {
+      areaNueva = await this.ensureEnumColumnValue('fichas', fichaNombreColumn, areaNuevaRaw);
+    }
+
+    if (this.sanitizeText(areaActual) === this.sanitizeText(areaNueva)) {
+      return { ok: true, mensaje: 'No se detectaron cambios en el area.' };
+    }
+
+    const programa = programaRaw
+      ? allowedProgramas.length
+        ? this.resolveCatalogValue(programaRaw, allowedProgramas)
+        : programaRaw
+      : '';
+
+    if (programaRaw && !programa) {
+      throw new BadRequestException(
+        `El programa debe ser uno de: ${allowedProgramas.join(', ')}.`,
+      );
+    }
+
+    const whereSql = programa
+      ? `WHERE ${fichaNombreColumn} = ? AND fic_programa = ?`
+      : `WHERE ${fichaNombreColumn} = ?`;
+
+    const countParams = programa ? [areaActual, programa] : [areaActual];
+
+    const [countRow] = await this.dataSource.query(
+      `SELECT COUNT(*) AS total FROM fichas ${whereSql}`,
+      countParams,
+    );
+
+    const total = Number(countRow?.total || 0);
+    if (!total) {
+      throw new NotFoundException('No se encontraron fichas con el area indicada.');
+    }
+
+    const cambios: string[] = [];
+    this.pushCambioSistemaIfDifferent(cambios, 'Area', areaActual, areaNueva);
+    if (programa) {
+      this.pushCambioSistemaIfDifferent(cambios, 'Programa', programa, programa);
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const updateSql = programa
+        ? `UPDATE fichas SET ${fichaNombreColumn} = ? WHERE ${fichaNombreColumn} = ? AND fic_programa = ?`
+        : `UPDATE fichas SET ${fichaNombreColumn} = ? WHERE ${fichaNombreColumn} = ?`;
+
+      const updateParams = programa
+        ? [areaNueva, areaActual, programa]
+        : [areaNueva, areaActual];
+
+      await queryRunner.query(updateSql, updateParams);
+
+      await this.insertCambioSistema(
+        queryRunner,
+        actorDocumento,
+        `Catalogo de areas actualizado. ${cambios.join('; ')}. Fichas afectadas: ${total}.`,
+      );
+
+      await queryRunner.commitTransaction();
+
+      return {
+        ok: true,
+        mensaje: 'Area actualizada correctamente.',
+        fichasAfectadas: total,
+        antes: areaActual,
+        despues: areaNueva,
+        programa: programa || null,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      const err = error as { message?: string };
+      throw new InternalServerErrorException(
+        `No se pudo actualizar el area: ${err?.message || 'Error interno.'}`,
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async deleteArea(payload: { programa?: string | null; area: string }, actorCedula?: string) {
+    await this.ensureFichaSchema();
+
+    const actorDocumento = this.normalizeCedula(actorCedula);
+    const fichaNombreColumn = await this.getFichaNombreColumn();
+
+    const programaRaw = this.sanitizeText(payload?.programa);
+    const areaRaw = this.sanitizeText(payload?.area);
+
+    if (!areaRaw) {
+      throw new BadRequestException('El area es obligatoria.');
+    }
+
+    const allowedAreas = await this.getEnumColumnOptions('fichas', fichaNombreColumn);
+    const allowedProgramas = await this.getEnumColumnOptions('fichas', 'fic_programa');
+
+    const area = allowedAreas.length
+      ? this.resolveCatalogValue(areaRaw, allowedAreas)
+      : areaRaw;
+
+    if (!area) {
+      throw new BadRequestException(
+        `El area debe ser una de: ${allowedAreas.join(', ')}.`,
+      );
+    }
+
+    const programa = programaRaw
+      ? allowedProgramas.length
+        ? this.resolveCatalogValue(programaRaw, allowedProgramas)
+        : programaRaw
+      : '';
+
+    if (programaRaw && !programa) {
+      throw new BadRequestException(
+        `El programa debe ser uno de: ${allowedProgramas.join(', ')}.`,
+      );
+    }
+
+    const whereSql = programa
+      ? `WHERE ${fichaNombreColumn} = ? AND fic_programa = ?`
+      : `WHERE ${fichaNombreColumn} = ?`;
+
+    const countParams = programa ? [area, programa] : [area];
+
+    const [countRow] = await this.dataSource.query(
+      `SELECT COUNT(*) AS total FROM fichas ${whereSql}`,
+      countParams,
+    );
+
+    const total = Number(countRow?.total || 0);
+    if (!total) {
+      throw new NotFoundException('No se encontraron fichas con el area indicada.');
+    }
+
+    const column = await this.getColumnMetadata('fichas', fichaNombreColumn);
+    const isNullable = String(column?.isNullable || '').toUpperCase() === 'YES';
+    let replacementValue: string | null = null;
+
+    if (!isNullable) {
+      replacementValue = await this.ensureEnumColumnValue('fichas', fichaNombreColumn, 'Sin area');
+    }
+
+    const cambios: string[] = [];
+    this.pushCambioSistemaIfDifferent(cambios, 'Area', area, replacementValue ?? '');
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const updateSql = programa
+        ? `UPDATE fichas SET ${fichaNombreColumn} = ${replacementValue === null ? 'NULL' : '?'} WHERE ${fichaNombreColumn} = ? AND fic_programa = ?`
+        : `UPDATE fichas SET ${fichaNombreColumn} = ${replacementValue === null ? 'NULL' : '?'} WHERE ${fichaNombreColumn} = ?`;
+
+      const updateParams = replacementValue === null
+        ? programa
+          ? [area, programa]
+          : [area]
+        : programa
+          ? [replacementValue, area, programa]
+          : [replacementValue, area];
+
+      await queryRunner.query(updateSql, updateParams);
+
+      await this.insertCambioSistema(
+        queryRunner,
+        actorDocumento,
+        `Area eliminada. ${cambios.join('; ')}. Fichas afectadas: ${total}.`,
+      );
+
+      await queryRunner.commitTransaction();
+
+      return {
+        ok: true,
+        mensaje: 'Area eliminada correctamente.',
+        fichasAfectadas: total,
+        area,
+        programa: programa || null,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      const err = error as { message?: string };
+      throw new InternalServerErrorException(
+        `No se pudo eliminar el area: ${err?.message || 'Error interno.'}`,
+      );
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async importUsuarios(rows: ImportUsuarioDto[]) {
@@ -1520,7 +2245,7 @@ export class ListaService {
     }
   }
 
-  async updateAprendiz(cedula: string, payload: UpdateAprendizDto) {
+  async updateAprendiz(cedula: string, payload: UpdateAprendizDto, actorCedula?: string) {
     await this.ensureUsuarioColumns();
     await this.ensureFichaSchema();
 
@@ -1528,6 +2253,8 @@ export class ListaService {
     if (!documento || Number.isNaN(documento)) {
       throw new BadRequestException('La cedula del aprendiz es invalida.');
     }
+
+    const actorDocumento = this.normalizeCedula(actorCedula);
 
     const aprendiz = await this.usuarioRepository.findOne({
       where: {
@@ -1586,6 +2313,29 @@ export class ListaService {
       throw new BadRequestException('La ficha seleccionada no esta activa.');
     }
 
+    const cambios: string[] = [];
+    this.pushCambioSistemaIfDifferent(cambios, 'Nombre', aprendiz.usuNombres, nombre);
+    this.pushCambioSistemaIfDifferent(
+      cambios,
+      'Apellidos',
+      aprendiz.usuApellidos,
+      apellidos,
+    );
+    this.pushCambioSistemaIfDifferent(cambios, 'Correo', aprendiz.usuCorreo, correo);
+    this.pushCambioSistemaIfDifferent(
+      cambios,
+      'Telefono',
+      aprendiz.usuTelefono,
+      telefono,
+    );
+    this.pushCambioSistemaIfDifferent(cambios, 'Sexo', aprendiz.usuSexo, sexo);
+    this.pushCambioSistemaIfDifferent(cambios, 'Estado', aprendiz.usuEstado, estado);
+    this.pushCambioSistemaIfDifferent(cambios, 'Ficha', fichaActual?.ficha, fichaNumero);
+
+    const descripcionCambio = cambios.length
+      ? `Actualizo aprendiz ${documento} (${nombre} ${apellidos}). Cambios: ${cambios.join('; ')}`
+      : `Actualizo aprendiz ${documento} (${nombre} ${apellidos}). Sin cambios detectados.`;
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -1617,6 +2367,12 @@ export class ListaService {
           fichaNumero,
           fichaActual?.fechaAsignacion || new Date(),
         ],
+      );
+
+      await this.insertCambioSistema(
+        queryRunner,
+        actorDocumento,
+        descripcionCambio,
       );
 
       await queryRunner.commitTransaction();
@@ -1651,7 +2407,7 @@ export class ListaService {
     }
   }
 
-  async updateInstructor(cedula: string, payload: UpdateInstructorDto) {
+  async updateInstructor(cedula: string, payload: UpdateInstructorDto, actorCedula?: string) {
     await this.ensureUsuarioColumns();
     await this.ensureFichaSchema();
 
@@ -1659,6 +2415,8 @@ export class ListaService {
     if (!documento || Number.isNaN(documento)) {
       throw new BadRequestException('La cedula del instructor es invalida.');
     }
+
+    const actorDocumento = this.normalizeCedula(actorCedula);
 
     const instructor = await this.usuarioRepository.findOne({
       where: {
@@ -1718,6 +2476,46 @@ export class ListaService {
       throw new NotFoundException('Una o varias fichas seleccionadas no existen.');
     }
 
+    const fichasAntes = shouldUpdateFichas
+      ? await this.getFichasAsignadasUsuario(documento)
+      : null;
+
+    const cambios: string[] = [];
+    this.pushCambioSistemaIfDifferent(cambios, 'Nombre', instructor.usuNombres, nombre);
+    this.pushCambioSistemaIfDifferent(
+      cambios,
+      'Apellidos',
+      instructor.usuApellidos,
+      apellidos,
+    );
+    this.pushCambioSistemaIfDifferent(cambios, 'Correo', instructor.usuCorreo, correo);
+    this.pushCambioSistemaIfDifferent(
+      cambios,
+      'Telefono',
+      instructor.usuTelefono,
+      telefono,
+    );
+    this.pushCambioSistemaIfDifferent(cambios, 'Sexo', instructor.usuSexo, sexo);
+    this.pushCambioSistemaIfDifferent(
+      cambios,
+      'Especializacion',
+      instructor.usuEspecializacion,
+      especializacion,
+    );
+
+    if (shouldUpdateFichas && fichasAntes) {
+      this.pushCambioSistemaListIfDifferent(
+        cambios,
+        'Fichas',
+        fichasAntes,
+        fichasSeleccionadas,
+      );
+    }
+
+    const descripcionCambio = cambios.length
+      ? `Actualizo instructor ${documento} (${nombre} ${apellidos}). Cambios: ${cambios.join('; ')}`
+      : `Actualizo instructor ${documento} (${nombre} ${apellidos}). Sin cambios detectados.`;
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -1750,6 +2548,12 @@ export class ListaService {
         }
       }
 
+      await this.insertCambioSistema(
+        queryRunner,
+        actorDocumento,
+        descripcionCambio,
+      );
+
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -1780,11 +2584,13 @@ export class ListaService {
     };
   }
 
-  async deleteAprendiz(cedula: string) {
+  async deleteAprendiz(cedula: string, actorCedula?: string) {
     const documento = Number(cedula);
     if (!documento || Number.isNaN(documento)) {
       throw new BadRequestException('La cedula del aprendiz es invalida.');
     }
+
+    const actorDocumento = this.normalizeCedula(actorCedula);
 
     const aprendiz = await this.usuarioRepository.findOne({
       where: {
@@ -1810,6 +2616,12 @@ export class ListaService {
         [documento],
       );
 
+      await this.insertCambioSistema(
+        queryRunner,
+        actorDocumento,
+        `Elimino aprendiz ${documento} (${aprendiz.usuNombres || ''} ${aprendiz.usuApellidos || ''})`,
+      );
+
       await queryRunner.commitTransaction();
 
       return {
@@ -1828,11 +2640,13 @@ export class ListaService {
     }
   }
 
-  async deleteInstructor(cedula: string) {
+  async deleteInstructor(cedula: string, actorCedula?: string) {
     const documento = Number(cedula);
     if (!documento || Number.isNaN(documento)) {
       throw new BadRequestException('La cedula del instructor es invalida.');
     }
+
+    const actorDocumento = this.normalizeCedula(actorCedula);
 
     const instructor = await this.usuarioRepository.findOne({
       where: {
@@ -1856,6 +2670,12 @@ export class ListaService {
       await queryRunner.query(
         'DELETE FROM usuario WHERE usu_cedula = ? AND rol_sis_ID_FK = 2',
         [documento],
+      );
+
+      await this.insertCambioSistema(
+        queryRunner,
+        actorDocumento,
+        `Elimino instructor ${documento} (${instructor.usuNombres || ''} ${instructor.usuApellidos || ''})`,
       );
 
       await queryRunner.commitTransaction();

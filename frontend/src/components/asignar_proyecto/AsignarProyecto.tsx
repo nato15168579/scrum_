@@ -9,7 +9,7 @@ import senaLogo from '../../assets/sena.png';
 import '../dashboard_instructor/Dashboard.css'; 
 import './AsignarProyecto.css'; 
 import { API_URL } from '../../config/Api';
-import { resolveUserName } from '../../utils/session';
+import { resolveUserName } from '../../session/session';
 
 interface ProyectoAsignado {
     pro_ID: number;

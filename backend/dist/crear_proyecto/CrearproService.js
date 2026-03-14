@@ -41,6 +41,21 @@ let CrearproService = class CrearproService {
     `, [proyectoTableName]);
         return Array.isArray(result) && result.length > 0;
     }
+    async ensureFichaProyectoSchema() {
+        const escapedProjectTableName = this.getEscapedProjectTableName();
+        await this.proyectoRepository.query(`
+      CREATE TABLE IF NOT EXISTS \`ficha_proyecto\` (
+        \`pro_ID_FK\` int(11) NOT NULL COMMENT 'id del proyecto asociado a la ficha',
+        \`fic_numero_FK\` int(11) NOT NULL COMMENT 'numero de ficha asociada al proyecto',
+        \`fip_fecha_asignacion\` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'fecha de asignacion del proyecto a la ficha',
+        PRIMARY KEY (\`pro_ID_FK\`),
+        KEY \`idx_ficha_proyecto_ficha\` (\`fic_numero_FK\`),
+        CONSTRAINT \`ficha_proyecto_ibfk_1\` FOREIGN KEY (\`pro_ID_FK\`) REFERENCES ${escapedProjectTableName} (\`pro_ID\`),
+        CONSTRAINT \`ficha_proyecto_ibfk_2\` FOREIGN KEY (\`fic_numero_FK\`) REFERENCES \`fichas\` (\`fic_numero\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+    `);
+        return true;
+    }
     async ensureProjectCodeSchema() {
         const hasProjectCodeColumn = await this.projectCodeColumnExists();
         const escapedTableName = this.getEscapedProjectTableName();
@@ -109,6 +124,16 @@ let CrearproService = class CrearproService {
             const fechaFinNormalizada = typeof data.fechaFin === 'string'
                 ? (data.fechaFin.trim() || null)
                 : data.fecha;
+            const fichaRaw = typeof data.fichaNumero === 'string'
+                ? data.fichaNumero.trim()
+                : data.fichaNumero;
+            const fichaNumero = fichaRaw === null || fichaRaw === undefined || fichaRaw === ''
+                ? null
+                : Number(fichaRaw);
+            if (fichaNumero !== null &&
+                (Number.isNaN(fichaNumero) || fichaNumero <= 0)) {
+                throw new common_1.BadRequestException('La ficha seleccionada no es valida.');
+            }
             const relacion = await this.usuRepository.findOne({
                 where: { detParId: data.cedula }
             });
@@ -127,7 +152,16 @@ let CrearproService = class CrearproService {
             if (hasProjectCodeColumn && codigoProyecto) {
                 nuevoProyecto.proCodigo = codigoProyecto;
             }
-            return await this.proyectoRepository.save(nuevoProyecto);
+            const saved = await this.proyectoRepository.save(nuevoProyecto);
+            if (fichaNumero !== null) {
+                await this.ensureFichaProyectoSchema();
+                await this.proyectoRepository.query(`
+          INSERT INTO \`ficha_proyecto\` (pro_ID_FK, fic_numero_FK)
+          VALUES (?, ?)
+          ON DUPLICATE KEY UPDATE fic_numero_FK = VALUES(fic_numero_FK)
+        `, [nuevoId, fichaNumero]);
+            }
+            return saved;
         }
         catch (error) {
             console.error("ERROR CRÍTICO:", error);

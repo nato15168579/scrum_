@@ -26,12 +26,13 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import "./ListaInstructores.css";
 import { API_URL } from "../../../config/Api";
-import { resolveUserName } from "../../../utils/session";
-import AdminLogoutModal from "../shared/AdminLogoutModal";
-import AdminProfileMenu from "../shared/AdminProfileMenu";
-import AdminSidebar from "../shared/AdminSidebar";
-import { logoutAndRedirect, requireAdminAccess } from "../shared/adminSession";
-import { useClickOutside } from "../shared/useClickOutside";
+import { resolveUserName } from "../../../session/session";
+import AdminLogoutModal from "../modals/AdminLogoutModal";
+import AdminTimedAlert from "../feedback/AdminTimedAlert";
+import AdminProfileMenu from "../layout/AdminProfileMenu";
+import AdminSidebar from "../layout/AdminSidebar";
+import { logoutAndRedirect, requireAdminAccess } from "../session/adminSession";
+import { useClickOutside } from "../hooks/useClickOutside";
 
 interface FichaDetalle {
   ficha: string;
@@ -103,6 +104,7 @@ type FilterKey =
   | "fichasCargo";
 
 const ITEMS_PER_PAGE = 10;
+const ROW_FADE_DURATION_MS = 420;
 
 // ---------------------------------------------------------------------------
 // Normalizadores y helpers de compatibilidad
@@ -329,6 +331,7 @@ const ListaInstructoresAdmin = () => {
   const [adminName, setAdminName] = useState(() =>
     resolveUserName(undefined, "Usuario"),
   );
+  const [adminCedula, setAdminCedula] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [fichasModalData, setFichasModalData] =
@@ -350,6 +353,15 @@ const ListaInstructoresAdmin = () => {
   const [feedbackModal, setFeedbackModal] = useState<StyledModalState | null>(
     null,
   );
+  const [timedAlert, setTimedAlert] = useState<{
+    id: number;
+    title: string;
+    description?: string;
+  } | null>(null);
+  const [pendingRowRemovalDocumento, setPendingRowRemovalDocumento] =
+    useState<string | null>(null);
+  const [rowsLeaving, setRowsLeaving] = useState<Record<string, boolean>>({});
+  const rowRemovalTimeoutsRef = useRef<Record<string, number>>({});
   const menuRef = useRef<HTMLDivElement>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -358,10 +370,21 @@ const ListaInstructoresAdmin = () => {
   useClickOutside(menuRef, () => setIsMenuOpen(false));
 
   useEffect(() => {
+    const timeouts = rowRemovalTimeoutsRef.current;
+    return () => {
+      Object.values(timeouts).forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+    };
+  }, []);
+
+  useEffect(() => {
     const cedula = requireAdminAccess(navigate);
     if (!cedula) {
       return;
     }
+
+    setAdminCedula(cedula);
 
     // Se cargan instructores, dashboard y catalogo de fichas en paralelo porque
     // la vista necesita las tres fuentes para mostrar perfil, tabla y modales.
@@ -449,6 +472,39 @@ const ListaInstructoresAdmin = () => {
       return searchableFields[activeFilter](item).includes(query);
     });
   }, [instructores, searchTerm, activeFilter]);
+
+  const startRowRemovalAnimation = (documento: string) => {
+    setRowsLeaving((prev) =>
+      prev[documento] ? prev : { ...prev, [documento]: true },
+    );
+
+    if (rowRemovalTimeoutsRef.current[documento]) {
+      window.clearTimeout(rowRemovalTimeoutsRef.current[documento]);
+    }
+
+    rowRemovalTimeoutsRef.current[documento] = window.setTimeout(() => {
+      setInstructores((prev) =>
+        prev.filter((item) => item.documento !== documento),
+      );
+      setRowsLeaving((prev) => {
+        if (!prev[documento]) return prev;
+        const next = { ...prev };
+        delete next[documento];
+        return next;
+      });
+      delete rowRemovalTimeoutsRef.current[documento];
+    }, ROW_FADE_DURATION_MS);
+  };
+
+  const closeTimedAlert = () => {
+    setTimedAlert(null);
+
+    if (pendingRowRemovalDocumento) {
+      const documento = pendingRowRemovalDocumento;
+      setPendingRowRemovalDocumento(null);
+      startRowRemovalAnimation(documento);
+    }
+  };
 
   const totalItems = filteredData.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
@@ -567,7 +623,10 @@ const ListaInstructoresAdmin = () => {
         especializacion: editForm.especializacion,
         fichas: editForm.fichasSeleccionadas,
       };
-      const endpoint = `${API_URL}/instructores/${editingInstructor.documento}`;
+      const endpointBase = `${API_URL}/instructores/${editingInstructor.documento}`;
+      const endpoint = adminCedula
+        ? `${endpointBase}?actorCedula=${encodeURIComponent(adminCedula)}`
+        : endpointBase;
 
       const methods: Array<"PATCH" | "PUT" | "POST"> = ["PATCH", "PUT", "POST"];
       let response: Response | null = null;
@@ -637,16 +696,13 @@ const ListaInstructoresAdmin = () => {
       );
 
       closeEditModal();
-      setFeedbackModal({
-        title: "Instructor actualizado",
+      setTimedAlert({
+        id: Date.now(),
+        title: "Cambios guardados correctamente",
         description: extractApiMessage(
           data,
           "La informacion del instructor y sus fichas a cargo se guardaron correctamente.",
         ),
-        confirmLabel: "Entendido",
-        iconBackgroundColor: "#39A900",
-        showCancelButton: false,
-        zIndex: 2600,
       });
     } catch (error) {
       setFeedbackModal({
@@ -716,7 +772,9 @@ const ListaInstructoresAdmin = () => {
 
     try {
       const response = await fetch(
-        `${API_URL}/instructores/${instructorToDelete.documento}`,
+        adminCedula
+          ? `${API_URL}/instructores/${instructorToDelete.documento}?actorCedula=${encodeURIComponent(adminCedula)}`
+          : `${API_URL}/instructores/${instructorToDelete.documento}`,
         {
           method: "DELETE",
         },
@@ -728,20 +786,19 @@ const ListaInstructoresAdmin = () => {
         throw new Error(data?.message || "No se pudo eliminar el instructor.");
       }
 
-      setInstructores((prev) =>
-        prev.filter((item) => item.documento !== instructorToDelete.documento),
-      );
+      const deletedDocumento = instructorToDelete.documento;
+      const deletedName = `${instructorToDelete.nombre} ${instructorToDelete.apellido}`.trim();
       closeDeleteModal();
-      setFeedbackModal({
-        title: "Instructor eliminado",
+      setPendingRowRemovalDocumento(deletedDocumento);
+      setTimedAlert({
+        id: Date.now(),
+        title: "Usuario eliminado correctamente",
         description: extractApiMessage(
           data,
-          "Instructor eliminado correctamente.",
+          deletedName
+            ? `El usuario ${deletedName} se ha eliminado correctamente.`
+            : "El usuario se ha eliminado correctamente.",
         ),
-        confirmLabel: "Entendido",
-        iconBackgroundColor: "#39A900",
-        showCancelButton: false,
-        zIndex: 2600,
       });
     } catch (error) {
       setFeedbackModal({
@@ -857,7 +914,12 @@ const ListaInstructoresAdmin = () => {
                     const totalFichas = fichas.length;
 
                     return (
-                      <tr key={row.documento}>
+                      <tr
+                        key={row.documento}
+                        className={
+                          rowsLeaving[row.documento] ? "row-fade-out" : undefined
+                        }
+                      >
                         <td>{row.documento}</td>
                         <td>{row.nombre || "Sin nombre"}</td>
                         <td>{row.apellido || "Sin apellido"}</td>
@@ -982,6 +1044,17 @@ const ListaInstructoresAdmin = () => {
         onCancel={() => setFeedbackModal(null)}
         onConfirm={() => setFeedbackModal(null)}
       />
+
+      {timedAlert ? (
+        <AdminTimedAlert
+          key={timedAlert.id}
+          title={timedAlert.title}
+          description={timedAlert.description}
+          durationMs={5000}
+          zIndex={2600}
+          onClose={closeTimedAlert}
+        />
+      ) : null}
 
       {fichasModalData && (
         <div

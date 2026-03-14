@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'; 
 import senaLogo from '../assets/sena.png'; 
 import './DetalleProyecto.css'; 
-import { resolveUserName } from '../../../utils/session';
+import { resolveUserName } from '../../../session/session';
 
 // ==========================================================
 // INTERFACES

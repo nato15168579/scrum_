@@ -17,7 +17,7 @@ import senaLogo from "../../assets/sena.png";
 import "../dashboard_instructor/Dashboard.css";
 import "./CrearProyecto.css";
 import { API_URL } from "../../config/Api";
-import { resolveUserName } from "../../utils/session";
+import { resolveUserName } from "../../session/session";
 
 const getCurrentLocalDate = () => {
   const now = new Date();

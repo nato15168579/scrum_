@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Menu desplegable del perfil administrador.
  *
  * Reutiliza avatar, dropdown y acciones rapidas sin repetir esa logica en
@@ -7,7 +7,7 @@
 
 import type { RefObject } from "react";
 import { ChevronDown, LogOut, User } from "lucide-react";
-import { buildAvatarUrl } from "./adminSession";
+import { buildAvatarUrl } from "../session/adminSession";
 
 interface AdminProfileMenuProps {
   displayName: string;

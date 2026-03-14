@@ -8,6 +8,7 @@ export declare class CrearproService {
     private getProjectTableName;
     private getEscapedProjectTableName;
     private projectCodeColumnExists;
+    private ensureFichaProyectoSchema;
     private ensureProjectCodeSchema;
     private generateUniqueProjectCode;
     checkProjectExists(nombre: string): Promise<{
@@ -20,5 +21,6 @@ export declare class CrearproService {
         fechaInicio?: string;
         fechaFin?: string;
         cedula: number;
+        fichaNumero?: number | string | null;
     }): Promise<Proyecto>;
 }

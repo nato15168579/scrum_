@@ -1,4 +1,9 @@
-import { Injectable, ConflictException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Proyecto } from '../entities/Proyecto';
@@ -36,6 +41,27 @@ export class CrearproService {
     );
 
     return Array.isArray(result) && result.length > 0;
+  }
+
+  private async ensureFichaProyectoSchema() {
+    const escapedProjectTableName = this.getEscapedProjectTableName();
+
+    // Relacion Proyecto -> Ficha en tabla puente (entidad)
+    await this.proyectoRepository.query(
+      `
+      CREATE TABLE IF NOT EXISTS \`ficha_proyecto\` (
+        \`pro_ID_FK\` int(11) NOT NULL COMMENT 'id del proyecto asociado a la ficha',
+        \`fic_numero_FK\` int(11) NOT NULL COMMENT 'numero de ficha asociada al proyecto',
+        \`fip_fecha_asignacion\` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'fecha de asignacion del proyecto a la ficha',
+        PRIMARY KEY (\`pro_ID_FK\`),
+        KEY \`idx_ficha_proyecto_ficha\` (\`fic_numero_FK\`),
+        CONSTRAINT \`ficha_proyecto_ibfk_1\` FOREIGN KEY (\`pro_ID_FK\`) REFERENCES ${escapedProjectTableName} (\`pro_ID\`),
+        CONSTRAINT \`ficha_proyecto_ibfk_2\` FOREIGN KEY (\`fic_numero_FK\`) REFERENCES \`fichas\` (\`fic_numero\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+    `,
+    );
+
+    return true;
   }
 
   private async ensureProjectCodeSchema() {
@@ -115,6 +141,7 @@ export class CrearproService {
     fechaInicio?: string;
     fechaFin?: string;
     cedula: number;
+    fichaNumero?: number | string | null;
   }) {
     
     // 1. Validar nombre
@@ -142,6 +169,22 @@ export class CrearproService {
           ? (data.fechaFin.trim() || null)
           : data.fecha;
 
+      const fichaRaw =
+        typeof data.fichaNumero === 'string'
+          ? data.fichaNumero.trim()
+          : data.fichaNumero;
+      const fichaNumero =
+        fichaRaw === null || fichaRaw === undefined || fichaRaw === ''
+          ? null
+          : Number(fichaRaw);
+
+      if (
+        fichaNumero !== null &&
+        (Number.isNaN(fichaNumero) || fichaNumero <= 0)
+      ) {
+        throw new BadRequestException('La ficha seleccionada no es valida.');
+      }
+
       // 3. BUSCAR ID DE PARÁMETRO (O usar uno por defecto que sepas que existe)
       const relacion = await this.usuRepository.findOne({
         where: { detParId: data.cedula } // Ajustado según tu error TS anterior
@@ -166,7 +209,22 @@ export class CrearproService {
       }
 
       // 5. GUARDAR
-      return await this.proyectoRepository.save(nuevoProyecto);
+      const saved = await this.proyectoRepository.save(nuevoProyecto);
+
+      // 6. RELACIONAR CON FICHA (TABLA PUENTE)
+      if (fichaNumero !== null) {
+        await this.ensureFichaProyectoSchema();
+        await this.proyectoRepository.query(
+          `
+          INSERT INTO \`ficha_proyecto\` (pro_ID_FK, fic_numero_FK)
+          VALUES (?, ?)
+          ON DUPLICATE KEY UPDATE fic_numero_FK = VALUES(fic_numero_FK)
+        `,
+          [nuevoId, fichaNumero],
+        );
+      }
+
+      return saved;
 
     } catch (error) {
       console.error("ERROR CRÍTICO:", error);
