@@ -1,0 +1,84 @@
+[31m[Nest] 2140  - [39m17/03/2026, 1:15:38 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (1)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 2140  - [39m17/03/2026, 1:15:41 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (2)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 2140  - [39m17/03/2026, 1:15:44 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (3)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 2140  - [39m17/03/2026, 1:15:47 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (4)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 2140  - [39m17/03/2026, 1:15:50 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (5)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 2140  - [39m17/03/2026, 1:15:53 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (6)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 2140  - [39m17/03/2026, 1:15:56 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (7)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 2140  - [39m17/03/2026, 1:15:59 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (8)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 2140  - [39m17/03/2026, 1:16:02 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (9)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 2140  - [39m17/03/2026, 1:16:02 p. m. [31m  ERROR[39m [38;5;3m[ExceptionHandler] [39m[31mconnect ECONNREFUSED 127.0.0.1:3307[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+node:internal/modules/cjs/loader:1368
+  throw err;
+  ^
+
+Error: Cannot find module './AppModule'
+Require stack:
+- C:\Users\USUARIO\Desktop\proyecto\18.02.26\scrum_ 14_02_26.02\scrum_\backend\dist\main.js
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1365:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1021:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1026:22)
+    at Function._load (node:internal/modules/cjs/loader:1175:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.require (node:internal/modules/cjs/loader:1445:12)
+    at require (node:internal/modules/helpers:135:16)
+    at Object.<anonymous> (C:\Users\USUARIO\Desktop\proyecto\18.02.26\scrum_ 14_02_26.02\scrum_\backend\src\main.ts:4:1)
+    at Module._compile (node:internal/modules/cjs/loader:1688:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    'C:\\Users\\USUARIO\\Desktop\\proyecto\\18.02.26\\scrum_ 14_02_26.02\\scrum_\\backend\\dist\\main.js'
+  ]
+}
+
+Node.js v22.18.0
+[31m[Nest] 13640  - [39m17/03/2026, 1:42:50 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (1)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 13640  - [39m17/03/2026, 1:42:53 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (2)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 13640  - [39m17/03/2026, 1:42:56 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (3)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 13640  - [39m17/03/2026, 1:42:59 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (4)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 13640  - [39m17/03/2026, 1:43:03 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (5)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 13640  - [39m17/03/2026, 1:43:06 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (6)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 13640  - [39m17/03/2026, 1:43:09 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (7)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 13640  - [39m17/03/2026, 1:43:12 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (8)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 13640  - [39m17/03/2026, 1:43:15 p. m. [31m  ERROR[39m [38;5;3m[TypeOrmModule] [39m[31mUnable to connect to the database. Retrying (9)...[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[31m[Nest] 13640  - [39m17/03/2026, 1:43:15 p. m. [31m  ERROR[39m [38;5;3m[ExceptionHandler] [39m[31mconnect ECONNREFUSED 127.0.0.1:3307[39m
+Error: connect ECONNREFUSED 127.0.0.1:3307
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)

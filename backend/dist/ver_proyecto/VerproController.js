@@ -25,6 +25,24 @@ let VerproController = class VerproController {
     async getProyectoDetalleAdmin(id) {
         return await this.verproService.findAdminDetalle(id);
     }
+    async updateProyectoDetalleAdmin(id, body) {
+        return await this.verproService.updateAdminDetalle(id, body);
+    }
+    async getProyectoAprendicesEditor(id) {
+        return await this.verproService.findAdminAprendicesEditor(id);
+    }
+    async addAprendizToProyecto(id, body) {
+        return await this.verproService.addAprendizToProyecto(id, body.cedula, body.detParId);
+    }
+    async saveProyectoAprendices(id, body) {
+        return await this.verproService.saveProyectoAprendices(id, body);
+    }
+    async updateAprendizProyectoRole(id, cedula, body) {
+        return await this.verproService.updateAprendizProyectoRole(id, cedula, body.detParId);
+    }
+    async removeAprendizFromProyecto(id, cedula) {
+        return await this.verproService.removeAprendizFromProyecto(id, cedula);
+    }
     async getProyectoById(id) {
         return await this.verproService.findOne(id);
     }
@@ -43,6 +61,54 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], VerproController.prototype, "getProyectoDetalleAdmin", null);
+__decorate([
+    (0, common_1.Patch)(':id/detalle-admin'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "updateProyectoDetalleAdmin", null);
+__decorate([
+    (0, common_1.Get)(':id/aprendices-edicion'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "getProyectoAprendicesEditor", null);
+__decorate([
+    (0, common_1.Post)(':id/aprendices'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "addAprendizToProyecto", null);
+__decorate([
+    (0, common_1.Post)(':id/aprendices/guardar'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "saveProyectoAprendices", null);
+__decorate([
+    (0, common_1.Patch)(':id/aprendices/:cedula'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('cedula')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, String, Object]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "updateAprendizProyectoRole", null);
+__decorate([
+    (0, common_1.Delete)(':id/aprendices/:cedula'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('cedula')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, String]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "removeAprendizFromProyecto", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

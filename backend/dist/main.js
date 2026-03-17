@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+require("./loadEnv");
 const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
 const node_net_1 = require("node:net");

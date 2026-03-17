@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Home,
   Users,
@@ -18,6 +18,13 @@ import "../dashboard_instructor/Dashboard.css";
 import "./CrearProyecto.css";
 import { API_URL } from "../../config/Api";
 import { resolveUserName } from "../../session/session";
+
+interface FichaOption {
+  numero: string;
+  nombre: string;
+  programa: string;
+  estado: string;
+}
 
 const getCurrentLocalDate = () => {
   const now = new Date();
@@ -40,6 +47,10 @@ const CrearProyecto = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false); // Modal de Ayuda
   const [, setErrorModal] = useState({ show: false, title: "", message: "" });
+  const [fichas, setFichas] = useState<FichaOption[]>([]);
+  const [selectedPrograma, setSelectedPrograma] = useState("");
+  const [selectedArea, setSelectedArea] = useState("");
+  const [selectedFicha, setSelectedFicha] = useState("");
 
 
   const [formData, setFormData] = useState({
@@ -69,14 +80,57 @@ const CrearProyecto = () => {
       navigate("/");
       return;
     }
-    fetch(`${API_URL}/dashboard?cedula=${cedula}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setInstructorName(resolveUserName(data?.instructor, "Usuario"));
+    Promise.all([
+      fetch(`${API_URL}/dashboard?cedula=${cedula}`),
+      fetch(`${API_URL}/fichas`),
+    ])
+      .then(async ([dashboardRes, fichasRes]) => {
+        const dashboardData = dashboardRes.ok ? await dashboardRes.json() : null;
+        const fichasData = fichasRes.ok ? await fichasRes.json() : [];
+
+        const validFichas = Array.isArray(fichasData) ? fichasData : [];
+        const parsedFichas: FichaOption[] = validFichas.map((item) => ({
+          numero: String(item?.numero ?? "").trim(),
+          nombre: String(item?.nombre ?? "").trim() || "Sin nombre",
+          programa: String(item?.programa ?? "").trim() || "Sin programa",
+          estado: String(item?.estado ?? "").trim() || "Sin estado",
+        }));
+
+        setInstructorName(resolveUserName(dashboardData?.instructor, "Usuario"));
+        setFichas(parsedFichas);
         setFormData((prev) => ({ ...prev, fechaCreacion: getCurrentLocalDate() }));
       })
       .catch(() => setInstructorName(resolveUserName(undefined, "Usuario")));
   }, [navigate]);
+
+  const programas = useMemo(() => {
+    const set = new Set<string>();
+    fichas.forEach((item) => {
+      if (item.estado.toLowerCase() !== "activa") return;
+      if (!item.programa || item.programa === "Sin programa") return;
+      set.add(item.programa);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [fichas]);
+
+  const areas = useMemo(() => {
+    const set = new Set<string>();
+    fichas.forEach((item) => {
+      if (item.estado.toLowerCase() !== "activa") return;
+      if (!selectedPrograma || item.programa !== selectedPrograma) return;
+      if (!item.nombre || item.nombre === "Sin nombre") return;
+      set.add(item.nombre);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [fichas, selectedPrograma]);
+
+  const fichasFiltradas = useMemo(() => {
+    return fichas
+      .filter((item) => item.estado.toLowerCase() === "activa")
+      .filter((item) => (selectedPrograma ? item.programa === selectedPrograma : true))
+      .filter((item) => (selectedArea ? item.nombre === selectedArea : true))
+      .sort((a, b) => Number(a.numero) - Number(b.numero));
+  }, [fichas, selectedArea, selectedPrograma]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -87,6 +141,26 @@ const CrearProyecto = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cedula = localStorage.getItem("userCedula");
+    const fichaNumero = Number(String(selectedFicha || "").trim());
+
+    if (!selectedPrograma || !selectedArea || !selectedFicha) {
+      setErrorModal({
+        show: true,
+        title: "Ficha requerida",
+        message: "Selecciona programa, area y ficha antes de registrar el proyecto.",
+      });
+      return;
+    }
+
+    if (!fichaNumero || Number.isNaN(fichaNumero)) {
+      setErrorModal({
+        show: true,
+        title: "Ficha invalida",
+        message: "La ficha seleccionada no es valida.",
+      });
+      return;
+    }
+
     try {
       const checkRes = await fetch(
         `${API_URL}/check-project?nombre=${encodeURIComponent(formData.nombre)}`,
@@ -109,6 +183,7 @@ const CrearProyecto = () => {
           objetivo: formData.objetivo,
           fecha: formData.fechaCreacion,
           cedula: Number(cedula),
+          fichaNumero,
         }),
       });
 
@@ -220,6 +295,75 @@ const CrearProyecto = () => {
             </span>
           </div>
           <form onSubmit={handleSubmit} style={{ marginTop: "20px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: "15px",
+                marginBottom: "15px",
+              }}
+            >
+              <div className="filter-group">
+                <label>Programa</label>
+                <select
+                  className="input-filter"
+                  value={selectedPrograma}
+                  onChange={(e) => {
+                    setSelectedPrograma(e.target.value);
+                    setSelectedArea("");
+                    setSelectedFicha("");
+                  }}
+                  required
+                >
+                  <option value="">Seleccionar</option>
+                  {programas.map((programa) => (
+                    <option key={programa} value={programa}>
+                      {programa}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label>Area</label>
+                <select
+                  className="input-filter"
+                  value={selectedArea}
+                  onChange={(e) => {
+                    setSelectedArea(e.target.value);
+                    setSelectedFicha("");
+                  }}
+                  disabled={!selectedPrograma}
+                  required
+                >
+                  <option value="">Seleccionar</option>
+                  {areas.map((area) => (
+                    <option key={area} value={area}>
+                      {area}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label>Ficha</label>
+                <select
+                  className="input-filter"
+                  value={selectedFicha}
+                  onChange={(e) => setSelectedFicha(e.target.value)}
+                  disabled={!selectedArea}
+                  required
+                >
+                  <option value="">Seleccionar</option>
+                  {fichasFiltradas.map((item) => (
+                    <option key={item.numero} value={item.numero}>
+                      {item.numero}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div className="filter-group">
               <label>Nombre del Proyecto</label>
               <input
