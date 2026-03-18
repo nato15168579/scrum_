@@ -1,3 +1,11 @@
+/**
+ * HistoriaUsuario entity
+ * ---------------------
+ * Mapeo TypeORM de la tabla `historia_usuario`.
+ *
+ * Representa una historia de usuario asociada a un proyecto. Normalmente es la entidad
+ * "padre" de criterios de aceptacion (`criterios_aceptacion`).
+ */
 import {
   Column,
   Entity,

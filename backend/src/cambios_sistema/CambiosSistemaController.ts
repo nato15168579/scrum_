@@ -1,3 +1,12 @@
+/**
+ * CambiosSistemaController
+ * ----------------------
+ * API para listar cambios/observaciones y marcarlos como vistos.
+ *
+ * Consumido por:
+ * - `CambiosDelSistemaAdmin.tsx`
+ * - `HistorialObservacionesAdmin.tsx`
+ */
 import { Controller, Get, Param, ParseIntPipe, Patch, Query } from "@nestjs/common";
 import { CambiosSistemaService } from "./CambiosSistemaService";
 
@@ -21,4 +30,3 @@ export class CambiosSistemaController {
     return await this.cambiosSistemaService.marcarComoObservado(id);
   }
 }
-

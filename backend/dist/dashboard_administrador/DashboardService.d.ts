@@ -4,10 +4,13 @@ export declare class DashboardService {
     private readonly usuarioRepository;
     private dataSource;
     private readonly logger;
+    private readonly schema;
     constructor(usuarioRepository: Repository<Usuario>, dataSource: DataSource);
     private wrapIdentifier;
     private tableExists;
     private columnExists;
+    private resolveFichaTable;
+    private resolveReunionUsuarioTable;
     private getProyectoStats;
     obtenerDatosDashboard(cedulaInput: string | number): Promise<{
         error: string;

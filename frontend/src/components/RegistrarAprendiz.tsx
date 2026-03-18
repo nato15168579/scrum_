@@ -1,3 +1,16 @@
+/**
+ * RegistrarAprendiz
+ * -----------------
+ * Pantalla del flujo instructor para registrar un aprendiz de forma manual.
+ *
+ * API:
+ * - POST /users (creacion de usuario)
+ * - GET /stats (metricas generales del instructor)
+ *
+ * Nota:
+ * Esta vista usa `axios` (otras pantallas usan `fetch`). Seria buena candidata a
+ * estandarizar el cliente HTTP en una refactorizacion futura.
+ */
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";

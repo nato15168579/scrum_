@@ -1,3 +1,12 @@
+/**
+ * DetalleProyecto (Instructor)
+ * ---------------------------
+ * Vista de detalle para un proyecto, usada desde el flujo de "Ver Proyectos" (instructor).
+ *
+ * Nota:
+ * - Esta pantalla usa `axios` y un API_BASE_URL hardcodeado. A futuro conviene
+ *   centralizar la config y usar `API_URL` para evitar desalineacion de entornos.
+ */
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';

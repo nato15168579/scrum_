@@ -1,3 +1,14 @@
+/**
+ * HistorialObservacionesAdmin
+ * --------------------------
+ * Vista administrativa para consultar el historial de observaciones/cambios del sistema.
+ *
+ * Complementa `CambiosDelSistemaAdmin` permitiendo alternar entre:
+ * - Observaciones vistas
+ * - Observaciones pendientes
+ *
+ * Mantiene el mismo shell del administrador (sidebar, profile menu y logout).
+ */
 import { useEffect, useRef, useState } from "react";
 import { Eye, ChevronLeft } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";

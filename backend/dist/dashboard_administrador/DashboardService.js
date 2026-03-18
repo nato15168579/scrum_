@@ -18,33 +18,40 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const Usuario_1 = require("../entities/Usuario");
+const SchemaIntrospection_1 = require("../shared/database/SchemaIntrospection");
 let DashboardService = DashboardService_1 = class DashboardService {
     constructor(usuarioRepository, dataSource) {
         this.usuarioRepository = usuarioRepository;
         this.dataSource = dataSource;
         this.logger = new common_1.Logger(DashboardService_1.name);
+        this.schema = new SchemaIntrospection_1.SchemaIntrospection(dataSource);
     }
     wrapIdentifier(identifier) {
-        return `\`${identifier.replace(/`/g, "``")}\``;
+        return this.schema.wrapIdentifier(identifier);
     }
     async tableExists(tableName) {
-        const [row] = await this.dataSource.query(`
-        SELECT COUNT(*) AS total
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-      `, [tableName]);
-        return Number((row === null || row === void 0 ? void 0 : row.total) || 0) > 0;
+        return this.schema.tableExists(tableName);
     }
     async columnExists(tableName, columnName) {
-        const [row] = await this.dataSource.query(`
-        SELECT COUNT(*) AS total
-        FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-          AND COLUMN_NAME = ?
-      `, [tableName, columnName]);
-        return Number((row === null || row === void 0 ? void 0 : row.total) || 0) > 0;
+        return this.schema.columnExists(tableName, columnName);
+    }
+    async resolveFichaTable() {
+        if (await this.tableExists("fichas")) {
+            return "fichas";
+        }
+        if (await this.tableExists("ficha")) {
+            return "ficha";
+        }
+        return null;
+    }
+    async resolveReunionUsuarioTable() {
+        if (await this.tableExists("usu_asis")) {
+            return { tableName: "usu_asis", userColumn: "usu_cedula" };
+        }
+        if (await this.tableExists("usu_reu")) {
+            return { tableName: "usu_reu", userColumn: "usu_cedula_FK" };
+        }
+        return null;
     }
     async getProyectoStats() {
         const tableCandidates = ["proyecto", " proyecto"];
@@ -95,17 +102,24 @@ let DashboardService = DashboardService_1 = class DashboardService {
             }
             let reunionesCount = 0;
             try {
-                const queryResult = (await this.dataSource.query("SELECT COUNT(*) as total FROM usu_asis WHERE usu_cedula = ?", [cedula]));
-                reunionesCount = Number(((_a = queryResult[0]) === null || _a === void 0 ? void 0 : _a.total) || 0);
+                const reunionUsuarioTable = await this.resolveReunionUsuarioTable();
+                if (reunionUsuarioTable) {
+                    const tableRef = this.wrapIdentifier(reunionUsuarioTable.tableName);
+                    const userColumnRef = this.wrapIdentifier(reunionUsuarioTable.userColumn);
+                    const queryResult = (await this.dataSource.query(`SELECT COUNT(*) as total FROM ${tableRef} WHERE ${userColumnRef} = ?`, [cedula]));
+                    reunionesCount = Number(((_a = queryResult[0]) === null || _a === void 0 ? void 0 : _a.total) || 0);
+                }
             }
             catch (e) {
                 const error = e instanceof Error ? e : new Error(String(e));
-                this.logger.error("Error al consultar la tabla intermedia usu_asis:", error.message);
+                this.logger.error("Error al consultar la tabla intermedia de reuniones:", error.message);
             }
             let totalFichasSena = 0;
             try {
-                if (await this.tableExists("fichas")) {
-                    const [fichasRow] = (await this.dataSource.query("SELECT COUNT(*) AS total FROM fichas"));
+                const fichaTable = await this.resolveFichaTable();
+                if (fichaTable) {
+                    const tableRef = this.wrapIdentifier(fichaTable);
+                    const [fichasRow] = (await this.dataSource.query(`SELECT COUNT(*) AS total FROM ${tableRef}`));
                     totalFichasSena = Number((fichasRow === null || fichasRow === void 0 ? void 0 : fichasRow.total) || 0);
                 }
             }

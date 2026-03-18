@@ -1,3 +1,11 @@
+/**
+ * VerproController
+ * ---------------
+ * Endpoints HTTP consumidos por el admin para ver/editar proyectos.
+ *
+ * Nota: los cuerpos (Body) se tipan como objetos simples para mantener compatibilidad
+ * con el frontend actual. En una fase futura se recomienda migrar a DTOs con validacion.
+ */
 import {
   Body,
   Controller,
@@ -86,6 +94,114 @@ export class VerproController {
     @Param('cedula') cedula: string,
   ) {
     return await this.verproService.removeAprendizFromProyecto(id, cedula);
+  }
+
+  @Post(':id/historias')
+  async createHistoriaUsuario(
+    @Param('id', ParseIntPipe) id: number,
+    @Body()
+    body: {
+      titulo?: string | null;
+      descripcion?: string | null;
+      puntaje?: number | string | null;
+      numeroSprint?: number | string | null;
+      actorCedula?: number | string | null;
+    },
+  ) {
+    return await this.verproService.createHistoriaUsuario(id, body);
+  }
+
+  @Patch(':id/historias/:hisId')
+  async updateHistoriaUsuario(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('hisId', ParseIntPipe) hisId: number,
+    @Body()
+    body: {
+      titulo?: string | null;
+      descripcion?: string | null;
+      puntaje?: number | string | null;
+      numeroSprint?: number | string | null;
+    },
+  ) {
+    return await this.verproService.updateHistoriaUsuario(id, hisId, body);
+  }
+
+  @Delete(':id/historias/:hisId')
+  async deleteHistoriaUsuario(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('hisId', ParseIntPipe) hisId: number,
+  ) {
+    return await this.verproService.deleteHistoriaUsuario(id, hisId);
+  }
+
+  @Post(':id/criterios')
+  async createCriterioAceptacion(
+    @Param('id', ParseIntPipe) id: number,
+    @Body()
+    body: {
+      descripcion?: string | null;
+      tiempo?: string | null;
+      hisId?: number | string | null;
+      actorCedula?: number | string | null;
+    },
+  ) {
+    return await this.verproService.createCriterioAceptacion(id, body);
+  }
+
+  @Patch(':id/criterios/:criId')
+  async updateCriterioAceptacion(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('criId', ParseIntPipe) criId: number,
+    @Body()
+    body: {
+      descripcion?: string | null;
+      tiempo?: string | null;
+      hisId?: number | string | null;
+      actorCedula?: number | string | null;
+    },
+  ) {
+    return await this.verproService.updateCriterioAceptacion(id, criId, body);
+  }
+
+  @Delete(':id/criterios/:criId')
+  async deleteCriterioAceptacion(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('criId', ParseIntPipe) criId: number,
+  ) {
+    return await this.verproService.deleteCriterioAceptacion(id, criId);
+  }
+
+  @Post(':id/sugerencias')
+  async createSugerencia(
+    @Param('id', ParseIntPipe) id: number,
+    @Body()
+    body: {
+      descripcion?: string | null;
+      actorCedula?: number | string | null;
+    },
+  ) {
+    return await this.verproService.createSugerencia(id, body);
+  }
+
+  @Patch(':id/sugerencias/:obsId')
+  async updateSugerencia(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('obsId', ParseIntPipe) obsId: number,
+    @Body()
+    body: {
+      descripcion?: string | null;
+      actorCedula?: number | string | null;
+    },
+  ) {
+    return await this.verproService.updateSugerencia(id, obsId, body);
+  }
+
+  @Delete(':id/sugerencias/:obsId')
+  async deleteSugerencia(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('obsId', ParseIntPipe) obsId: number,
+  ) {
+    return await this.verproService.deleteSugerencia(id, obsId);
   }
 
   @Get(':id')

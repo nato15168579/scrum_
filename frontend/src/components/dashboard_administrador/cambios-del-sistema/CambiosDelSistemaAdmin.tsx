@@ -1,3 +1,13 @@
+/**
+ * CambiosDelSistemaAdmin
+ * ---------------------
+ * Vista administrativa para consultar observaciones/cambios del sistema y marcarlos como vistos.
+ *
+ * Esta pantalla consume el modulo backend `cambios_sistema` y permite:
+ * - Ver el listado de cambios pendientes/observados.
+ * - Marcar una observacion como vista.
+ * - Navegar al historial (visto/pendiente) cuando aplica.
+ */
 import { useEffect, useRef, useState } from "react";
 import { Eye, History } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";

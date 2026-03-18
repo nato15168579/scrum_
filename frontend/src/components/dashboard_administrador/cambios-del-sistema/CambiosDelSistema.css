@@ -170,4 +170,7 @@
     justify-content: flex-start;
   }
 }
-
+/* CambiosDelSistema.css
+ * Estilos compartidos para las vistas de "Cambios del sistema" (Admin).
+ * Incluye tablas, filtros y estados (pendiente/visto).
+ */

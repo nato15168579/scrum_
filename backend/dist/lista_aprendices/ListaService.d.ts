@@ -4,9 +4,13 @@ import { AprendizResponse, CreateFichaDto, CreateUsuarioDto, ImportUsuarioDto, I
 export declare class ListaService {
     private readonly usuarioRepository;
     private readonly dataSource;
+    private readonly schema;
     constructor(usuarioRepository: Repository<Usuario>, dataSource: DataSource);
     private columnExists;
     private tableExists;
+    private getTableType;
+    private ensureLegacyAdminViews;
+    private resolvePhysicalTableName;
     private ensureUsuarioFichaFechaAsignacionColumn;
     private ensureFechaRegistroColumn;
     private ensureEstadoColumn;

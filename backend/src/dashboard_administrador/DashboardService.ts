@@ -9,6 +9,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { Usuario } from "../entities/Usuario";
+import { SchemaIntrospection } from "../shared/database/SchemaIntrospection";
 
 interface CountRow {
   total?: number | string | null;
@@ -21,45 +22,51 @@ interface EstadoRow {
 @Injectable()
 export class DashboardService {
   private readonly logger = new Logger(DashboardService.name);
+  private readonly schema: SchemaIntrospection;
 
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
     private dataSource: DataSource,
-  ) {}
+  ) {
+    this.schema = new SchemaIntrospection(dataSource);
+  }
 
   // Envuelve nombres dinamicos de tablas o columnas para evitar SQL invalido.
   private wrapIdentifier(identifier: string) {
-    return `\`${identifier.replace(/`/g, "``")}\``;
+    return this.schema.wrapIdentifier(identifier);
   }
 
   private async tableExists(tableName: string) {
-    const [row] = await this.dataSource.query(
-      `
-        SELECT COUNT(*) AS total
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-      `,
-      [tableName],
-    );
-
-    return Number(row?.total || 0) > 0;
+    return this.schema.tableExists(tableName);
   }
 
   private async columnExists(tableName: string, columnName: string) {
-    const [row] = await this.dataSource.query(
-      `
-        SELECT COUNT(*) AS total
-        FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-          AND COLUMN_NAME = ?
-      `,
-      [tableName, columnName],
-    );
+    return this.schema.columnExists(tableName, columnName);
+  }
 
-    return Number(row?.total || 0) > 0;
+  private async resolveFichaTable() {
+    if (await this.tableExists("fichas")) {
+      return "fichas";
+    }
+
+    if (await this.tableExists("ficha")) {
+      return "ficha";
+    }
+
+    return null;
+  }
+
+  private async resolveReunionUsuarioTable() {
+    if (await this.tableExists("usu_asis")) {
+      return { tableName: "usu_asis", userColumn: "usu_cedula" };
+    }
+
+    if (await this.tableExists("usu_reu")) {
+      return { tableName: "usu_reu", userColumn: "usu_cedula_FK" };
+    }
+
+    return null;
   }
 
   // Algunos despliegues traen variaciones de nombres en la tabla de proyectos;
@@ -130,24 +137,33 @@ export class DashboardService {
 
       let reunionesCount = 0;
       try {
-        const queryResult = (await this.dataSource.query(
-          "SELECT COUNT(*) as total FROM usu_asis WHERE usu_cedula = ?",
-          [cedula],
-        )) as CountRow[];
-        reunionesCount = Number(queryResult[0]?.total || 0);
+        const reunionUsuarioTable = await this.resolveReunionUsuarioTable();
+
+        if (reunionUsuarioTable) {
+          const tableRef = this.wrapIdentifier(reunionUsuarioTable.tableName);
+          const userColumnRef = this.wrapIdentifier(reunionUsuarioTable.userColumn);
+          const queryResult = (await this.dataSource.query(
+            `SELECT COUNT(*) as total FROM ${tableRef} WHERE ${userColumnRef} = ?`,
+            [cedula],
+          )) as CountRow[];
+          reunionesCount = Number(queryResult[0]?.total || 0);
+        }
       } catch (e) {
         const error = e instanceof Error ? e : new Error(String(e));
         this.logger.error(
-          "Error al consultar la tabla intermedia usu_asis:",
+          "Error al consultar la tabla intermedia de reuniones:",
           error.message,
         );
       }
 
       let totalFichasSena = 0;
       try {
-        if (await this.tableExists("fichas")) {
+        const fichaTable = await this.resolveFichaTable();
+
+        if (fichaTable) {
+          const tableRef = this.wrapIdentifier(fichaTable);
           const [fichasRow] = (await this.dataSource.query(
-            "SELECT COUNT(*) AS total FROM fichas",
+            `SELECT COUNT(*) AS total FROM ${tableRef}`,
           )) as CountRow[];
           totalFichasSena = Number(fichasRow?.total || 0);
         }

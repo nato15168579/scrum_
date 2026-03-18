@@ -1,3 +1,12 @@
+/**
+ * VerProyectos (Instructor)
+ * ------------------------
+ * Vista del instructor para listar proyectos y navegar al detalle.
+ *
+ * Nota:
+ * - Existe una variante admin en `dashboard_administrador/proyectos_admin/VerProyectos.tsx`.
+ * - Esta pantalla mantiene paginacion local y layout del dashboard instructor.
+ */
 import { useState, useEffect, useRef } from 'react';
 import { 
     Home, Users, Plus, MapPin, Eye, List, 

@@ -1,3 +1,12 @@
+/**
+ * ListaAprendices (Instructor)
+ * ---------------------------
+ * Vista del instructor para consultar aprendices y su informacion basica.
+ *
+ * Nota:
+ * Existe una variante admin en `dashboard_administrador/lista_aprendices/*`.
+ * Esta pantalla mantiene su propio layout y paginacion local.
+ */
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Home,

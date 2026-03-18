@@ -1,3 +1,13 @@
+/**
+ * DashboardController (Student)
+ * ----------------------------
+ * Controlador HTTP para el dashboard del aprendiz (o vista student).
+ *
+ * Rutas:
+ * - GET /dashboard-student?cedula=...
+ *
+ * Este modulo es independiente del dashboard administrador.
+ */
 import { Controller, Get, Query } from '@nestjs/common';
 import { DashboardService } from './DashboardService';
 

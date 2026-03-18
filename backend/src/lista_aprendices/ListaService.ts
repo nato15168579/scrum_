@@ -17,6 +17,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { EstadoUsuario, SexoUsuario, Usuario } from '../entities/Usuario';
 import * as bcrypt from 'bcrypt';
+import { SchemaIntrospection } from '../shared/database/SchemaIntrospection';
 import {
   AprendizQueryRow,
   AprendizResponse,
@@ -41,43 +42,52 @@ const ESTADOS_FICHA = ['Activa', 'Inactiva'] as const;
 
 @Injectable()
 export class ListaService {
+  private readonly schema: SchemaIntrospection;
+
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
     private readonly dataSource: DataSource,
-  ) {}
+  ) {
+    this.schema = new SchemaIntrospection(dataSource);
+  }
 
   // ---------------------------------------------------------------------------
   // Compatibilidad y autoajustes del esquema
   // ---------------------------------------------------------------------------
 
   private async columnExists(tableName: string, columnName: string) {
-    const [result] = await this.dataSource.query(
-      `
-        SELECT COUNT(*) AS total
-        FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-          AND COLUMN_NAME = ?
-      `,
-      [tableName, columnName],
-    );
-
-    return Number(result?.total || 0) > 0;
+    return this.schema.columnExists(tableName, columnName);
   }
 
   private async tableExists(tableName: string) {
-    const [result] = await this.dataSource.query(
-      `
-        SELECT COUNT(*) AS total
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-      `,
-      [tableName],
-    );
+    return this.schema.tableExists(tableName);
+  }
 
-    return Number(result?.total || 0) > 0;
+  private async getTableType(tableName: string) {
+    return this.schema.getTableType(tableName);
+  }
+
+  private async ensureLegacyAdminViews() {
+    await this.schema.ensureLegacyAdminViews();
+  }
+
+  private async resolvePhysicalTableName(tableName: string) {
+    if (tableName === 'fichas') {
+      const legacyType = await this.getTableType('fichas');
+      if (legacyType !== 'BASE TABLE' && (await this.tableExists('ficha'))) {
+        return 'ficha';
+      }
+    }
+
+    if (tableName === 'usuario_ficha') {
+      const legacyType = await this.getTableType('usuario_ficha');
+      if (legacyType !== 'BASE TABLE' && (await this.tableExists('usu_fic'))) {
+        return 'usu_fic';
+      }
+    }
+
+    return tableName;
   }
 
   private async ensureUsuarioFichaFechaAsignacionColumn() {
@@ -265,6 +275,8 @@ export class ListaService {
   // Verifica que el modulo admin tenga disponibles las tablas y columnas
   // minimas para resolver relaciones usuario-ficha y catalogo de fichas.
   private async ensureFichaSchema() {
+    await this.ensureLegacyAdminViews();
+
     const missingTables: string[] = [];
 
     if (!(await this.tableExists('fichas'))) {
@@ -347,6 +359,7 @@ export class ListaService {
   }
 
   private async getColumnMetadata(tableName: string, columnName: string) {
+    const physicalTableName = await this.resolvePhysicalTableName(tableName);
     const [column] = await this.dataSource.query(
       `
         SELECT
@@ -360,7 +373,7 @@ export class ListaService {
           AND TABLE_NAME = ?
           AND COLUMN_NAME = ?
       `,
-      [tableName, columnName],
+      [physicalTableName, columnName],
     );
 
     return column || null;
@@ -385,6 +398,7 @@ export class ListaService {
     columnName: string,
     value: string,
   ) {
+    const physicalTableName = await this.resolvePhysicalTableName(tableName);
     const normalizedValue = this.sanitizeText(value);
     if (!normalizedValue) {
       return '';
@@ -419,7 +433,7 @@ export class ListaService {
 
     await this.dataSource.query(
       `
-        ALTER TABLE \`${tableName}\`
+        ALTER TABLE \`${physicalTableName}\`
         MODIFY COLUMN \`${columnName}\` ENUM(${nextValues
           .map((item) => `'${this.escapeSqlLiteral(item)}'`)
           .join(', ')}) ${nullClause}${defaultClause}${commentClause}

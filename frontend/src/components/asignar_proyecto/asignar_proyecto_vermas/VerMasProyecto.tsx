@@ -1,3 +1,12 @@
+/**
+ * VerMasProyecto (Asignacion)
+ * --------------------------
+ * Vista de detalle usada en el flujo de asignacion de proyectos (instructor).
+ *
+ * Rutas/API:
+ * - GET /proyectos/:id (detalle basico del proyecto)
+ * - GET /dashboard?cedula=... (nombre del usuario para avatar/menu)
+ */
 import { useState, useEffect, useRef } from 'react';
 import { 
     Home, Users, Plus, MapPin, Eye, List, 

@@ -260,7 +260,7 @@ Si quieres cambiar navegacion admin:
 - frontend/src/components/dashboard_administrador/AdminMenuItems.ts
 
 Si quieres cambiar validacion de sesion admin:
-- frontend/src/components/dashboard_administrador/shared/adminSession.ts
+- frontend/src/components/dashboard_administrador/session/adminSession.ts
 
 Si quieres cambiar el dashboard:
 - frontend/src/components/dashboard_administrador/AdminDashboard.tsx
@@ -281,7 +281,40 @@ Si quieres cambiar registro o importacion:
 - backend/src/lista_aprendices/ListaTypes.ts
 
 
-13. RIESGOS SI SE MODIFICA SIN CUIDADO
+Si quieres cambiar proyectos (crear / ver / detalle):
+- frontend/src/components/dashboard_administrador/proyectos_admin/CrearProyectoAdmin.tsx
+- frontend/src/components/dashboard_administrador/proyectos_admin/VerProyectos.tsx
+- frontend/src/components/dashboard_administrador/proyectos_admin/detail_views/*.tsx
+- backend/src/crear_proyecto/CrearproController.ts
+- backend/src/crear_proyecto/CrearproService.ts
+- backend/src/ver_proyecto/VerproController.ts
+- backend/src/ver_proyecto/VerproService.ts
+
+
+13. PROYECTOS EN ADMIN (VER / DETALLE)
+--------------------------------------
+Frontend:
+- `VerProyectos.tsx` implementa navegacion jerarquica:
+  Programas -> Areas -> Fichas -> Proyectos -> Detalle del proyecto.
+- Dentro del detalle del proyecto se muestran aprendices y se puede abrir el modal de
+  "Editar aprendices" (asignacion, retiro y edicion de rol Scrum).
+- El detalle de HU, CA y sugerencias se gestiona con modales dedicados y acciones por fila
+  (ver mas, editar, eliminar) mas botones de "Agregar".
+
+Backend:
+- `VerproController.ts` expone rutas para:
+  - detalle admin del proyecto
+  - edicion de aprendices del proyecto y rol Scrum
+  - CRUD de historias de usuario, criterios de aceptacion y sugerencias
+- `VerproService.ts` usa introspeccion del esquema y vistas legacy para tolerar bases
+  con variaciones entre SQLs.
+
+Punto delicado:
+- La compatibilidad de esquema depende de comprobaciones en runtime (information_schema).
+  Si se cambia la BD, validar estas comprobaciones antes de desplegar.
+
+
+14. RIESGOS SI SE MODIFICA SIN CUIDADO
 --------------------------------------
 - Cambiar nombres de campos del backend puede romper normalizadores del frontend.
 - Tocar importacion sin revisar fichas faltantes puede dejar usuarios huérfanos de contexto.
@@ -291,7 +324,7 @@ Si quieres cambiar registro o importacion:
 - Duplicar endpoints de creacion o actualizacion puede hacer que frontend manual e importacion empiecen a comportarse distinto.
 
 
-14. RECOMENDACIONES DE MANTENIMIENTO
+15. RECOMENDACIONES DE MANTENIMIENTO
 ------------------------------------
 - Mantener AdminSidebar, AdminProfileMenu y AdminLogoutModal como piezas compartidas.
 - No mover reglas de negocio al frontend si ya existen en ListaService.ts.
@@ -307,7 +340,7 @@ Si quieres cambiar registro o importacion:
   - dashboard
 
 
-15. RESUMEN DE LAS PARTES MAS DIFICILES
+16. RESUMEN DE LAS PARTES MAS DIFICILES
 ---------------------------------------
 1. Relacion instructor-ficha sin tabla nueva adicional.
    Todo vive en usuario_ficha y requiere sincronizacion cuidadosa.

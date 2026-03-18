@@ -1,16 +1,20 @@
 import { Repository } from 'typeorm';
 import { Proyecto } from '../entities/Proyecto';
-import { UsuProDetPar } from '../entities/UsuProDetPar';
 export declare class CrearproService {
     private readonly proyectoRepository;
-    private readonly usuRepository;
-    constructor(proyectoRepository: Repository<Proyecto>, usuRepository: Repository<UsuProDetPar>);
+    constructor(proyectoRepository: Repository<Proyecto>);
     private getProjectTableName;
     private getEscapedProjectTableName;
+    private tableExists;
+    private columnExists;
+    private resolveFichaTableName;
+    private resolveFichaNumeroColumn;
+    private fichaExists;
     private projectCodeColumnExists;
     private ensureFichaProyectoSchema;
     private ensureProjectCodeSchema;
     private generateUniqueProjectCode;
+    private resolveDefaultProjectStatusId;
     checkProjectExists(nombre: string): Promise<{
         exists: boolean;
     }>;

@@ -28,7 +28,7 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)("int", {
         primary: true,
-        name: "det_par_ID_",
+        name: "det_par_ID_FK",
         comment: "id del detalle parametro",
     }),
     __metadata("design:type", Number)
@@ -47,7 +47,7 @@ __decorate([
 ], UsuProDetPar.prototype, "usuCedula2", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => DetalleParametro_1.DetalleParametro, (detalleParametro) => detalleParametro.usuProDetPars, { onDelete: "RESTRICT", onUpdate: "RESTRICT" }),
-    (0, typeorm_1.JoinColumn)([{ name: "det_par_ID_", referencedColumnName: "detParId" }]),
+    (0, typeorm_1.JoinColumn)([{ name: "det_par_ID_FK", referencedColumnName: "detParId" }]),
     __metadata("design:type", DetalleParametro_1.DetalleParametro)
 ], UsuProDetPar.prototype, "detParId_2", void 0);
 __decorate([

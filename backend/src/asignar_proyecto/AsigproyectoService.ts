@@ -1,5 +1,15 @@
+/**
+ * AsigProyectoService
+ * ------------------
+ * Servicio para asignar integrantes (aprendices) a proyectos y consultar catalogos
+ * relacionados (proyectos, aprendices, roles Scrum).
+ *
+ * Nota: este modulo usa SQL directo y esta sujeto a variaciones de esquema segun
+ * la version de la base de datos. Mantenerlo alineado con el script SQL activo.
+ */
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { SchemaIntrospection } from '../shared/database/SchemaIntrospection';
 
 interface AssignmentInput {
   cedula: number;
@@ -8,24 +18,18 @@ interface AssignmentInput {
 
 @Injectable()
 export class AsigProyectoService {
-  constructor(private dataSource: DataSource) {}
+  private readonly schema: SchemaIntrospection;
+
+  constructor(private dataSource: DataSource) {
+    this.schema = new SchemaIntrospection(dataSource);
+  }
 
   private wrapIdentifier(identifier: string) {
-    return `\`${identifier.replace(/`/g, '``')}\``;
+    return this.schema.wrapIdentifier(identifier);
   }
 
   private async tableExists(tableName: string) {
-    const [row] = await this.dataSource.query(
-      `
-        SELECT COUNT(*) AS total
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-      `,
-      [tableName],
-    );
-
-    return Number(row?.total || 0) > 0;
+    return this.schema.tableExists(tableName);
   }
 
   private async resolveProyectoTable() {
@@ -80,7 +84,7 @@ export class AsigProyectoService {
       for (const assign of assignments) {
         await queryRunner.query(`
           INSERT INTO proyecto_usuarios (pro_ID, usu_cedula, rol_scrum_ID)
-          VALUES ($1, $2, $3)`,
+          VALUES (?, ?, ?)`,
           [projectId, assign.cedula, assign.rolId]
         );
       }

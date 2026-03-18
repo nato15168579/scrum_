@@ -1,3 +1,15 @@
+/**
+ * LoginModule
+ * -----------
+ * Modulo NestJS para login.
+ *
+ * Registra:
+ * - LoginController (endpoint HTTP)
+ * - LoginService (validacion de credenciales)
+ *
+ * Dependencias:
+ * - Repositorio TypeORM de `Usuario`.
+ */
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoginController } from './LoginController';

@@ -1,3 +1,11 @@
+/**
+ * AsigProyectoController
+ * ---------------------
+ * Endpoints HTTP para el flujo de asignacion de integrantes a proyectos.
+ *
+ * Nota: este controller no aplica autenticacion por defecto. En produccion se
+ * recomienda proteger estas rutas con guards/roles del lado del backend.
+ */
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AsigProyectoService } from './AsigproyectoService';
 

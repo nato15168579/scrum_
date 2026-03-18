@@ -18,6 +18,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const Usuario_1 = require("../entities/Usuario");
 const bcrypt = require("bcrypt");
+const SchemaIntrospection_1 = require("../shared/database/SchemaIntrospection");
 const ESTADOS_USUARIO = ['Activo', 'Inactivo'];
 const SEXOS_USUARIO = ['Hombre', 'Mujer'];
 const ESTADOS_FICHA = ['Activa', 'Inactiva'];
@@ -25,25 +26,34 @@ let ListaService = class ListaService {
     constructor(usuarioRepository, dataSource) {
         this.usuarioRepository = usuarioRepository;
         this.dataSource = dataSource;
+        this.schema = new SchemaIntrospection_1.SchemaIntrospection(dataSource);
     }
     async columnExists(tableName, columnName) {
-        const [result] = await this.dataSource.query(`
-        SELECT COUNT(*) AS total
-        FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-          AND COLUMN_NAME = ?
-      `, [tableName, columnName]);
-        return Number((result === null || result === void 0 ? void 0 : result.total) || 0) > 0;
+        return this.schema.columnExists(tableName, columnName);
     }
     async tableExists(tableName) {
-        const [result] = await this.dataSource.query(`
-        SELECT COUNT(*) AS total
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-      `, [tableName]);
-        return Number((result === null || result === void 0 ? void 0 : result.total) || 0) > 0;
+        return this.schema.tableExists(tableName);
+    }
+    async getTableType(tableName) {
+        return this.schema.getTableType(tableName);
+    }
+    async ensureLegacyAdminViews() {
+        await this.schema.ensureLegacyAdminViews();
+    }
+    async resolvePhysicalTableName(tableName) {
+        if (tableName === 'fichas') {
+            const legacyType = await this.getTableType('fichas');
+            if (legacyType !== 'BASE TABLE' && (await this.tableExists('ficha'))) {
+                return 'ficha';
+            }
+        }
+        if (tableName === 'usuario_ficha') {
+            const legacyType = await this.getTableType('usuario_ficha');
+            if (legacyType !== 'BASE TABLE' && (await this.tableExists('usu_fic'))) {
+                return 'usu_fic';
+            }
+        }
+        return tableName;
     }
     async ensureUsuarioFichaFechaAsignacionColumn() {
         const hasFechaAsignacion = await this.columnExists('usuario_ficha', 'usf_fecha_asignacion');
@@ -185,6 +195,7 @@ let ListaService = class ListaService {
         await this.ensureSexoColumn();
     }
     async ensureFichaSchema() {
+        await this.ensureLegacyAdminViews();
         const missingTables = [];
         if (!(await this.tableExists('fichas'))) {
             missingTables.push('fichas');
@@ -235,6 +246,7 @@ let ListaService = class ListaService {
         return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     }
     async getColumnMetadata(tableName, columnName) {
+        const physicalTableName = await this.resolvePhysicalTableName(tableName);
         const [column] = await this.dataSource.query(`
         SELECT
           DATA_TYPE AS dataType,
@@ -246,7 +258,7 @@ let ListaService = class ListaService {
         WHERE TABLE_SCHEMA = DATABASE()
           AND TABLE_NAME = ?
           AND COLUMN_NAME = ?
-      `, [tableName, columnName]);
+      `, [physicalTableName, columnName]);
         return column || null;
     }
     async getEnumColumnOptions(tableName, columnName) {
@@ -258,6 +270,7 @@ let ListaService = class ListaService {
         return (matches || []).map((match) => match.slice(1, -1).replace(/\\\\'/g, "'"));
     }
     async ensureEnumColumnValue(tableName, columnName, value) {
+        const physicalTableName = await this.resolvePhysicalTableName(tableName);
         const normalizedValue = this.sanitizeText(value);
         if (!normalizedValue) {
             return '';
@@ -285,7 +298,7 @@ let ListaService = class ListaService {
             ? ` COMMENT '${this.escapeSqlLiteral(String(column.columnComment))}'`
             : '';
         await this.dataSource.query(`
-        ALTER TABLE \`${tableName}\`
+        ALTER TABLE \`${physicalTableName}\`
         MODIFY COLUMN \`${columnName}\` ENUM(${nextValues
             .map((item) => `'${this.escapeSqlLiteral(item)}'`)
             .join(', ')}) ${nullClause}${defaultClause}${commentClause}

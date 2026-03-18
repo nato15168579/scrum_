@@ -1,3 +1,12 @@
+/**
+ * Usuario entity
+ * -------------
+ * Mapeo TypeORM de la tabla `usuario`.
+ *
+ * Nota:
+ * - `usu_contrasena` puede estar en texto plano (legacy) o bcrypt (ver LoginService).
+ * - La relacion con proyectos/roles Scrum se modela con `usu_pro_det_par`.
+ */
 import {
   Column,
   Entity,

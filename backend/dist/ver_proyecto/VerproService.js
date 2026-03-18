@@ -12,31 +12,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.VerproService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("typeorm");
+const SchemaIntrospection_1 = require("../shared/database/SchemaIntrospection");
 let VerproService = class VerproService {
     constructor(dataSource) {
         this.dataSource = dataSource;
+        this.schema = new SchemaIntrospection_1.SchemaIntrospection(dataSource);
     }
     wrapIdentifier(identifier) {
-        return `\`${identifier.replace(/`/g, '``')}\``;
+        return this.schema.wrapIdentifier(identifier);
     }
-    async tableExists(tableName) {
-        const [row] = await this.dataSource.query(`
-        SELECT COUNT(*) AS total
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-      `, [tableName]);
-        return Number((row === null || row === void 0 ? void 0 : row.total) || 0) > 0;
+    tableExists(tableName) {
+        return this.schema.tableExists(tableName);
     }
-    async columnExists(tableName, columnName) {
-        const [row] = await this.dataSource.query(`
-        SELECT COUNT(*) AS total
-        FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-          AND COLUMN_NAME = ?
-      `, [tableName, columnName]);
-        return Number((row === null || row === void 0 ? void 0 : row.total) || 0) > 0;
+    columnExists(tableName, columnName) {
+        return this.schema.columnExists(tableName, columnName);
+    }
+    getTableType(tableName) {
+        return this.schema.getTableType(tableName);
+    }
+    ensureLegacyAdminViews() {
+        return this.schema.ensureLegacyAdminViews();
+    }
+    async resolveUsuProDetParRoleColumn() {
+        if (await this.columnExists('usu_pro_det_par', 'det_par_ID_FK')) {
+            return 'det_par_ID_FK';
+        }
+        if (await this.columnExists('usu_pro_det_par', 'det_par_ID_')) {
+            return 'det_par_ID_';
+        }
+        return null;
     }
     async resolveProyectoTable() {
         const candidates = ['proyecto', ' proyecto'];
@@ -82,7 +86,116 @@ let VerproService = class VerproService {
         const firstRole = roles[0];
         return (firstRole === null || firstRole === void 0 ? void 0 : firstRole.detParId) ? Number(firstRole.detParId) : null;
     }
+    async resolveDefaultEstadoId() {
+        const hasDetalleParametro = await this.tableExists('detalle_parametro');
+        if (!hasDetalleParametro)
+            return null;
+        const [row] = await this.dataSource.query(`
+      SELECT
+        det_par_ID AS detParId
+      FROM detalle_parametro
+      WHERE par_ID_FK = 1
+      ORDER BY
+        CASE
+          WHEN LOWER(TRIM(COALESCE(det_par_descripcion, ''))) = 'por hacer' THEN 0
+          ELSE 1
+        END,
+        det_par_ID ASC
+      LIMIT 1
+    `);
+        return (row === null || row === void 0 ? void 0 : row.detParId) ? Number(row.detParId) : null;
+    }
+    async resolveHistoriaEstadoColumn() {
+        const candidates = ['det_par_ID_FK', 'det_par_ID_estado_FK'];
+        for (const candidate of candidates) {
+            if (await this.columnExists('historia_usuario', candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+    async resolveObservacionEstadoColumn() {
+        const candidates = ['det_par_id_FK', 'obs_estado_FK'];
+        for (const candidate of candidates) {
+            if (await this.columnExists('observaciones', candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+    async resolveCriteriaProjectColumn() {
+        const candidates = ['pro_ID_his_FK', 'pro_ID_FK'];
+        for (const candidate of candidates) {
+            if (await this.columnExists('criterios_aceptacion', candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+    async resolveCriteriaHistoriaColumn() {
+        const candidates = ['his_id_FK', 'his_ID_FK'];
+        for (const candidate of candidates) {
+            if (await this.columnExists('criterios_aceptacion', candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+    normalizeIntegerFieldInput(value, label, options) {
+        const normalized = String(value !== null && value !== void 0 ? value : '').trim();
+        if (!normalized) {
+            return null;
+        }
+        if (!/^-?\d+$/.test(normalized)) {
+            throw new common_1.BadRequestException(`El campo ${label} debe ser un numero entero.`);
+        }
+        const parsed = Number(normalized);
+        if (!Number.isSafeInteger(parsed)) {
+            throw new common_1.BadRequestException(`El campo ${label} no es valido.`);
+        }
+        if (typeof (options === null || options === void 0 ? void 0 : options.min) === 'number' && parsed < options.min) {
+            throw new common_1.BadRequestException(`El campo ${label} debe ser mayor o igual a ${options.min}.`);
+        }
+        if (typeof (options === null || options === void 0 ? void 0 : options.max) === 'number' && parsed > options.max) {
+            throw new common_1.BadRequestException(`El campo ${label} debe ser menor o igual a ${options.max}.`);
+        }
+        return parsed;
+    }
+    async resolveUsuarioResponsableCedula(value) {
+        const normalized = String(value !== null && value !== void 0 ? value : '').trim();
+        if (!normalized)
+            return null;
+        if (!/^\d+$/.test(normalized)) {
+            throw new common_1.BadRequestException('La cedula del usuario responsable no es valida.');
+        }
+        const hasUsuario = await this.tableExists('usuario');
+        if (!hasUsuario) {
+            throw new common_1.BadRequestException('No fue posible validar el usuario responsable.');
+        }
+        const [row] = await this.dataSource.query(`
+        SELECT usu_cedula AS cedula
+        FROM usuario
+        WHERE usu_cedula = ?
+        LIMIT 1
+      `, [Number(normalized)]);
+        if (!(row === null || row === void 0 ? void 0 : row.cedula)) {
+            throw new common_1.NotFoundException('El usuario responsable no existe.');
+        }
+        return Number(row.cedula);
+    }
+    async resolveNextProjectScopedId(tableName, idColumn, projectColumn, projectId) {
+        const tableRef = this.wrapIdentifier(tableName);
+        const idColumnRef = this.wrapIdentifier(idColumn);
+        const projectColumnRef = this.wrapIdentifier(projectColumn);
+        const [row] = await this.dataSource.query(`
+        SELECT COALESCE(MAX(${idColumnRef}), 0) + 1 AS nextId
+        FROM ${tableRef}
+        WHERE ${projectColumnRef} = ?
+      `, [projectId]);
+        return Number((row === null || row === void 0 ? void 0 : row.nextId) || 1);
+    }
     async findProyectoContext(id) {
+        await this.ensureLegacyAdminViews();
         const proyectoTable = await this.resolveProyectoTable();
         if (!proyectoTable) {
             throw new common_1.NotFoundException(`Proyecto con ID ${id} no encontrado`);
@@ -121,17 +234,20 @@ let VerproService = class VerproService {
         };
     }
     async findProyectoAprendices(id) {
+        await this.ensureLegacyAdminViews();
         const hasUsuProDetPar = await this.tableExists('usu_pro_det_par');
         const hasUsuario = await this.tableExists('usuario');
         const hasDetalleParametro = await this.tableExists('detalle_parametro');
         const hasUsuarioFicha = await this.tableExists('usuario_ficha');
+        const rolColumn = await this.resolveUsuProDetParRoleColumn();
+        const rolColumnRef = rolColumn ? `up.${this.wrapIdentifier(rolColumn)}` : 'NULL';
         if (!hasUsuProDetPar || !hasUsuario) {
             return [];
         }
-        const joinDetalleParametro = hasDetalleParametro
-            ? 'LEFT JOIN detalle_parametro dp ON dp.det_par_ID = up.det_par_ID_'
+        const joinDetalleParametro = hasDetalleParametro && rolColumn
+            ? `LEFT JOIN detalle_parametro dp ON dp.det_par_ID = ${rolColumnRef}`
             : '';
-        const rolSelect = hasDetalleParametro
+        const rolSelect = hasDetalleParametro && rolColumn
             ? 'dp.det_par_descripcion AS rolScrum,'
             : 'NULL AS rolScrum,';
         const joinUsuarioFicha = hasUsuarioFicha
@@ -151,7 +267,7 @@ let VerproService = class VerproService {
           u.usu_sexo AS sexo,
           u.usu_estado AS estado,
           ${fichaSelect}
-          up.det_par_ID_ AS detParId,
+          ${rolColumnRef} AS detParId,
           ${rolSelect}
           up.pro_ID AS proId
         FROM usu_pro_det_par up
@@ -165,14 +281,17 @@ let VerproService = class VerproService {
       `, [id]);
     }
     async findFichaAprendicesForProject(id, fichaNumero) {
+        await this.ensureLegacyAdminViews();
         const hasUsuario = await this.tableExists('usuario');
         const hasUsuarioFicha = await this.tableExists('usuario_ficha');
         const hasUsuProDetPar = await this.tableExists('usu_pro_det_par');
+        const rolColumn = await this.resolveUsuProDetParRoleColumn();
+        const rolColumnRef = rolColumn ? this.wrapIdentifier(rolColumn) : null;
         if (!hasUsuario || !hasUsuarioFicha) {
             return [];
         }
         const { tableRef } = await this.findProyectoContext(id);
-        const assignmentJoin = hasUsuProDetPar
+        const assignmentJoin = hasUsuProDetPar && rolColumnRef
             ? `
         LEFT JOIN usu_pro_det_par current_up
           ON current_up.usu_cedula = u.usu_cedula
@@ -181,7 +300,7 @@ let VerproService = class VerproService {
           SELECT
             up.usu_cedula,
             MIN(up.pro_ID) AS otroProyectoId,
-            MIN(up.det_par_ID_) AS otroDetParId
+            MIN(up.${rolColumnRef}) AS otroDetParId
           FROM usu_pro_det_par up
           WHERE up.pro_ID <> ?
           GROUP BY up.usu_cedula
@@ -190,7 +309,7 @@ let VerproService = class VerproService {
         LEFT JOIN ${tableRef} other_p
           ON other_p.pro_ID = other_up.otroProyectoId
         LEFT JOIN detalle_parametro current_dp
-          ON current_dp.det_par_ID = current_up.det_par_ID_
+          ON current_dp.det_par_ID = current_up.${rolColumnRef}
         LEFT JOIN detalle_parametro other_dp
           ON other_dp.det_par_ID = other_up.otroDetParId
       `
@@ -225,7 +344,7 @@ let VerproService = class VerproService {
             WHEN current_up.pro_ID IS NULL THEN 0
             ELSE 1
           END AS asignadoProyectoActual,
-          current_up.det_par_ID_ AS detParIdActual,
+          ${rolColumnRef ? `current_up.${rolColumnRef}` : 'NULL'} AS detParIdActual,
           current_dp.det_par_descripcion AS rolScrumActual,
           other_up.otroProyectoId AS otroProyectoId,
           other_p.pro_nombre AS otroProyectoNombre,
@@ -237,14 +356,16 @@ let VerproService = class VerproService {
         ${assignmentJoin}
         WHERE uf.fic_numero_FK = ?
         ORDER BY u.usu_apellidos ASC, u.usu_nombres ASC
-      `, hasUsuProDetPar ? [id, id, fichaNumero] : [fichaNumero]);
+      `, hasUsuProDetPar && rolColumnRef ? [id, id, fichaNumero] : [fichaNumero]);
         return Array.isArray(rows) ? rows : [];
     }
     async getAprendizProyectoAssignment(id, cedula) {
+        const rolColumn = await this.resolveUsuProDetParRoleColumn();
+        const rolColumnRef = rolColumn ? this.wrapIdentifier(rolColumn) : null;
         const rows = await this.dataSource.query(`
         SELECT
           usu_cedula AS cedula,
-          det_par_ID_ AS detParId,
+          ${rolColumnRef ? rolColumnRef : 'NULL'} AS detParId,
           pro_ID AS proId
         FROM usu_pro_det_par
         WHERE pro_ID = ?
@@ -279,9 +400,10 @@ let VerproService = class VerproService {
             return [];
         const hasCriterios = await this.tableExists('criterios_aceptacion');
         const hasUsuario = await this.tableExists('usuario');
+        const historiaEstadoColumn = await this.resolveHistoriaEstadoColumn();
         const hasHistoriaResponsable = await this.columnExists('historia_usuario', 'usu_cedula_FK');
-        const hasCriteriaHistoriaId = await this.columnExists('criterios_aceptacion', 'his_ID_FK');
-        const hasCriteriaProjectHistoryId = await this.columnExists('criterios_aceptacion', 'pro_ID_his_FK');
+        const criteriaHistoriaColumn = await this.resolveCriteriaHistoriaColumn();
+        const criteriaProjectHistoryColumn = await this.resolveCriteriaProjectColumn();
         const joinResponsables = hasHistoriaResponsable && hasUsuario
             ? `
           LEFT JOIN usuario u
@@ -289,12 +411,12 @@ let VerproService = class VerproService {
         `
             : hasCriterios &&
                 hasUsuario &&
-                hasCriteriaHistoriaId &&
-                hasCriteriaProjectHistoryId
+                criteriaHistoriaColumn &&
+                criteriaProjectHistoryColumn
                 ? `
           LEFT JOIN criterios_aceptacion ca
-            ON ca.his_ID_FK = hu.his_ID
-           AND ca.pro_ID_his_FK = hu.pro_ID_FK
+            ON ca.${this.wrapIdentifier(criteriaHistoriaColumn)} = hu.his_ID
+           AND ca.${this.wrapIdentifier(criteriaProjectHistoryColumn)} = hu.pro_ID_FK
           LEFT JOIN usuario u
             ON u.usu_cedula = ca.usu_cedula_FK
         `
@@ -308,8 +430,8 @@ let VerproService = class VerproService {
         `
             : hasCriterios &&
                 hasUsuario &&
-                hasCriteriaHistoriaId &&
-                hasCriteriaProjectHistoryId
+                criteriaHistoriaColumn &&
+                criteriaProjectHistoryColumn
                 ? `
           NULLIF(
             GROUP_CONCAT(
@@ -324,6 +446,12 @@ let VerproService = class VerproService {
           ) AS responsable
         `
                 : 'NULL AS responsable';
+        const responsableCedulaSelect = hasHistoriaResponsable
+            ? 'hu.usu_cedula_FK AS responsableCedula'
+            : 'NULL AS responsableCedula';
+        const estadoSelect = historiaEstadoColumn
+            ? `hu.${this.wrapIdentifier(historiaEstadoColumn)} AS detParIdFk`
+            : 'NULL AS detParIdFk';
         const rows = await this.dataSource.query(`
         SELECT
           hu.his_ID AS hisId,
@@ -331,6 +459,8 @@ let VerproService = class VerproService {
           hu.his_descripcion AS descripcion,
           hu.his_puntaje AS puntaje,
           hu.his_numero_sprint AS numeroSprint,
+          ${estadoSelect},
+          ${responsableCedulaSelect},
           ${responsablesSelect}
         FROM historia_usuario hu
         ${joinResponsables}
@@ -340,7 +470,9 @@ let VerproService = class VerproService {
           hu.his_titulo,
           hu.his_descripcion,
           hu.his_puntaje,
-          hu.his_numero_sprint
+          hu.his_numero_sprint,
+          ${historiaEstadoColumn ? `hu.${this.wrapIdentifier(historiaEstadoColumn)}` : 'NULL'},
+          ${hasHistoriaResponsable ? 'hu.usu_cedula_FK' : 'NULL'}
         ORDER BY hu.his_ID ASC
       `, [id]);
         return Array.isArray(rows) ? rows : [];
@@ -350,11 +482,9 @@ let VerproService = class VerproService {
         if (!hasCriterios)
             return [];
         const hasUsuario = await this.tableExists('usuario');
-        const criteriaProjectColumn = (await this.columnExists('criterios_aceptacion', 'pro_ID_his_FK'))
-            ? 'pro_ID_his_FK'
-            : (await this.columnExists('criterios_aceptacion', 'pro_ID_FK'))
-                ? 'pro_ID_FK'
-                : null;
+        const hasHistorias = await this.tableExists('historia_usuario');
+        const criteriaProjectColumn = await this.resolveCriteriaProjectColumn();
+        const criteriaHistoriaColumn = await this.resolveCriteriaHistoriaColumn();
         if (!criteriaProjectColumn) {
             return [];
         }
@@ -362,6 +492,13 @@ let VerproService = class VerproService {
             ? `
         LEFT JOIN usuario u
           ON u.usu_cedula = ca.usu_cedula_FK
+      `
+            : '';
+        const joinHistoria = hasHistorias && criteriaHistoriaColumn
+            ? `
+        LEFT JOIN historia_usuario hu
+          ON hu.his_ID = ca.${this.wrapIdentifier(criteriaHistoriaColumn)}
+         AND hu.pro_ID_FK = ca.${this.wrapIdentifier(criteriaProjectColumn)}
       `
             : '';
         const responsableSelect = hasUsuario
@@ -377,9 +514,20 @@ let VerproService = class VerproService {
           ca.cri_ID AS criId,
           ca.cri_tiempo AS tiempo,
           ca.cri_descripcion AS descripcion,
+          ${criteriaHistoriaColumn
+            ? `ca.${this.wrapIdentifier(criteriaHistoriaColumn)} AS hisId`
+            : 'NULL AS hisId'},
+          ${joinHistoria ? 'hu.his_titulo AS historiaTitulo' : 'NULL AS historiaTitulo'},
+          ${await this.columnExists('criterios_aceptacion', 'estado_FK')
+            ? 'ca.estado_FK AS estadoFk'
+            : 'NULL AS estadoFk'},
+          ${await this.columnExists('criterios_aceptacion', 'usu_cedula_FK')
+            ? 'ca.usu_cedula_FK AS responsableCedula'
+            : 'NULL AS responsableCedula'},
           ${responsableSelect}
         FROM criterios_aceptacion ca
         ${joinUsuario}
+        ${joinHistoria}
         WHERE ca.${criteriaProjectColumn} = ?
         ORDER BY ca.cri_ID ASC
       `, [id]);
@@ -389,18 +537,42 @@ let VerproService = class VerproService {
         const hasObservaciones = await this.tableExists('observaciones');
         if (!hasObservaciones)
             return [];
+        const hasUsuario = await this.tableExists('usuario');
+        const observacionEstadoColumn = await this.resolveObservacionEstadoColumn();
+        const joinUsuario = hasUsuario
+            ? `
+        LEFT JOIN usuario u
+          ON u.usu_cedula = obs.usu_cedula_FK
+      `
+            : '';
+        const responsableSelect = hasUsuario
+            ? `
+        NULLIF(
+          TRIM(CONCAT(COALESCE(u.usu_nombres, ''), ' ', COALESCE(u.usu_apellidos, ''))),
+          ''
+        ) AS responsable
+      `
+            : 'NULL AS responsable';
         const rows = await this.dataSource.query(`
         SELECT
           obs.obs_ID AS obsId,
           CONCAT('Sugerencia #', obs.obs_ID) AS titulo,
-          obs.obs_descripcion AS descripcion
+          obs.obs_descripcion AS descripcion,
+          obs.obs_fecha AS fecha,
+          obs.usu_cedula_FK AS responsableCedula,
+          ${observacionEstadoColumn
+            ? `obs.${this.wrapIdentifier(observacionEstadoColumn)} AS detParIdFk`
+            : 'NULL AS detParIdFk'},
+          ${responsableSelect}
         FROM observaciones obs
+        ${joinUsuario}
         WHERE obs.pro_ID_FK = ?
         ORDER BY obs.obs_fecha DESC, obs.obs_ID DESC
       `, [id]);
         return Array.isArray(rows) ? rows : [];
     }
     async findAll() {
+        await this.ensureLegacyAdminViews();
         const proyectoTable = await this.resolveProyectoTable();
         if (!proyectoTable)
             return [];
@@ -436,6 +608,7 @@ let VerproService = class VerproService {
       `);
     }
     async findOne(id) {
+        await this.ensureLegacyAdminViews();
         const proyectoTable = await this.resolveProyectoTable();
         if (!proyectoTable) {
             throw new common_1.NotFoundException(`Proyecto con ID ${id} no encontrado`);
@@ -478,6 +651,7 @@ let VerproService = class VerproService {
         return proyecto;
     }
     async findAdminDetalle(id) {
+        await this.ensureLegacyAdminViews();
         const proyectoTable = await this.resolveProyectoTable();
         if (!proyectoTable) {
             throw new common_1.NotFoundException(`Proyecto con ID ${id} no encontrado`);
@@ -563,28 +737,38 @@ let VerproService = class VerproService {
             const joinFichaAprendiz = hasUsuarioFicha && hasFichas
                 ? 'LEFT JOIN fichas f ON f.fic_numero = uf.fic_numero_FK'
                 : '';
+            const joinRolScrum = hasDetalleParametro
+                ? 'LEFT JOIN detalle_parametro dp_rol ON dp_rol.det_par_ID = up.det_par_ID_FK'
+                : '';
+            const rolScrumSelect = hasDetalleParametro
+                ? `up.det_par_ID_FK AS detParId,
+             dp_rol.det_par_descripcion AS rolScrum`
+                : `NULL AS detParId,
+             NULL AS rolScrum`;
             aprendices = await this.dataSource.query(`
           SELECT
             u.usu_cedula AS cedula,
             u.usu_tipodedocumento AS tipoDocumento,
             u.usu_nombres AS nombres,
             u.usu_apellidos AS apellidos,
-            u.usu_correo AS correo,
-            u.usu_telefono AS telefono,
-            u.usu_sexo AS sexo,
-            u.usu_estado AS estado,
-            uf.fic_numero_FK AS fichaNumero,
-            f.fic_programa AS fichaPrograma,
-            ${fichaAreaSelect} AS fichaArea
-          FROM usu_pro_det_par up
-          INNER JOIN usuario u
-            ON u.usu_cedula = up.usu_cedula
-           AND u.rol_sis_ID_FK = 1
-          ${joinUsuarioFicha}
-          ${joinFichaAprendiz}
-          WHERE up.pro_ID = ?
-          ORDER BY u.usu_apellidos ASC, u.usu_nombres ASC
-        `, [id]);
+             u.usu_correo AS correo,
+             u.usu_telefono AS telefono,
+             u.usu_sexo AS sexo,
+             u.usu_estado AS estado,
+             ${rolScrumSelect},
+             uf.fic_numero_FK AS fichaNumero,
+             f.fic_programa AS fichaPrograma,
+             ${fichaAreaSelect} AS fichaArea
+           FROM usu_pro_det_par up
+           INNER JOIN usuario u
+             ON u.usu_cedula = up.usu_cedula
+            AND u.rol_sis_ID_FK = 1
+           ${joinRolScrum}
+           ${joinUsuarioFicha}
+           ${joinFichaAprendiz}
+           WHERE up.pro_ID = ?
+           ORDER BY u.usu_apellidos ASC, u.usu_nombres ASC
+         `, [id]);
         }
         const [historiasUsuario, criteriosAceptacion, sugerencias] = await Promise.all([
             this.findHistoriasUsuarioByProyecto(id),
@@ -600,6 +784,7 @@ let VerproService = class VerproService {
         };
     }
     async updateAdminDetalle(id, payload) {
+        await this.ensureLegacyAdminViews();
         const projectContext = await this.findProyectoContext(id);
         const fieldConfig = {
             proDescription: {
@@ -645,6 +830,7 @@ let VerproService = class VerproService {
     }
     async findAdminAprendicesEditor(id) {
         var _a;
+        await this.ensureLegacyAdminViews();
         const { proyecto } = await this.findProyectoContext(id);
         const rolesScrum = await this.resolveRolesScrum();
         const fichaNumero = String((_a = proyecto === null || proyecto === void 0 ? void 0 : proyecto.fichaNumero) !== null && _a !== void 0 ? _a : '').trim();
@@ -665,10 +851,13 @@ let VerproService = class VerproService {
     }
     async addAprendizToProyecto(id, cedula, detParId) {
         var _a, _b;
+        await this.ensureLegacyAdminViews();
         const hasUsuProDetPar = await this.tableExists('usu_pro_det_par');
         const hasUsuario = await this.tableExists('usuario');
         const hasUsuarioFicha = await this.tableExists('usuario_ficha');
-        if (!hasUsuProDetPar || !hasUsuario || !hasUsuarioFicha) {
+        const rolColumn = await this.resolveUsuProDetParRoleColumn();
+        const rolColumnRef = rolColumn ? this.wrapIdentifier(rolColumn) : null;
+        if (!hasUsuProDetPar || !hasUsuario || !hasUsuarioFicha || !rolColumnRef) {
             throw new common_1.BadRequestException('No fue posible editar los aprendices de este proyecto.');
         }
         const { proyecto } = await this.findProyectoContext(id);
@@ -726,7 +915,7 @@ let VerproService = class VerproService {
             throw new common_1.BadRequestException('El rol Scrum seleccionado no es valido.');
         }
         await this.dataSource.query(`
-        INSERT INTO usu_pro_det_par (usu_cedula, det_par_ID_, pro_ID)
+        INSERT INTO usu_pro_det_par (usu_cedula, ${rolColumnRef}, pro_ID)
         VALUES (?, ?, ?)
       `, [Number(cedula), Number(roleId), id]);
         return {
@@ -736,6 +925,7 @@ let VerproService = class VerproService {
     }
     async saveProyectoAprendices(id, payload) {
         var _a, _b, _c;
+        await this.ensureLegacyAdminViews();
         const addCedulas = this.normalizeCedulasList(payload === null || payload === void 0 ? void 0 : payload.addCedulas);
         const removeCedulas = this.normalizeCedulasList(payload === null || payload === void 0 ? void 0 : payload.removeCedulas);
         if (addCedulas.length === 0 && removeCedulas.length === 0) {
@@ -752,7 +942,9 @@ let VerproService = class VerproService {
         const hasUsuProDetPar = await this.tableExists('usu_pro_det_par');
         const hasUsuario = await this.tableExists('usuario');
         const hasUsuarioFicha = await this.tableExists('usuario_ficha');
-        if (!hasUsuProDetPar || !hasUsuario || !hasUsuarioFicha) {
+        const rolColumn = await this.resolveUsuProDetParRoleColumn();
+        const rolColumnRef = rolColumn ? this.wrapIdentifier(rolColumn) : null;
+        if (!hasUsuProDetPar || !hasUsuario || !hasUsuarioFicha || !rolColumnRef) {
             throw new common_1.BadRequestException('No fue posible guardar los cambios de aprendices en este proyecto.');
         }
         const projectContext = await this.findProyectoContext(id);
@@ -846,7 +1038,7 @@ let VerproService = class VerproService {
             }
             for (const cedula of addCedulas) {
                 await queryRunner.query(`
-            INSERT INTO usu_pro_det_par (usu_cedula, det_par_ID_, pro_ID)
+            INSERT INTO usu_pro_det_par (usu_cedula, ${rolColumnRef}, pro_ID)
             VALUES (?, ?, ?)
           `, [Number(cedula), Number(defaultRolScrumId), id]);
             }
@@ -866,8 +1058,11 @@ let VerproService = class VerproService {
         };
     }
     async updateAprendizProyectoRole(id, cedula, detParId) {
+        await this.ensureLegacyAdminViews();
+        const rolColumn = await this.resolveUsuProDetParRoleColumn();
+        const rolColumnRef = rolColumn ? this.wrapIdentifier(rolColumn) : null;
         const assignments = await this.getAprendizProyectoAssignment(id, cedula);
-        if (assignments.length === 0) {
+        if (!rolColumnRef || assignments.length === 0) {
             throw new common_1.NotFoundException('El aprendiz no esta asignado a este proyecto.');
         }
         const rolesScrum = await this.resolveRolesScrum();
@@ -885,7 +1080,7 @@ let VerproService = class VerproService {
             AND usu_cedula = ?
         `, [id, Number(cedula)]);
             await queryRunner.query(`
-          INSERT INTO usu_pro_det_par (usu_cedula, det_par_ID_, pro_ID)
+          INSERT INTO usu_pro_det_par (usu_cedula, ${rolColumnRef}, pro_ID)
           VALUES (?, ?, ?)
         `, [Number(cedula), Number(detParId), id]);
             await queryRunner.commitTransaction();
@@ -904,6 +1099,7 @@ let VerproService = class VerproService {
     }
     async removeAprendizFromProyecto(id, cedula) {
         var _a;
+        await this.ensureLegacyAdminViews();
         const result = await this.dataSource.query(`
         DELETE FROM usu_pro_det_par
         WHERE pro_ID = ?
@@ -917,6 +1113,375 @@ let VerproService = class VerproService {
             success: true,
             message: 'Aprendiz eliminado correctamente del proyecto.',
         };
+    }
+    async createHistoriaUsuario(id, payload) {
+        await this.ensureLegacyAdminViews();
+        await this.findProyectoContext(id);
+        const hasHistorias = await this.tableExists('historia_usuario');
+        if (!hasHistorias) {
+            throw new common_1.BadRequestException('No fue posible crear historias de usuario en este proyecto.');
+        }
+        const historiaEstadoColumn = await this.resolveHistoriaEstadoColumn();
+        const titulo = this.normalizeTextFieldInput(payload === null || payload === void 0 ? void 0 : payload.titulo, 255, 'Titulo');
+        const descripcion = this.normalizeTextFieldInput(payload === null || payload === void 0 ? void 0 : payload.descripcion, 500, 'Descripcion');
+        if (!titulo) {
+            throw new common_1.BadRequestException('El titulo de la historia es obligatorio.');
+        }
+        if (!descripcion) {
+            throw new common_1.BadRequestException('La descripcion de la historia de usuario es obligatoria.');
+        }
+        const puntaje = this.normalizeIntegerFieldInput(payload === null || payload === void 0 ? void 0 : payload.puntaje, 'Puntaje', {
+            min: 0,
+        });
+        const numeroSprint = this.normalizeIntegerFieldInput(payload === null || payload === void 0 ? void 0 : payload.numeroSprint, 'Sprint', { min: 0 });
+        const responsableCedula = await this.resolveUsuarioResponsableCedula(payload === null || payload === void 0 ? void 0 : payload.actorCedula);
+        const defaultEstadoId = await this.resolveDefaultEstadoId();
+        const nextHistoriaId = await this.resolveNextProjectScopedId('historia_usuario', 'his_ID', 'pro_ID_FK', id);
+        const columns = [
+            'his_ID',
+            'pro_ID_FK',
+            'his_titulo',
+            'his_descripcion',
+            'his_puntaje',
+            'his_numero_sprint',
+        ];
+        const values = [nextHistoriaId, id, titulo, descripcion, puntaje, numeroSprint];
+        const placeholders = ['?', '?', '?', '?', '?', '?'];
+        if (historiaEstadoColumn && defaultEstadoId) {
+            columns.push(historiaEstadoColumn);
+            values.push(defaultEstadoId);
+            placeholders.push('?');
+        }
+        if (responsableCedula && (await this.columnExists('historia_usuario', 'usu_cedula_FK'))) {
+            columns.push('usu_cedula_FK');
+            values.push(responsableCedula);
+            placeholders.push('?');
+        }
+        await this.dataSource.query(`
+        INSERT INTO historia_usuario (${columns
+            .map((column) => this.wrapIdentifier(column))
+            .join(', ')})
+        VALUES (${placeholders.join(', ')})
+      `, values);
+        return await this.findAdminDetalle(id);
+    }
+    async updateHistoriaUsuario(id, hisId, payload) {
+        await this.ensureLegacyAdminViews();
+        await this.findProyectoContext(id);
+        const historiaRows = await this.dataSource.query(`
+        SELECT 1 AS found
+        FROM historia_usuario
+        WHERE pro_ID_FK = ?
+          AND his_ID = ?
+        LIMIT 1
+      `, [id, hisId]);
+        if (!Array.isArray(historiaRows) || !historiaRows[0]) {
+            throw new common_1.NotFoundException(`La historia de usuario ${hisId} no existe en este proyecto.`);
+        }
+        const updates = [];
+        const values = [];
+        if (Object.prototype.hasOwnProperty.call(payload, 'titulo')) {
+            const titulo = this.normalizeTextFieldInput(payload === null || payload === void 0 ? void 0 : payload.titulo, 255, 'Titulo');
+            if (!titulo) {
+                throw new common_1.BadRequestException('El titulo de la historia es obligatorio.');
+            }
+            updates.push('his_titulo = ?');
+            values.push(titulo);
+        }
+        if (Object.prototype.hasOwnProperty.call(payload, 'descripcion')) {
+            const descripcion = this.normalizeTextFieldInput(payload === null || payload === void 0 ? void 0 : payload.descripcion, 500, 'Descripcion');
+            if (!descripcion) {
+                throw new common_1.BadRequestException('La descripcion de la historia de usuario es obligatoria.');
+            }
+            updates.push('his_descripcion = ?');
+            values.push(descripcion);
+        }
+        if (Object.prototype.hasOwnProperty.call(payload, 'puntaje')) {
+            updates.push('his_puntaje = ?');
+            values.push(this.normalizeIntegerFieldInput(payload === null || payload === void 0 ? void 0 : payload.puntaje, 'Puntaje', {
+                min: 0,
+            }));
+        }
+        if (Object.prototype.hasOwnProperty.call(payload, 'numeroSprint')) {
+            updates.push('his_numero_sprint = ?');
+            values.push(this.normalizeIntegerFieldInput(payload === null || payload === void 0 ? void 0 : payload.numeroSprint, 'Sprint', {
+                min: 0,
+            }));
+        }
+        if (updates.length === 0) {
+            throw new common_1.BadRequestException('Debes enviar al menos un campo editable de la historia de usuario.');
+        }
+        await this.dataSource.query(`
+        UPDATE historia_usuario
+        SET ${updates.join(', ')}
+        WHERE pro_ID_FK = ?
+          AND his_ID = ?
+      `, [...values, id, hisId]);
+        return await this.findAdminDetalle(id);
+    }
+    async deleteHistoriaUsuario(id, hisId) {
+        var _a;
+        await this.ensureLegacyAdminViews();
+        await this.findProyectoContext(id);
+        const result = await this.dataSource.query(`
+        DELETE FROM historia_usuario
+        WHERE pro_ID_FK = ?
+          AND his_ID = ?
+      `, [id, hisId]);
+        const affectedRows = Number((result === null || result === void 0 ? void 0 : result.affectedRows) || ((_a = result === null || result === void 0 ? void 0 : result[0]) === null || _a === void 0 ? void 0 : _a.affectedRows) || 0);
+        if (affectedRows === 0) {
+            throw new common_1.NotFoundException(`La historia de usuario ${hisId} no existe en este proyecto.`);
+        }
+        return await this.findAdminDetalle(id);
+    }
+    async createCriterioAceptacion(id, payload) {
+        await this.ensureLegacyAdminViews();
+        await this.findProyectoContext(id);
+        const hasCriterios = await this.tableExists('criterios_aceptacion');
+        if (!hasCriterios) {
+            throw new common_1.BadRequestException('No fue posible crear criterios de aceptacion en este proyecto.');
+        }
+        const criteriaProjectColumn = await this.resolveCriteriaProjectColumn();
+        const criteriaHistoriaColumn = await this.resolveCriteriaHistoriaColumn();
+        if (!criteriaProjectColumn) {
+            throw new common_1.BadRequestException('No fue posible relacionar el criterio de aceptacion con el proyecto.');
+        }
+        const descripcion = this.normalizeTextFieldInput(payload === null || payload === void 0 ? void 0 : payload.descripcion, 500, 'Descripcion');
+        const tiempo = this.normalizeTextFieldInput(payload === null || payload === void 0 ? void 0 : payload.tiempo, 50, 'Tiempo');
+        if (!descripcion) {
+            throw new common_1.BadRequestException('La descripcion del criterio de aceptacion es obligatoria.');
+        }
+        const responsableCedula = await this.resolveUsuarioResponsableCedula(payload === null || payload === void 0 ? void 0 : payload.actorCedula);
+        if (!responsableCedula) {
+            throw new common_1.BadRequestException('No fue posible identificar al usuario responsable del criterio.');
+        }
+        const hisId = Object.prototype.hasOwnProperty.call(payload, 'hisId')
+            ? this.normalizeIntegerFieldInput(payload === null || payload === void 0 ? void 0 : payload.hisId, 'Historia de usuario', {
+                min: 1,
+            })
+            : null;
+        if (hisId) {
+            const historiaRows = await this.dataSource.query(`
+          SELECT 1 AS found
+          FROM historia_usuario
+          WHERE pro_ID_FK = ?
+            AND his_ID = ?
+          LIMIT 1
+        `, [id, hisId]);
+            if (!Array.isArray(historiaRows) || !historiaRows[0]) {
+                throw new common_1.NotFoundException(`La historia de usuario ${hisId} no existe en este proyecto.`);
+            }
+        }
+        const defaultEstadoId = await this.resolveDefaultEstadoId();
+        if (!defaultEstadoId) {
+            throw new common_1.BadRequestException('No se encontro un estado disponible para crear el criterio.');
+        }
+        const nextCriterioId = await this.resolveNextProjectScopedId('criterios_aceptacion', 'cri_ID', criteriaProjectColumn, id);
+        const columns = [
+            'cri_ID',
+            criteriaProjectColumn,
+            'usu_cedula_FK',
+            'estado_FK',
+            'cri_tiempo',
+            'cri_descripcion',
+        ];
+        const values = [
+            nextCriterioId,
+            id,
+            responsableCedula,
+            defaultEstadoId,
+            tiempo,
+            descripcion,
+        ];
+        const placeholders = ['?', '?', '?', '?', '?', '?'];
+        if (criteriaHistoriaColumn) {
+            columns.push(criteriaHistoriaColumn);
+            values.push(hisId);
+            placeholders.push('?');
+        }
+        await this.dataSource.query(`
+        INSERT INTO criterios_aceptacion (${columns
+            .map((column) => this.wrapIdentifier(column))
+            .join(', ')})
+        VALUES (${placeholders.join(', ')})
+      `, values);
+        return await this.findAdminDetalle(id);
+    }
+    async updateCriterioAceptacion(id, criId, payload) {
+        await this.ensureLegacyAdminViews();
+        await this.findProyectoContext(id);
+        const criteriaProjectColumn = await this.resolveCriteriaProjectColumn();
+        const criteriaHistoriaColumn = await this.resolveCriteriaHistoriaColumn();
+        if (!criteriaProjectColumn) {
+            throw new common_1.BadRequestException('No fue posible identificar el proyecto de este criterio.');
+        }
+        const criterioRows = await this.dataSource.query(`
+        SELECT 1 AS found
+        FROM criterios_aceptacion
+        WHERE ${this.wrapIdentifier(criteriaProjectColumn)} = ?
+          AND cri_ID = ?
+        LIMIT 1
+      `, [id, criId]);
+        if (!Array.isArray(criterioRows) || !criterioRows[0]) {
+            throw new common_1.NotFoundException(`El criterio de aceptacion ${criId} no existe en este proyecto.`);
+        }
+        const updates = [];
+        const values = [];
+        if (Object.prototype.hasOwnProperty.call(payload, 'descripcion')) {
+            const descripcion = this.normalizeTextFieldInput(payload === null || payload === void 0 ? void 0 : payload.descripcion, 500, 'Descripcion');
+            if (!descripcion) {
+                throw new common_1.BadRequestException('La descripcion del criterio de aceptacion es obligatoria.');
+            }
+            updates.push('cri_descripcion = ?');
+            values.push(descripcion);
+        }
+        if (Object.prototype.hasOwnProperty.call(payload, 'tiempo')) {
+            updates.push('cri_tiempo = ?');
+            values.push(this.normalizeTextFieldInput(payload === null || payload === void 0 ? void 0 : payload.tiempo, 50, 'Tiempo'));
+        }
+        if (criteriaHistoriaColumn && Object.prototype.hasOwnProperty.call(payload, 'hisId')) {
+            const hisId = this.normalizeIntegerFieldInput(payload === null || payload === void 0 ? void 0 : payload.hisId, 'Historia de usuario', { min: 1 });
+            if (hisId) {
+                const historiaRows = await this.dataSource.query(`
+            SELECT 1 AS found
+            FROM historia_usuario
+            WHERE pro_ID_FK = ?
+              AND his_ID = ?
+            LIMIT 1
+          `, [id, hisId]);
+                if (!Array.isArray(historiaRows) || !historiaRows[0]) {
+                    throw new common_1.NotFoundException(`La historia de usuario ${hisId} no existe en este proyecto.`);
+                }
+            }
+            updates.push(`${this.wrapIdentifier(criteriaHistoriaColumn)} = ?`);
+            values.push(hisId);
+        }
+        if (Object.prototype.hasOwnProperty.call(payload, 'actorCedula')) {
+            const responsableCedula = await this.resolveUsuarioResponsableCedula(payload === null || payload === void 0 ? void 0 : payload.actorCedula);
+            if (!responsableCedula) {
+                throw new common_1.BadRequestException('No fue posible identificar al usuario responsable del criterio.');
+            }
+            updates.push('usu_cedula_FK = ?');
+            values.push(responsableCedula);
+        }
+        if (updates.length === 0) {
+            throw new common_1.BadRequestException('Debes enviar al menos un campo editable del criterio de aceptacion.');
+        }
+        await this.dataSource.query(`
+        UPDATE criterios_aceptacion
+        SET ${updates.join(', ')}
+        WHERE ${this.wrapIdentifier(criteriaProjectColumn)} = ?
+          AND cri_ID = ?
+      `, [...values, id, criId]);
+        return await this.findAdminDetalle(id);
+    }
+    async deleteCriterioAceptacion(id, criId) {
+        var _a;
+        await this.ensureLegacyAdminViews();
+        await this.findProyectoContext(id);
+        const criteriaProjectColumn = await this.resolveCriteriaProjectColumn();
+        if (!criteriaProjectColumn) {
+            throw new common_1.BadRequestException('No fue posible identificar el proyecto de este criterio.');
+        }
+        const result = await this.dataSource.query(`
+        DELETE FROM criterios_aceptacion
+        WHERE ${this.wrapIdentifier(criteriaProjectColumn)} = ?
+          AND cri_ID = ?
+      `, [id, criId]);
+        const affectedRows = Number((result === null || result === void 0 ? void 0 : result.affectedRows) || ((_a = result === null || result === void 0 ? void 0 : result[0]) === null || _a === void 0 ? void 0 : _a.affectedRows) || 0);
+        if (affectedRows === 0) {
+            throw new common_1.NotFoundException(`El criterio de aceptacion ${criId} no existe en este proyecto.`);
+        }
+        return await this.findAdminDetalle(id);
+    }
+    async createSugerencia(id, payload) {
+        await this.ensureLegacyAdminViews();
+        await this.findProyectoContext(id);
+        const hasObservaciones = await this.tableExists('observaciones');
+        if (!hasObservaciones) {
+            throw new common_1.BadRequestException('No fue posible crear sugerencias en este proyecto.');
+        }
+        const descripcion = this.normalizeTextFieldInput(payload === null || payload === void 0 ? void 0 : payload.descripcion, 255, 'Descripcion');
+        if (!descripcion) {
+            throw new common_1.BadRequestException('La descripcion de la sugerencia es obligatoria.');
+        }
+        const responsableCedula = await this.resolveUsuarioResponsableCedula(payload === null || payload === void 0 ? void 0 : payload.actorCedula);
+        const observacionEstadoColumn = await this.resolveObservacionEstadoColumn();
+        const defaultEstadoId = await this.resolveDefaultEstadoId();
+        const columns = ['obs_fecha', 'obs_descripcion', 'pro_ID_FK'];
+        const values = [descripcion, id];
+        const placeholders = ['CURDATE()', '?', '?'];
+        if (responsableCedula && (await this.columnExists('observaciones', 'usu_cedula_FK'))) {
+            columns.push('usu_cedula_FK');
+            values.push(responsableCedula);
+            placeholders.push('?');
+        }
+        if (observacionEstadoColumn && defaultEstadoId) {
+            columns.push(observacionEstadoColumn);
+            values.push(defaultEstadoId);
+            placeholders.push('?');
+        }
+        await this.dataSource.query(`
+        INSERT INTO observaciones (${columns
+            .map((column) => this.wrapIdentifier(column))
+            .join(', ')})
+        VALUES (${placeholders.join(', ')})
+      `, values);
+        return await this.findAdminDetalle(id);
+    }
+    async updateSugerencia(id, obsId, payload) {
+        await this.ensureLegacyAdminViews();
+        await this.findProyectoContext(id);
+        const sugerenciaRows = await this.dataSource.query(`
+        SELECT 1 AS found
+        FROM observaciones
+        WHERE pro_ID_FK = ?
+          AND obs_ID = ?
+        LIMIT 1
+      `, [id, obsId]);
+        if (!Array.isArray(sugerenciaRows) || !sugerenciaRows[0]) {
+            throw new common_1.NotFoundException(`La sugerencia ${obsId} no existe en este proyecto.`);
+        }
+        const updates = [];
+        const values = [];
+        if (Object.prototype.hasOwnProperty.call(payload, 'descripcion')) {
+            const descripcion = this.normalizeTextFieldInput(payload === null || payload === void 0 ? void 0 : payload.descripcion, 255, 'Descripcion');
+            if (!descripcion) {
+                throw new common_1.BadRequestException('La descripcion de la sugerencia es obligatoria.');
+            }
+            updates.push('obs_descripcion = ?');
+            values.push(descripcion);
+        }
+        if (Object.prototype.hasOwnProperty.call(payload, 'actorCedula')) {
+            const responsableCedula = await this.resolveUsuarioResponsableCedula(payload === null || payload === void 0 ? void 0 : payload.actorCedula);
+            updates.push('usu_cedula_FK = ?');
+            values.push(responsableCedula);
+        }
+        if (updates.length === 0) {
+            throw new common_1.BadRequestException('Debes enviar al menos un campo editable de la sugerencia.');
+        }
+        await this.dataSource.query(`
+        UPDATE observaciones
+        SET ${updates.join(', ')}
+        WHERE pro_ID_FK = ?
+          AND obs_ID = ?
+      `, [...values, id, obsId]);
+        return await this.findAdminDetalle(id);
+    }
+    async deleteSugerencia(id, obsId) {
+        var _a;
+        await this.ensureLegacyAdminViews();
+        await this.findProyectoContext(id);
+        const result = await this.dataSource.query(`
+        DELETE FROM observaciones
+        WHERE pro_ID_FK = ?
+          AND obs_ID = ?
+      `, [id, obsId]);
+        const affectedRows = Number((result === null || result === void 0 ? void 0 : result.affectedRows) || ((_a = result === null || result === void 0 ? void 0 : result[0]) === null || _a === void 0 ? void 0 : _a.affectedRows) || 0);
+        if (affectedRows === 0) {
+            throw new common_1.NotFoundException(`La sugerencia ${obsId} no existe en este proyecto.`);
+        }
+        return await this.findAdminDetalle(id);
     }
 };
 exports.VerproService = VerproService;

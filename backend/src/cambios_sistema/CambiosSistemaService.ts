@@ -1,5 +1,18 @@
+/**
+ * CambiosSistemaService
+ * --------------------
+ * Servicio para el modulo de "Cambios del sistema" en el panel administrador.
+ *
+ * Objetivo:
+ * - Listar observaciones/cambios (pendientes / vistos).
+ * - Marcar un cambio como observado.
+ *
+ * Nota: el modulo se defiende ante instalaciones donde la tabla `cambios_sistema`
+ * aun no existe (retorna lista vacia en lugar de romper la pantalla).
+ */
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { DataSource } from "typeorm";
+import { SchemaIntrospection } from "../shared/database/SchemaIntrospection";
 
 type CambiosEstadoFilter = "pendiente" | "visto" | "todos";
 
@@ -21,20 +34,14 @@ interface CambioRow {
 
 @Injectable()
 export class CambiosSistemaService {
-  constructor(private readonly dataSource: DataSource) {}
+  private readonly schema: SchemaIntrospection;
+
+  constructor(private readonly dataSource: DataSource) {
+    this.schema = new SchemaIntrospection(dataSource);
+  }
 
   private async tableExists(tableName: string) {
-    const [result] = await this.dataSource.query(
-      `
-        SELECT COUNT(*) AS total
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-      `,
-      [tableName],
-    );
-
-    return Number(result?.total || 0) > 0;
+    return this.schema.tableExists(tableName);
   }
 
   async listarCambios({ estado, limit }: ListCambiosOptions) {
@@ -132,4 +139,3 @@ export class CambiosSistemaService {
     return { ok: true, id };
   }
 }
-

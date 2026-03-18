@@ -1,3 +1,10 @@
+/**
+ * Sprint entity
+ * ------------
+ * Mapeo TypeORM de la tabla `sprint`.
+ *
+ * Representa iteraciones del proyecto, con fechas, estado y una relacion 1:N con reuniones.
+ */
 import {
   Column,
   Entity,

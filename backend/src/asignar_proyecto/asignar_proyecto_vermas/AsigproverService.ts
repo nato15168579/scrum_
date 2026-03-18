@@ -1,26 +1,30 @@
+/**
+ * AsigProVerService
+ * ----------------
+ * Servicio de soporte para "ver mas" de un proyecto dentro del flujo de asignacion.
+ *
+ * Devuelve un payload plano con campos basicos del proyecto y su estado.
+ * Usa introspeccion del esquema para tolerar instalaciones donde la tabla de
+ * proyectos puede llamarse `proyecto` o ` proyecto` (legacy).
+ */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { SchemaIntrospection } from '../../shared/database/SchemaIntrospection';
 
 @Injectable()
 export class AsigProVerService {
-  constructor(private dataSource: DataSource) {}
+  private readonly schema: SchemaIntrospection;
+
+  constructor(private dataSource: DataSource) {
+    this.schema = new SchemaIntrospection(dataSource);
+  }
 
   private wrapIdentifier(identifier: string) {
-    return `\`${identifier.replace(/`/g, '``')}\``;
+    return this.schema.wrapIdentifier(identifier);
   }
 
   private async tableExists(tableName: string) {
-    const [row] = await this.dataSource.query(
-      `
-        SELECT COUNT(*) AS total
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-      `,
-      [tableName],
-    );
-
-    return Number(row?.total || 0) > 0;
+    return this.schema.tableExists(tableName);
   }
 
   private async resolveProyectoTable() {

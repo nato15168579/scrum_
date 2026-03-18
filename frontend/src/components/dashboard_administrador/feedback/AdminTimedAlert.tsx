@@ -1,3 +1,16 @@
+/**
+ * AdminTimedAlert
+ * --------------
+ * Componente de feedback con cierre automatico para el panel administrador.
+ *
+ * Caracteristicas:
+ * - Temporizador con barra de progreso circular.
+ * - Cierre manual y automatico.
+ * - `zIndex` opcional para mostrarse sobre modales anidados.
+ *
+ * Nota: se maneja el cierre con refs para evitar dobles ejecuciones cuando coinciden
+ * el timeout y el click del usuario.
+ */
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
@@ -112,4 +125,3 @@ const AdminTimedAlert = ({
 };
 
 export default AdminTimedAlert;
-

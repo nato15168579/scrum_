@@ -1,3 +1,13 @@
+/**
+ * DetalleParametro entity
+ * ----------------------
+ * Mapeo TypeORM de la tabla `detalle_parametro`.
+ *
+ * Se usa como catalogo para:
+ * - Estados (por hacer, en progreso, hecho, etc.)
+ * - Roles Scrum (product owner, scrum master, scrum team)
+ * - Otros parametros del sistema.
+ */
 import {
   Column,
   Entity,

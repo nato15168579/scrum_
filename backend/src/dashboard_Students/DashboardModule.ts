@@ -1,3 +1,12 @@
+/**
+ * DashboardModule (Student)
+ * ------------------------
+ * Modulo NestJS que registra el controller y service del dashboard student.
+ *
+ * Nota:
+ * - Usa repositorios de TypeORM para `Usuario` y `Proyecto`.
+ * - Mantiene separado el flujo del admin para no mezclar contratos/respuestas.
+ */
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DashboardController } from './DashboardController';

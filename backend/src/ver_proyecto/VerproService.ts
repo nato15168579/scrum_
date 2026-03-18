@@ -1,3 +1,15 @@
+/**
+ * VerproService
+ * ------------
+ * Servicio de backend para la vista "Ver Proyecto" del panel administrador.
+ *
+ * Este modulo concentra consultas y operaciones sobre:
+ * - proyecto (detalle y edicion de campos principales)
+ * - aprendices (asignacion/retiro y rol Scrum)
+ * - historias de usuario, criterios de aceptacion y sugerencias (CRUD)
+ *
+ * Incluye compatibilidad de esquema a traves de introspeccion y vistas legacy.
+ */
 import {
   BadRequestException,
   ConflictException,
@@ -5,42 +17,60 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { SchemaIntrospection } from '../shared/database/SchemaIntrospection';
 
+/**
+ * Servicio "Ver Proyecto" (Admin)
+ * -------------------------------
+ * Concentrador de casos de uso del panel administrador para:
+ * - Consultar el detalle completo de un proyecto (proyecto, aprendices, HU, CA, sugerencias).
+ * - Gestionar CRUD de historias de usuario, criterios de aceptacion y sugerencias.
+ * - Gestionar edicion de aprendices asociados a un proyecto y su rol Scrum.
+ *
+ * Consideraciones:
+ * - La base de datos puede variar entre versiones. Por eso se usa introspeccion del esquema
+ *   y vistas legacy (ej: `fichas`, `usuario_ficha`) para mantener compatibilidad.
+ * - Se usan consultas SQL manuales con parametros `?` para los valores y escapado de
+ *   identificadores solo cuando es necesario interpolar nombres de tablas/columnas.
+ */
 @Injectable()
 export class VerproService {
-  constructor(private readonly dataSource: DataSource) {}
+  private readonly schema: SchemaIntrospection;
+
+  constructor(private readonly dataSource: DataSource) {
+    this.schema = new SchemaIntrospection(dataSource);
+  }
 
   private wrapIdentifier(identifier: string) {
-    return `\`${identifier.replace(/`/g, '``')}\``;
+    return this.schema.wrapIdentifier(identifier);
   }
 
-  private async tableExists(tableName: string) {
-    const [row] = await this.dataSource.query(
-      `
-        SELECT COUNT(*) AS total
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-      `,
-      [tableName],
-    );
-
-    return Number(row?.total || 0) > 0;
+  private tableExists(tableName: string) {
+    return this.schema.tableExists(tableName);
   }
 
-  private async columnExists(tableName: string, columnName: string) {
-    const [row] = await this.dataSource.query(
-      `
-        SELECT COUNT(*) AS total
-        FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-          AND COLUMN_NAME = ?
-      `,
-      [tableName, columnName],
-    );
+  private columnExists(tableName: string, columnName: string) {
+    return this.schema.columnExists(tableName, columnName);
+  }
 
-    return Number(row?.total || 0) > 0;
+  private getTableType(tableName: string) {
+    return this.schema.getTableType(tableName);
+  }
+
+  private ensureLegacyAdminViews() {
+    return this.schema.ensureLegacyAdminViews();
+  }
+
+  private async resolveUsuProDetParRoleColumn() {
+    if (await this.columnExists('usu_pro_det_par', 'det_par_ID_FK')) {
+      return 'det_par_ID_FK';
+    }
+
+    if (await this.columnExists('usu_pro_det_par', 'det_par_ID_')) {
+      return 'det_par_ID_';
+    }
+
+    return null;
   }
 
   private async resolveProyectoTable() {
@@ -99,7 +129,173 @@ export class VerproService {
     return firstRole?.detParId ? Number(firstRole.detParId) : null;
   }
 
+  private async resolveDefaultEstadoId() {
+    const hasDetalleParametro = await this.tableExists('detalle_parametro');
+    if (!hasDetalleParametro) return null;
+
+    const [row] = await this.dataSource.query(`
+      SELECT
+        det_par_ID AS detParId
+      FROM detalle_parametro
+      WHERE par_ID_FK = 1
+      ORDER BY
+        CASE
+          WHEN LOWER(TRIM(COALESCE(det_par_descripcion, ''))) = 'por hacer' THEN 0
+          ELSE 1
+        END,
+        det_par_ID ASC
+      LIMIT 1
+    `);
+
+    return row?.detParId ? Number(row.detParId) : null;
+  }
+
+  private async resolveHistoriaEstadoColumn() {
+    const candidates = ['det_par_ID_FK', 'det_par_ID_estado_FK'];
+
+    for (const candidate of candidates) {
+      if (await this.columnExists('historia_usuario', candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  private async resolveObservacionEstadoColumn() {
+    const candidates = ['det_par_id_FK', 'obs_estado_FK'];
+
+    for (const candidate of candidates) {
+      if (await this.columnExists('observaciones', candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  private async resolveCriteriaProjectColumn() {
+    const candidates = ['pro_ID_his_FK', 'pro_ID_FK'];
+
+    for (const candidate of candidates) {
+      if (await this.columnExists('criterios_aceptacion', candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  private async resolveCriteriaHistoriaColumn() {
+    const candidates = ['his_id_FK', 'his_ID_FK'];
+
+    for (const candidate of candidates) {
+      if (await this.columnExists('criterios_aceptacion', candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  private normalizeIntegerFieldInput(
+    value: unknown,
+    label: string,
+    options?: {
+      min?: number;
+      max?: number;
+    },
+  ) {
+    const normalized = String(value ?? '').trim();
+
+    if (!normalized) {
+      return null;
+    }
+
+    if (!/^-?\d+$/.test(normalized)) {
+      throw new BadRequestException(`El campo ${label} debe ser un numero entero.`);
+    }
+
+    const parsed = Number(normalized);
+
+    if (!Number.isSafeInteger(parsed)) {
+      throw new BadRequestException(`El campo ${label} no es valido.`);
+    }
+
+    if (typeof options?.min === 'number' && parsed < options.min) {
+      throw new BadRequestException(
+        `El campo ${label} debe ser mayor o igual a ${options.min}.`,
+      );
+    }
+
+    if (typeof options?.max === 'number' && parsed > options.max) {
+      throw new BadRequestException(
+        `El campo ${label} debe ser menor o igual a ${options.max}.`,
+      );
+    }
+
+    return parsed;
+  }
+
+  private async resolveUsuarioResponsableCedula(value: unknown) {
+    const normalized = String(value ?? '').trim();
+    if (!normalized) return null;
+
+    if (!/^\d+$/.test(normalized)) {
+      throw new BadRequestException(
+        'La cedula del usuario responsable no es valida.',
+      );
+    }
+
+    const hasUsuario = await this.tableExists('usuario');
+    if (!hasUsuario) {
+      throw new BadRequestException(
+        'No fue posible validar el usuario responsable.',
+      );
+    }
+
+    const [row] = await this.dataSource.query(
+      `
+        SELECT usu_cedula AS cedula
+        FROM usuario
+        WHERE usu_cedula = ?
+        LIMIT 1
+      `,
+      [Number(normalized)],
+    );
+
+    if (!row?.cedula) {
+      throw new NotFoundException('El usuario responsable no existe.');
+    }
+
+    return Number(row.cedula);
+  }
+
+  private async resolveNextProjectScopedId(
+    tableName: string,
+    idColumn: string,
+    projectColumn: string,
+    projectId: number,
+  ) {
+    const tableRef = this.wrapIdentifier(tableName);
+    const idColumnRef = this.wrapIdentifier(idColumn);
+    const projectColumnRef = this.wrapIdentifier(projectColumn);
+
+    const [row] = await this.dataSource.query(
+      `
+        SELECT COALESCE(MAX(${idColumnRef}), 0) + 1 AS nextId
+        FROM ${tableRef}
+        WHERE ${projectColumnRef} = ?
+      `,
+      [projectId],
+    );
+
+    return Number(row?.nextId || 1);
+  }
+
   private async findProyectoContext(id: number) {
+    await this.ensureLegacyAdminViews();
+
     const proyectoTable = await this.resolveProyectoTable();
     if (!proyectoTable) {
       throw new NotFoundException(`Proyecto con ID ${id} no encontrado`);
@@ -147,20 +343,24 @@ export class VerproService {
   }
 
   private async findProyectoAprendices(id: number) {
+    await this.ensureLegacyAdminViews();
+
     const hasUsuProDetPar = await this.tableExists('usu_pro_det_par');
     const hasUsuario = await this.tableExists('usuario');
     const hasDetalleParametro = await this.tableExists('detalle_parametro');
     const hasUsuarioFicha = await this.tableExists('usuario_ficha');
+    const rolColumn = await this.resolveUsuProDetParRoleColumn();
+    const rolColumnRef = rolColumn ? `up.${this.wrapIdentifier(rolColumn)}` : 'NULL';
 
     if (!hasUsuProDetPar || !hasUsuario) {
       return [];
     }
 
-    const joinDetalleParametro = hasDetalleParametro
-      ? 'LEFT JOIN detalle_parametro dp ON dp.det_par_ID = up.det_par_ID_'
+    const joinDetalleParametro = hasDetalleParametro && rolColumn
+      ? `LEFT JOIN detalle_parametro dp ON dp.det_par_ID = ${rolColumnRef}`
       : '';
 
-    const rolSelect = hasDetalleParametro
+    const rolSelect = hasDetalleParametro && rolColumn
       ? 'dp.det_par_descripcion AS rolScrum,'
       : 'NULL AS rolScrum,';
 
@@ -184,7 +384,7 @@ export class VerproService {
           u.usu_sexo AS sexo,
           u.usu_estado AS estado,
           ${fichaSelect}
-          up.det_par_ID_ AS detParId,
+          ${rolColumnRef} AS detParId,
           ${rolSelect}
           up.pro_ID AS proId
         FROM usu_pro_det_par up
@@ -201,9 +401,13 @@ export class VerproService {
   }
 
   private async findFichaAprendicesForProject(id: number, fichaNumero: string) {
+    await this.ensureLegacyAdminViews();
+
     const hasUsuario = await this.tableExists('usuario');
     const hasUsuarioFicha = await this.tableExists('usuario_ficha');
     const hasUsuProDetPar = await this.tableExists('usu_pro_det_par');
+    const rolColumn = await this.resolveUsuProDetParRoleColumn();
+    const rolColumnRef = rolColumn ? this.wrapIdentifier(rolColumn) : null;
 
     if (!hasUsuario || !hasUsuarioFicha) {
       return [];
@@ -211,7 +415,7 @@ export class VerproService {
 
     const { tableRef } = await this.findProyectoContext(id);
 
-    const assignmentJoin = hasUsuProDetPar
+    const assignmentJoin = hasUsuProDetPar && rolColumnRef
       ? `
         LEFT JOIN usu_pro_det_par current_up
           ON current_up.usu_cedula = u.usu_cedula
@@ -220,7 +424,7 @@ export class VerproService {
           SELECT
             up.usu_cedula,
             MIN(up.pro_ID) AS otroProyectoId,
-            MIN(up.det_par_ID_) AS otroDetParId
+            MIN(up.${rolColumnRef}) AS otroDetParId
           FROM usu_pro_det_par up
           WHERE up.pro_ID <> ?
           GROUP BY up.usu_cedula
@@ -229,7 +433,7 @@ export class VerproService {
         LEFT JOIN ${tableRef} other_p
           ON other_p.pro_ID = other_up.otroProyectoId
         LEFT JOIN detalle_parametro current_dp
-          ON current_dp.det_par_ID = current_up.det_par_ID_
+          ON current_dp.det_par_ID = current_up.${rolColumnRef}
         LEFT JOIN detalle_parametro other_dp
           ON other_dp.det_par_ID = other_up.otroDetParId
       `
@@ -266,7 +470,7 @@ export class VerproService {
             WHEN current_up.pro_ID IS NULL THEN 0
             ELSE 1
           END AS asignadoProyectoActual,
-          current_up.det_par_ID_ AS detParIdActual,
+          ${rolColumnRef ? `current_up.${rolColumnRef}` : 'NULL'} AS detParIdActual,
           current_dp.det_par_descripcion AS rolScrumActual,
           other_up.otroProyectoId AS otroProyectoId,
           other_p.pro_nombre AS otroProyectoNombre,
@@ -279,18 +483,21 @@ export class VerproService {
         WHERE uf.fic_numero_FK = ?
         ORDER BY u.usu_apellidos ASC, u.usu_nombres ASC
       `,
-      hasUsuProDetPar ? [id, id, fichaNumero] : [fichaNumero],
+      hasUsuProDetPar && rolColumnRef ? [id, id, fichaNumero] : [fichaNumero],
     );
 
     return Array.isArray(rows) ? rows : [];
   }
 
   private async getAprendizProyectoAssignment(id: number, cedula: string | number) {
+    const rolColumn = await this.resolveUsuProDetParRoleColumn();
+    const rolColumnRef = rolColumn ? this.wrapIdentifier(rolColumn) : null;
+
     const rows = await this.dataSource.query(
       `
         SELECT
           usu_cedula AS cedula,
-          det_par_ID_ AS detParId,
+          ${rolColumnRef ? rolColumnRef : 'NULL'} AS detParId,
           pro_ID AS proId
         FROM usu_pro_det_par
         WHERE pro_ID = ?
@@ -340,18 +547,13 @@ export class VerproService {
 
     const hasCriterios = await this.tableExists('criterios_aceptacion');
     const hasUsuario = await this.tableExists('usuario');
+    const historiaEstadoColumn = await this.resolveHistoriaEstadoColumn();
     const hasHistoriaResponsable = await this.columnExists(
       'historia_usuario',
       'usu_cedula_FK',
     );
-    const hasCriteriaHistoriaId = await this.columnExists(
-      'criterios_aceptacion',
-      'his_ID_FK',
-    );
-    const hasCriteriaProjectHistoryId = await this.columnExists(
-      'criterios_aceptacion',
-      'pro_ID_his_FK',
-    );
+    const criteriaHistoriaColumn = await this.resolveCriteriaHistoriaColumn();
+    const criteriaProjectHistoryColumn = await this.resolveCriteriaProjectColumn();
 
     const joinResponsables =
       hasHistoriaResponsable && hasUsuario
@@ -361,12 +563,12 @@ export class VerproService {
         `
         : hasCriterios &&
             hasUsuario &&
-            hasCriteriaHistoriaId &&
-            hasCriteriaProjectHistoryId
+            criteriaHistoriaColumn &&
+            criteriaProjectHistoryColumn
         ? `
           LEFT JOIN criterios_aceptacion ca
-            ON ca.his_ID_FK = hu.his_ID
-           AND ca.pro_ID_his_FK = hu.pro_ID_FK
+            ON ca.${this.wrapIdentifier(criteriaHistoriaColumn)} = hu.his_ID
+           AND ca.${this.wrapIdentifier(criteriaProjectHistoryColumn)} = hu.pro_ID_FK
           LEFT JOIN usuario u
             ON u.usu_cedula = ca.usu_cedula_FK
         `
@@ -382,8 +584,8 @@ export class VerproService {
         `
         : hasCriterios &&
             hasUsuario &&
-            hasCriteriaHistoriaId &&
-            hasCriteriaProjectHistoryId
+            criteriaHistoriaColumn &&
+            criteriaProjectHistoryColumn
         ? `
           NULLIF(
             GROUP_CONCAT(
@@ -399,6 +601,13 @@ export class VerproService {
         `
         : 'NULL AS responsable';
 
+    const responsableCedulaSelect = hasHistoriaResponsable
+      ? 'hu.usu_cedula_FK AS responsableCedula'
+      : 'NULL AS responsableCedula';
+    const estadoSelect = historiaEstadoColumn
+      ? `hu.${this.wrapIdentifier(historiaEstadoColumn)} AS detParIdFk`
+      : 'NULL AS detParIdFk';
+
     const rows = await this.dataSource.query(
       `
         SELECT
@@ -407,6 +616,8 @@ export class VerproService {
           hu.his_descripcion AS descripcion,
           hu.his_puntaje AS puntaje,
           hu.his_numero_sprint AS numeroSprint,
+          ${estadoSelect},
+          ${responsableCedulaSelect},
           ${responsablesSelect}
         FROM historia_usuario hu
         ${joinResponsables}
@@ -416,7 +627,9 @@ export class VerproService {
           hu.his_titulo,
           hu.his_descripcion,
           hu.his_puntaje,
-          hu.his_numero_sprint
+          hu.his_numero_sprint,
+          ${historiaEstadoColumn ? `hu.${this.wrapIdentifier(historiaEstadoColumn)}` : 'NULL'},
+          ${hasHistoriaResponsable ? 'hu.usu_cedula_FK' : 'NULL'}
         ORDER BY hu.his_ID ASC
       `,
       [id],
@@ -430,14 +643,9 @@ export class VerproService {
     if (!hasCriterios) return [];
 
     const hasUsuario = await this.tableExists('usuario');
-    const criteriaProjectColumn = (await this.columnExists(
-      'criterios_aceptacion',
-      'pro_ID_his_FK',
-    ))
-      ? 'pro_ID_his_FK'
-      : (await this.columnExists('criterios_aceptacion', 'pro_ID_FK'))
-        ? 'pro_ID_FK'
-        : null;
+    const hasHistorias = await this.tableExists('historia_usuario');
+    const criteriaProjectColumn = await this.resolveCriteriaProjectColumn();
+    const criteriaHistoriaColumn = await this.resolveCriteriaHistoriaColumn();
 
     if (!criteriaProjectColumn) {
       return [];
@@ -449,6 +657,14 @@ export class VerproService {
           ON u.usu_cedula = ca.usu_cedula_FK
       `
       : '';
+    const joinHistoria =
+      hasHistorias && criteriaHistoriaColumn
+        ? `
+        LEFT JOIN historia_usuario hu
+          ON hu.his_ID = ca.${this.wrapIdentifier(criteriaHistoriaColumn)}
+         AND hu.pro_ID_FK = ca.${this.wrapIdentifier(criteriaProjectColumn)}
+      `
+        : '';
 
     const responsableSelect = hasUsuario
       ? `
@@ -465,9 +681,26 @@ export class VerproService {
           ca.cri_ID AS criId,
           ca.cri_tiempo AS tiempo,
           ca.cri_descripcion AS descripcion,
+          ${
+            criteriaHistoriaColumn
+              ? `ca.${this.wrapIdentifier(criteriaHistoriaColumn)} AS hisId`
+              : 'NULL AS hisId'
+          },
+          ${joinHistoria ? 'hu.his_titulo AS historiaTitulo' : 'NULL AS historiaTitulo'},
+          ${
+            await this.columnExists('criterios_aceptacion', 'estado_FK')
+              ? 'ca.estado_FK AS estadoFk'
+              : 'NULL AS estadoFk'
+          },
+          ${
+            await this.columnExists('criterios_aceptacion', 'usu_cedula_FK')
+              ? 'ca.usu_cedula_FK AS responsableCedula'
+              : 'NULL AS responsableCedula'
+          },
           ${responsableSelect}
         FROM criterios_aceptacion ca
         ${joinUsuario}
+        ${joinHistoria}
         WHERE ca.${criteriaProjectColumn} = ?
         ORDER BY ca.cri_ID ASC
       `,
@@ -481,13 +714,39 @@ export class VerproService {
     const hasObservaciones = await this.tableExists('observaciones');
     if (!hasObservaciones) return [];
 
+    const hasUsuario = await this.tableExists('usuario');
+    const observacionEstadoColumn = await this.resolveObservacionEstadoColumn();
+    const joinUsuario = hasUsuario
+      ? `
+        LEFT JOIN usuario u
+          ON u.usu_cedula = obs.usu_cedula_FK
+      `
+      : '';
+    const responsableSelect = hasUsuario
+      ? `
+        NULLIF(
+          TRIM(CONCAT(COALESCE(u.usu_nombres, ''), ' ', COALESCE(u.usu_apellidos, ''))),
+          ''
+        ) AS responsable
+      `
+      : 'NULL AS responsable';
+
     const rows = await this.dataSource.query(
       `
         SELECT
           obs.obs_ID AS obsId,
           CONCAT('Sugerencia #', obs.obs_ID) AS titulo,
-          obs.obs_descripcion AS descripcion
+          obs.obs_descripcion AS descripcion,
+          obs.obs_fecha AS fecha,
+          obs.usu_cedula_FK AS responsableCedula,
+          ${
+            observacionEstadoColumn
+              ? `obs.${this.wrapIdentifier(observacionEstadoColumn)} AS detParIdFk`
+              : 'NULL AS detParIdFk'
+          },
+          ${responsableSelect}
         FROM observaciones obs
+        ${joinUsuario}
         WHERE obs.pro_ID_FK = ?
         ORDER BY obs.obs_fecha DESC, obs.obs_ID DESC
       `,
@@ -498,6 +757,8 @@ export class VerproService {
   }
 
   async findAll() {
+    await this.ensureLegacyAdminViews();
+
     const proyectoTable = await this.resolveProyectoTable();
     if (!proyectoTable) return [];
 
@@ -537,6 +798,8 @@ export class VerproService {
   }
 
   async findOne(id: number) {
+    await this.ensureLegacyAdminViews();
+
     const proyectoTable = await this.resolveProyectoTable();
     if (!proyectoTable) {
       throw new NotFoundException(`Proyecto con ID ${id} no encontrado`);
@@ -587,6 +850,8 @@ export class VerproService {
   }
 
   async findAdminDetalle(id: number) {
+    await this.ensureLegacyAdminViews();
+
     const proyectoTable = await this.resolveProyectoTable();
     if (!proyectoTable) {
       throw new NotFoundException(`Proyecto con ID ${id} no encontrado`);
@@ -689,6 +954,16 @@ export class VerproService {
         ? 'LEFT JOIN fichas f ON f.fic_numero = uf.fic_numero_FK'
         : '';
 
+      const joinRolScrum = hasDetalleParametro
+        ? 'LEFT JOIN detalle_parametro dp_rol ON dp_rol.det_par_ID = up.det_par_ID_FK'
+        : '';
+
+      const rolScrumSelect = hasDetalleParametro
+        ? `up.det_par_ID_FK AS detParId,
+             dp_rol.det_par_descripcion AS rolScrum`
+        : `NULL AS detParId,
+             NULL AS rolScrum`;
+
       aprendices = await this.dataSource.query(
         `
           SELECT
@@ -696,22 +971,24 @@ export class VerproService {
             u.usu_tipodedocumento AS tipoDocumento,
             u.usu_nombres AS nombres,
             u.usu_apellidos AS apellidos,
-            u.usu_correo AS correo,
-            u.usu_telefono AS telefono,
-            u.usu_sexo AS sexo,
-            u.usu_estado AS estado,
-            uf.fic_numero_FK AS fichaNumero,
-            f.fic_programa AS fichaPrograma,
-            ${fichaAreaSelect} AS fichaArea
-          FROM usu_pro_det_par up
-          INNER JOIN usuario u
-            ON u.usu_cedula = up.usu_cedula
-           AND u.rol_sis_ID_FK = 1
-          ${joinUsuarioFicha}
-          ${joinFichaAprendiz}
-          WHERE up.pro_ID = ?
-          ORDER BY u.usu_apellidos ASC, u.usu_nombres ASC
-        `,
+             u.usu_correo AS correo,
+             u.usu_telefono AS telefono,
+             u.usu_sexo AS sexo,
+             u.usu_estado AS estado,
+             ${rolScrumSelect},
+             uf.fic_numero_FK AS fichaNumero,
+             f.fic_programa AS fichaPrograma,
+             ${fichaAreaSelect} AS fichaArea
+           FROM usu_pro_det_par up
+           INNER JOIN usuario u
+             ON u.usu_cedula = up.usu_cedula
+            AND u.rol_sis_ID_FK = 1
+           ${joinRolScrum}
+           ${joinUsuarioFicha}
+           ${joinFichaAprendiz}
+           WHERE up.pro_ID = ?
+           ORDER BY u.usu_apellidos ASC, u.usu_nombres ASC
+         `,
         [id],
       );
     }
@@ -741,6 +1018,8 @@ export class VerproService {
       proJustificacion?: string | null;
     },
   ) {
+    await this.ensureLegacyAdminViews();
+
     const projectContext = await this.findProyectoContext(id);
 
     const fieldConfig = {
@@ -802,6 +1081,8 @@ export class VerproService {
   }
 
   async findAdminAprendicesEditor(id: number) {
+    await this.ensureLegacyAdminViews();
+
     const { proyecto } = await this.findProyectoContext(id);
     const rolesScrum = await this.resolveRolesScrum();
     const fichaNumero = String(proyecto?.fichaNumero ?? '').trim();
@@ -828,11 +1109,15 @@ export class VerproService {
     cedula: string | number,
     detParId?: number,
   ) {
+    await this.ensureLegacyAdminViews();
+
     const hasUsuProDetPar = await this.tableExists('usu_pro_det_par');
     const hasUsuario = await this.tableExists('usuario');
     const hasUsuarioFicha = await this.tableExists('usuario_ficha');
+    const rolColumn = await this.resolveUsuProDetParRoleColumn();
+    const rolColumnRef = rolColumn ? this.wrapIdentifier(rolColumn) : null;
 
-    if (!hasUsuProDetPar || !hasUsuario || !hasUsuarioFicha) {
+    if (!hasUsuProDetPar || !hasUsuario || !hasUsuarioFicha || !rolColumnRef) {
       throw new BadRequestException(
         'No fue posible editar los aprendices de este proyecto.',
       );
@@ -923,7 +1208,7 @@ export class VerproService {
 
     await this.dataSource.query(
       `
-        INSERT INTO usu_pro_det_par (usu_cedula, det_par_ID_, pro_ID)
+        INSERT INTO usu_pro_det_par (usu_cedula, ${rolColumnRef}, pro_ID)
         VALUES (?, ?, ?)
       `,
       [Number(cedula), Number(roleId), id],
@@ -942,6 +1227,8 @@ export class VerproService {
       removeCedulas?: Array<string | number>;
     },
   ) {
+    await this.ensureLegacyAdminViews();
+
     const addCedulas = this.normalizeCedulasList(payload?.addCedulas);
     const removeCedulas = this.normalizeCedulasList(payload?.removeCedulas);
 
@@ -963,8 +1250,10 @@ export class VerproService {
     const hasUsuProDetPar = await this.tableExists('usu_pro_det_par');
     const hasUsuario = await this.tableExists('usuario');
     const hasUsuarioFicha = await this.tableExists('usuario_ficha');
+    const rolColumn = await this.resolveUsuProDetParRoleColumn();
+    const rolColumnRef = rolColumn ? this.wrapIdentifier(rolColumn) : null;
 
-    if (!hasUsuProDetPar || !hasUsuario || !hasUsuarioFicha) {
+    if (!hasUsuProDetPar || !hasUsuario || !hasUsuarioFicha || !rolColumnRef) {
       throw new BadRequestException(
         'No fue posible guardar los cambios de aprendices en este proyecto.',
       );
@@ -1110,7 +1399,7 @@ export class VerproService {
       for (const cedula of addCedulas) {
         await queryRunner.query(
           `
-            INSERT INTO usu_pro_det_par (usu_cedula, det_par_ID_, pro_ID)
+            INSERT INTO usu_pro_det_par (usu_cedula, ${rolColumnRef}, pro_ID)
             VALUES (?, ?, ?)
           `,
           [Number(cedula), Number(defaultRolScrumId), id],
@@ -1137,9 +1426,13 @@ export class VerproService {
     cedula: string | number,
     detParId: number,
   ) {
+    await this.ensureLegacyAdminViews();
+
+    const rolColumn = await this.resolveUsuProDetParRoleColumn();
+    const rolColumnRef = rolColumn ? this.wrapIdentifier(rolColumn) : null;
     const assignments = await this.getAprendizProyectoAssignment(id, cedula);
 
-    if (assignments.length === 0) {
+    if (!rolColumnRef || assignments.length === 0) {
       throw new NotFoundException(
         'El aprendiz no esta asignado a este proyecto.',
       );
@@ -1170,7 +1463,7 @@ export class VerproService {
 
       await queryRunner.query(
         `
-          INSERT INTO usu_pro_det_par (usu_cedula, det_par_ID_, pro_ID)
+          INSERT INTO usu_pro_det_par (usu_cedula, ${rolColumnRef}, pro_ID)
           VALUES (?, ?, ?)
         `,
         [Number(cedula), Number(detParId), id],
@@ -1191,6 +1484,8 @@ export class VerproService {
   }
 
   async removeAprendizFromProyecto(id: number, cedula: string | number) {
+    await this.ensureLegacyAdminViews();
+
     const result = await this.dataSource.query(
       `
         DELETE FROM usu_pro_det_par
@@ -1212,5 +1507,670 @@ export class VerproService {
       success: true,
       message: 'Aprendiz eliminado correctamente del proyecto.',
     };
+  }
+
+  async createHistoriaUsuario(
+    id: number,
+    payload: {
+      titulo?: unknown;
+      descripcion?: unknown;
+      puntaje?: unknown;
+      numeroSprint?: unknown;
+      actorCedula?: unknown;
+    },
+  ) {
+    await this.ensureLegacyAdminViews();
+    await this.findProyectoContext(id);
+
+    const hasHistorias = await this.tableExists('historia_usuario');
+    if (!hasHistorias) {
+      throw new BadRequestException(
+        'No fue posible crear historias de usuario en este proyecto.',
+      );
+    }
+
+    const historiaEstadoColumn = await this.resolveHistoriaEstadoColumn();
+    const titulo = this.normalizeTextFieldInput(payload?.titulo, 255, 'Titulo');
+    const descripcion = this.normalizeTextFieldInput(
+      payload?.descripcion,
+      500,
+      'Descripcion',
+    );
+
+    if (!titulo) {
+      throw new BadRequestException('El titulo de la historia es obligatorio.');
+    }
+
+    if (!descripcion) {
+      throw new BadRequestException(
+        'La descripcion de la historia de usuario es obligatoria.',
+      );
+    }
+
+    const puntaje = this.normalizeIntegerFieldInput(payload?.puntaje, 'Puntaje', {
+      min: 0,
+    });
+    const numeroSprint = this.normalizeIntegerFieldInput(
+      payload?.numeroSprint,
+      'Sprint',
+      { min: 0 },
+    );
+    const responsableCedula = await this.resolveUsuarioResponsableCedula(
+      payload?.actorCedula,
+    );
+    const defaultEstadoId = await this.resolveDefaultEstadoId();
+    const nextHistoriaId = await this.resolveNextProjectScopedId(
+      'historia_usuario',
+      'his_ID',
+      'pro_ID_FK',
+      id,
+    );
+
+    const columns = [
+      'his_ID',
+      'pro_ID_FK',
+      'his_titulo',
+      'his_descripcion',
+      'his_puntaje',
+      'his_numero_sprint',
+    ];
+    const values = [nextHistoriaId, id, titulo, descripcion, puntaje, numeroSprint];
+    const placeholders = ['?', '?', '?', '?', '?', '?'];
+
+    if (historiaEstadoColumn && defaultEstadoId) {
+      columns.push(historiaEstadoColumn);
+      values.push(defaultEstadoId);
+      placeholders.push('?');
+    }
+
+    if (responsableCedula && (await this.columnExists('historia_usuario', 'usu_cedula_FK'))) {
+      columns.push('usu_cedula_FK');
+      values.push(responsableCedula);
+      placeholders.push('?');
+    }
+
+    await this.dataSource.query(
+      `
+        INSERT INTO historia_usuario (${columns
+          .map((column) => this.wrapIdentifier(column))
+          .join(', ')})
+        VALUES (${placeholders.join(', ')})
+      `,
+      values,
+    );
+
+    return await this.findAdminDetalle(id);
+  }
+
+  async updateHistoriaUsuario(
+    id: number,
+    hisId: number,
+    payload: {
+      titulo?: unknown;
+      descripcion?: unknown;
+      puntaje?: unknown;
+      numeroSprint?: unknown;
+    },
+  ) {
+    await this.ensureLegacyAdminViews();
+    await this.findProyectoContext(id);
+
+    const historiaRows = await this.dataSource.query(
+      `
+        SELECT 1 AS found
+        FROM historia_usuario
+        WHERE pro_ID_FK = ?
+          AND his_ID = ?
+        LIMIT 1
+      `,
+      [id, hisId],
+    );
+
+    if (!Array.isArray(historiaRows) || !historiaRows[0]) {
+      throw new NotFoundException(
+        `La historia de usuario ${hisId} no existe en este proyecto.`,
+      );
+    }
+
+    const updates: string[] = [];
+    const values: Array<number | string | null> = [];
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'titulo')) {
+      const titulo = this.normalizeTextFieldInput(payload?.titulo, 255, 'Titulo');
+
+      if (!titulo) {
+        throw new BadRequestException('El titulo de la historia es obligatorio.');
+      }
+
+      updates.push('his_titulo = ?');
+      values.push(titulo);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'descripcion')) {
+      const descripcion = this.normalizeTextFieldInput(
+        payload?.descripcion,
+        500,
+        'Descripcion',
+      );
+
+      if (!descripcion) {
+        throw new BadRequestException(
+          'La descripcion de la historia de usuario es obligatoria.',
+        );
+      }
+
+      updates.push('his_descripcion = ?');
+      values.push(descripcion);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'puntaje')) {
+      updates.push('his_puntaje = ?');
+      values.push(
+        this.normalizeIntegerFieldInput(payload?.puntaje, 'Puntaje', {
+          min: 0,
+        }),
+      );
+    }
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'numeroSprint')) {
+      updates.push('his_numero_sprint = ?');
+      values.push(
+        this.normalizeIntegerFieldInput(payload?.numeroSprint, 'Sprint', {
+          min: 0,
+        }),
+      );
+    }
+
+    if (updates.length === 0) {
+      throw new BadRequestException(
+        'Debes enviar al menos un campo editable de la historia de usuario.',
+      );
+    }
+
+    await this.dataSource.query(
+      `
+        UPDATE historia_usuario
+        SET ${updates.join(', ')}
+        WHERE pro_ID_FK = ?
+          AND his_ID = ?
+      `,
+      [...values, id, hisId],
+    );
+
+    return await this.findAdminDetalle(id);
+  }
+
+  async deleteHistoriaUsuario(id: number, hisId: number) {
+    await this.ensureLegacyAdminViews();
+    await this.findProyectoContext(id);
+
+    const result = await this.dataSource.query(
+      `
+        DELETE FROM historia_usuario
+        WHERE pro_ID_FK = ?
+          AND his_ID = ?
+      `,
+      [id, hisId],
+    );
+
+    const affectedRows = Number(result?.affectedRows || result?.[0]?.affectedRows || 0);
+
+    if (affectedRows === 0) {
+      throw new NotFoundException(
+        `La historia de usuario ${hisId} no existe en este proyecto.`,
+      );
+    }
+
+    return await this.findAdminDetalle(id);
+  }
+
+  async createCriterioAceptacion(
+    id: number,
+    payload: {
+      descripcion?: unknown;
+      tiempo?: unknown;
+      hisId?: unknown;
+      actorCedula?: unknown;
+    },
+  ) {
+    await this.ensureLegacyAdminViews();
+    await this.findProyectoContext(id);
+
+    const hasCriterios = await this.tableExists('criterios_aceptacion');
+    if (!hasCriterios) {
+      throw new BadRequestException(
+        'No fue posible crear criterios de aceptacion en este proyecto.',
+      );
+    }
+
+    const criteriaProjectColumn = await this.resolveCriteriaProjectColumn();
+    const criteriaHistoriaColumn = await this.resolveCriteriaHistoriaColumn();
+
+    if (!criteriaProjectColumn) {
+      throw new BadRequestException(
+        'No fue posible relacionar el criterio de aceptacion con el proyecto.',
+      );
+    }
+
+    const descripcion = this.normalizeTextFieldInput(
+      payload?.descripcion,
+      500,
+      'Descripcion',
+    );
+    const tiempo = this.normalizeTextFieldInput(payload?.tiempo, 50, 'Tiempo');
+
+    if (!descripcion) {
+      throw new BadRequestException(
+        'La descripcion del criterio de aceptacion es obligatoria.',
+      );
+    }
+
+    const responsableCedula = await this.resolveUsuarioResponsableCedula(
+      payload?.actorCedula,
+    );
+
+    if (!responsableCedula) {
+      throw new BadRequestException(
+        'No fue posible identificar al usuario responsable del criterio.',
+      );
+    }
+
+    const hisId = Object.prototype.hasOwnProperty.call(payload, 'hisId')
+      ? this.normalizeIntegerFieldInput(payload?.hisId, 'Historia de usuario', {
+          min: 1,
+        })
+      : null;
+
+    if (hisId) {
+      const historiaRows = await this.dataSource.query(
+        `
+          SELECT 1 AS found
+          FROM historia_usuario
+          WHERE pro_ID_FK = ?
+            AND his_ID = ?
+          LIMIT 1
+        `,
+        [id, hisId],
+      );
+
+      if (!Array.isArray(historiaRows) || !historiaRows[0]) {
+        throw new NotFoundException(
+          `La historia de usuario ${hisId} no existe en este proyecto.`,
+        );
+      }
+    }
+
+    const defaultEstadoId = await this.resolveDefaultEstadoId();
+
+    if (!defaultEstadoId) {
+      throw new BadRequestException(
+        'No se encontro un estado disponible para crear el criterio.',
+      );
+    }
+
+    const nextCriterioId = await this.resolveNextProjectScopedId(
+      'criterios_aceptacion',
+      'cri_ID',
+      criteriaProjectColumn,
+      id,
+    );
+
+    const columns = [
+      'cri_ID',
+      criteriaProjectColumn,
+      'usu_cedula_FK',
+      'estado_FK',
+      'cri_tiempo',
+      'cri_descripcion',
+    ];
+    const values: Array<number | string | null> = [
+      nextCriterioId,
+      id,
+      responsableCedula,
+      defaultEstadoId,
+      tiempo,
+      descripcion,
+    ];
+    const placeholders = ['?', '?', '?', '?', '?', '?'];
+
+    if (criteriaHistoriaColumn) {
+      columns.push(criteriaHistoriaColumn);
+      values.push(hisId);
+      placeholders.push('?');
+    }
+
+    await this.dataSource.query(
+      `
+        INSERT INTO criterios_aceptacion (${columns
+          .map((column) => this.wrapIdentifier(column))
+          .join(', ')})
+        VALUES (${placeholders.join(', ')})
+      `,
+      values,
+    );
+
+    return await this.findAdminDetalle(id);
+  }
+
+  async updateCriterioAceptacion(
+    id: number,
+    criId: number,
+    payload: {
+      descripcion?: unknown;
+      tiempo?: unknown;
+      hisId?: unknown;
+      actorCedula?: unknown;
+    },
+  ) {
+    await this.ensureLegacyAdminViews();
+    await this.findProyectoContext(id);
+
+    const criteriaProjectColumn = await this.resolveCriteriaProjectColumn();
+    const criteriaHistoriaColumn = await this.resolveCriteriaHistoriaColumn();
+
+    if (!criteriaProjectColumn) {
+      throw new BadRequestException(
+        'No fue posible identificar el proyecto de este criterio.',
+      );
+    }
+
+    const criterioRows = await this.dataSource.query(
+      `
+        SELECT 1 AS found
+        FROM criterios_aceptacion
+        WHERE ${this.wrapIdentifier(criteriaProjectColumn)} = ?
+          AND cri_ID = ?
+        LIMIT 1
+      `,
+      [id, criId],
+    );
+
+    if (!Array.isArray(criterioRows) || !criterioRows[0]) {
+      throw new NotFoundException(
+        `El criterio de aceptacion ${criId} no existe en este proyecto.`,
+      );
+    }
+
+    const updates: string[] = [];
+    const values: Array<number | string | null> = [];
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'descripcion')) {
+      const descripcion = this.normalizeTextFieldInput(
+        payload?.descripcion,
+        500,
+        'Descripcion',
+      );
+
+      if (!descripcion) {
+        throw new BadRequestException(
+          'La descripcion del criterio de aceptacion es obligatoria.',
+        );
+      }
+
+      updates.push('cri_descripcion = ?');
+      values.push(descripcion);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'tiempo')) {
+      updates.push('cri_tiempo = ?');
+      values.push(this.normalizeTextFieldInput(payload?.tiempo, 50, 'Tiempo'));
+    }
+
+    if (criteriaHistoriaColumn && Object.prototype.hasOwnProperty.call(payload, 'hisId')) {
+      const hisId = this.normalizeIntegerFieldInput(
+        payload?.hisId,
+        'Historia de usuario',
+        { min: 1 },
+      );
+
+      if (hisId) {
+        const historiaRows = await this.dataSource.query(
+          `
+            SELECT 1 AS found
+            FROM historia_usuario
+            WHERE pro_ID_FK = ?
+              AND his_ID = ?
+            LIMIT 1
+          `,
+          [id, hisId],
+        );
+
+        if (!Array.isArray(historiaRows) || !historiaRows[0]) {
+          throw new NotFoundException(
+            `La historia de usuario ${hisId} no existe en este proyecto.`,
+          );
+        }
+      }
+
+      updates.push(`${this.wrapIdentifier(criteriaHistoriaColumn)} = ?`);
+      values.push(hisId);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'actorCedula')) {
+      const responsableCedula = await this.resolveUsuarioResponsableCedula(
+        payload?.actorCedula,
+      );
+
+      if (!responsableCedula) {
+        throw new BadRequestException(
+          'No fue posible identificar al usuario responsable del criterio.',
+        );
+      }
+
+      updates.push('usu_cedula_FK = ?');
+      values.push(responsableCedula);
+    }
+
+    if (updates.length === 0) {
+      throw new BadRequestException(
+        'Debes enviar al menos un campo editable del criterio de aceptacion.',
+      );
+    }
+
+    await this.dataSource.query(
+      `
+        UPDATE criterios_aceptacion
+        SET ${updates.join(', ')}
+        WHERE ${this.wrapIdentifier(criteriaProjectColumn)} = ?
+          AND cri_ID = ?
+      `,
+      [...values, id, criId],
+    );
+
+    return await this.findAdminDetalle(id);
+  }
+
+  async deleteCriterioAceptacion(id: number, criId: number) {
+    await this.ensureLegacyAdminViews();
+    await this.findProyectoContext(id);
+
+    const criteriaProjectColumn = await this.resolveCriteriaProjectColumn();
+
+    if (!criteriaProjectColumn) {
+      throw new BadRequestException(
+        'No fue posible identificar el proyecto de este criterio.',
+      );
+    }
+
+    const result = await this.dataSource.query(
+      `
+        DELETE FROM criterios_aceptacion
+        WHERE ${this.wrapIdentifier(criteriaProjectColumn)} = ?
+          AND cri_ID = ?
+      `,
+      [id, criId],
+    );
+
+    const affectedRows = Number(result?.affectedRows || result?.[0]?.affectedRows || 0);
+
+    if (affectedRows === 0) {
+      throw new NotFoundException(
+        `El criterio de aceptacion ${criId} no existe en este proyecto.`,
+      );
+    }
+
+    return await this.findAdminDetalle(id);
+  }
+
+  async createSugerencia(
+    id: number,
+    payload: {
+      descripcion?: unknown;
+      actorCedula?: unknown;
+    },
+  ) {
+    await this.ensureLegacyAdminViews();
+    await this.findProyectoContext(id);
+
+    const hasObservaciones = await this.tableExists('observaciones');
+    if (!hasObservaciones) {
+      throw new BadRequestException(
+        'No fue posible crear sugerencias en este proyecto.',
+      );
+    }
+
+    const descripcion = this.normalizeTextFieldInput(
+      payload?.descripcion,
+      255,
+      'Descripcion',
+    );
+
+    if (!descripcion) {
+      throw new BadRequestException('La descripcion de la sugerencia es obligatoria.');
+    }
+
+    const responsableCedula = await this.resolveUsuarioResponsableCedula(
+      payload?.actorCedula,
+    );
+    const observacionEstadoColumn = await this.resolveObservacionEstadoColumn();
+    const defaultEstadoId = await this.resolveDefaultEstadoId();
+
+    const columns = ['obs_fecha', 'obs_descripcion', 'pro_ID_FK'];
+    const values: Array<number | string | null> = [descripcion, id];
+    const placeholders = ['CURDATE()', '?', '?'];
+
+    if (responsableCedula && (await this.columnExists('observaciones', 'usu_cedula_FK'))) {
+      columns.push('usu_cedula_FK');
+      values.push(responsableCedula);
+      placeholders.push('?');
+    }
+
+    if (observacionEstadoColumn && defaultEstadoId) {
+      columns.push(observacionEstadoColumn);
+      values.push(defaultEstadoId);
+      placeholders.push('?');
+    }
+
+    await this.dataSource.query(
+      `
+        INSERT INTO observaciones (${columns
+          .map((column) => this.wrapIdentifier(column))
+          .join(', ')})
+        VALUES (${placeholders.join(', ')})
+      `,
+      values,
+    );
+
+    return await this.findAdminDetalle(id);
+  }
+
+  async updateSugerencia(
+    id: number,
+    obsId: number,
+    payload: {
+      descripcion?: unknown;
+      actorCedula?: unknown;
+    },
+  ) {
+    await this.ensureLegacyAdminViews();
+    await this.findProyectoContext(id);
+
+    const sugerenciaRows = await this.dataSource.query(
+      `
+        SELECT 1 AS found
+        FROM observaciones
+        WHERE pro_ID_FK = ?
+          AND obs_ID = ?
+        LIMIT 1
+      `,
+      [id, obsId],
+    );
+
+    if (!Array.isArray(sugerenciaRows) || !sugerenciaRows[0]) {
+      throw new NotFoundException(
+        `La sugerencia ${obsId} no existe en este proyecto.`,
+      );
+    }
+
+    const updates: string[] = [];
+    const values: Array<number | string | null> = [];
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'descripcion')) {
+      const descripcion = this.normalizeTextFieldInput(
+        payload?.descripcion,
+        255,
+        'Descripcion',
+      );
+
+      if (!descripcion) {
+        throw new BadRequestException(
+          'La descripcion de la sugerencia es obligatoria.',
+        );
+      }
+
+      updates.push('obs_descripcion = ?');
+      values.push(descripcion);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(payload, 'actorCedula')) {
+      const responsableCedula = await this.resolveUsuarioResponsableCedula(
+        payload?.actorCedula,
+      );
+
+      updates.push('usu_cedula_FK = ?');
+      values.push(responsableCedula);
+    }
+
+    if (updates.length === 0) {
+      throw new BadRequestException(
+        'Debes enviar al menos un campo editable de la sugerencia.',
+      );
+    }
+
+    await this.dataSource.query(
+      `
+        UPDATE observaciones
+        SET ${updates.join(', ')}
+        WHERE pro_ID_FK = ?
+          AND obs_ID = ?
+      `,
+      [...values, id, obsId],
+    );
+
+    return await this.findAdminDetalle(id);
+  }
+
+  async deleteSugerencia(id: number, obsId: number) {
+    await this.ensureLegacyAdminViews();
+    await this.findProyectoContext(id);
+
+    const result = await this.dataSource.query(
+      `
+        DELETE FROM observaciones
+        WHERE pro_ID_FK = ?
+          AND obs_ID = ?
+      `,
+      [id, obsId],
+    );
+
+    const affectedRows = Number(result?.affectedRows || result?.[0]?.affectedRows || 0);
+
+    if (affectedRows === 0) {
+      throw new NotFoundException(
+        `La sugerencia ${obsId} no existe en este proyecto.`,
+      );
+    }
+
+    return await this.findAdminDetalle(id);
   }
 }

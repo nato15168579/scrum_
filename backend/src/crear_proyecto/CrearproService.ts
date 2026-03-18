@@ -1,3 +1,13 @@
+/**
+ * CrearproService
+ * --------------
+ * Servicio para crear proyectos desde el panel administrador.
+ *
+ * Notas:
+ * - Usa TypeORM Repository para persistir `Proyecto`.
+ * - Valida existencia de fichas y columnas dependiendo del esquema activo.
+ * - Evita duplicados (ej: nombre de proyecto) devolviendo errores claros.
+ */
 import {
   BadRequestException,
   ConflictException,
@@ -7,15 +17,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Proyecto } from '../entities/Proyecto';
-import { UsuProDetPar } from '../entities/UsuProDetPar';
 
 @Injectable()
 export class CrearproService {
   constructor(
     @InjectRepository(Proyecto)
     private readonly proyectoRepository: Repository<Proyecto>,
-    @InjectRepository(UsuProDetPar)
-    private readonly usuRepository: Repository<UsuProDetPar>,
   ) {}
 
   private getProjectTableName() {
@@ -26,17 +33,92 @@ export class CrearproService {
     return `\`${this.getProjectTableName().replace(/`/g, '``')}\``;
   }
 
+  private async tableExists(tableName: string) {
+    const [row] = await this.proyectoRepository.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+      `,
+      [tableName],
+    );
+
+    return Number(row?.total || 0) > 0;
+  }
+
+  private async columnExists(tableName: string, columnName: string) {
+    const [row] = await this.proyectoRepository.query(
+      `
+        SELECT COUNT(*) AS total
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+      `,
+      [tableName, columnName],
+    );
+
+    return Number(row?.total || 0) > 0;
+  }
+
+  private async resolveFichaTableName() {
+    if (await this.tableExists('ficha')) {
+      return 'ficha';
+    }
+
+    if (await this.tableExists('fichas')) {
+      return 'fichas';
+    }
+
+    return null;
+  }
+
+  private async resolveFichaNumeroColumn(tableName: string) {
+    if (await this.columnExists(tableName, 'fic_id')) {
+      return 'fic_id';
+    }
+
+    if (await this.columnExists(tableName, 'fic_numero')) {
+      return 'fic_numero';
+    }
+
+    return null;
+  }
+
+  private async fichaExists(fichaNumero: number) {
+    const fichaTableName = await this.resolveFichaTableName();
+    if (!fichaTableName) {
+      return false;
+    }
+
+    const fichaNumeroColumn = await this.resolveFichaNumeroColumn(fichaTableName);
+    if (!fichaNumeroColumn) {
+      return false;
+    }
+
+    const escapedFichaTableName = `\`${fichaTableName.replace(/`/g, '``')}\``;
+    const escapedFichaNumeroColumn = `\`${fichaNumeroColumn.replace(/`/g, '``')}\``;
+
+    const [row] = await this.proyectoRepository.query(
+      `SELECT COUNT(*) AS total FROM ${escapedFichaTableName} WHERE ${escapedFichaNumeroColumn} = ?`,
+      [fichaNumero],
+    );
+
+    return Number(row?.total || 0) > 0;
+  }
+
   private async projectCodeColumnExists() {
     const proyectoTableName = this.getProjectTableName();
     const result = await this.proyectoRepository.query(
       `
-      SELECT 1 AS ok
-      FROM information_schema.columns
-      WHERE table_schema = DATABASE()
-        AND table_name = ?
-        AND column_name = 'pro_codigo'
-      LIMIT 1
-    `,
+        SELECT 1 AS ok
+        FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = ?
+          AND column_name = 'pro_codigo'
+        LIMIT 1
+      `,
       [proyectoTableName],
     );
 
@@ -45,23 +127,33 @@ export class CrearproService {
 
   private async ensureFichaProyectoSchema() {
     const escapedProjectTableName = this.getEscapedProjectTableName();
+    const fichaTableName = await this.resolveFichaTableName();
+    const fichaNumeroColumn = fichaTableName
+      ? await this.resolveFichaNumeroColumn(fichaTableName)
+      : null;
 
-    // Relacion Proyecto -> Ficha en tabla puente (entidad)
+    if (!fichaTableName || !fichaNumeroColumn) {
+      throw new InternalServerErrorException(
+        'No existe una tabla de fichas compatible para relacionar proyectos.',
+      );
+    }
+
+    const escapedFichaTableName = `\`${fichaTableName.replace(/`/g, '``')}\``;
+    const escapedFichaNumeroColumn = `\`${fichaNumeroColumn.replace(/`/g, '``')}\``;
+
     await this.proyectoRepository.query(
       `
-      CREATE TABLE IF NOT EXISTS \`ficha_proyecto\` (
-        \`pro_ID_FK\` int(11) NOT NULL COMMENT 'id del proyecto asociado a la ficha',
-        \`fic_numero_FK\` int(11) NOT NULL COMMENT 'numero de ficha asociada al proyecto',
-        \`fip_fecha_asignacion\` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'fecha de asignacion del proyecto a la ficha',
-        PRIMARY KEY (\`pro_ID_FK\`),
-        KEY \`idx_ficha_proyecto_ficha\` (\`fic_numero_FK\`),
-        CONSTRAINT \`ficha_proyecto_ibfk_1\` FOREIGN KEY (\`pro_ID_FK\`) REFERENCES ${escapedProjectTableName} (\`pro_ID\`),
-        CONSTRAINT \`ficha_proyecto_ibfk_2\` FOREIGN KEY (\`fic_numero_FK\`) REFERENCES \`fichas\` (\`fic_numero\`)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-    `,
+        CREATE TABLE IF NOT EXISTS \`ficha_proyecto\` (
+          \`pro_ID_FK\` int(11) NOT NULL COMMENT 'id del proyecto asociado a la ficha',
+          \`fic_numero_FK\` int(11) NOT NULL COMMENT 'numero de ficha asociada al proyecto',
+          \`fip_fecha_asignacion\` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'fecha de asignacion del proyecto a la ficha',
+          PRIMARY KEY (\`pro_ID_FK\`),
+          KEY \`idx_ficha_proyecto_ficha\` (\`fic_numero_FK\`),
+          CONSTRAINT \`ficha_proyecto_ibfk_1\` FOREIGN KEY (\`pro_ID_FK\`) REFERENCES ${escapedProjectTableName} (\`pro_ID\`),
+          CONSTRAINT \`ficha_proyecto_ibfk_2\` FOREIGN KEY (\`fic_numero_FK\`) REFERENCES ${escapedFichaTableName} (${escapedFichaNumeroColumn})
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+      `,
     );
-
-    return true;
   }
 
   private async ensureProjectCodeSchema() {
@@ -71,29 +163,29 @@ export class CrearproService {
     if (!hasProjectCodeColumn) {
       await this.proyectoRepository.query(
         `
-        ALTER TABLE ${escapedTableName}
-        ADD COLUMN pro_codigo VARCHAR(32) NULL COMMENT 'codigo unico del proyecto' AFTER pro_ID
-      `,
+          ALTER TABLE ${escapedTableName}
+          ADD COLUMN pro_codigo VARCHAR(32) NULL COMMENT 'codigo unico del proyecto' AFTER pro_ID
+        `,
       );
     }
 
     await this.proyectoRepository.query(
       `
-      UPDATE ${escapedTableName}
-      SET pro_codigo = CONCAT('PRO-', LPAD(pro_ID, 6, '0'))
-      WHERE pro_codigo IS NULL OR pro_codigo = ''
-    `,
+        UPDATE ${escapedTableName}
+        SET pro_codigo = CONCAT('PRO-', LPAD(pro_ID, 6, '0'))
+        WHERE pro_codigo IS NULL OR pro_codigo = ''
+      `,
     );
 
     const uniqueIndexExistsResult = await this.proyectoRepository.query(
       `
-      SELECT 1 AS ok
-      FROM information_schema.statistics
-      WHERE table_schema = DATABASE()
-        AND table_name = ?
-        AND index_name = 'uq_proyecto_codigo'
-      LIMIT 1
-    `,
+        SELECT 1 AS ok
+        FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+          AND table_name = ?
+          AND index_name = 'uq_proyecto_codigo'
+        LIMIT 1
+      `,
       [this.getProjectTableName()],
     );
     const uniqueIndexExists =
@@ -103,9 +195,9 @@ export class CrearproService {
     if (!uniqueIndexExists) {
       await this.proyectoRepository.query(
         `
-        ALTER TABLE ${escapedTableName}
-        ADD CONSTRAINT uq_proyecto_codigo UNIQUE (pro_codigo)
-      `,
+          ALTER TABLE ${escapedTableName}
+          ADD CONSTRAINT uq_proyecto_codigo UNIQUE (pro_codigo)
+        `,
       );
     }
 
@@ -129,8 +221,28 @@ export class CrearproService {
     return candidate;
   }
 
+  private async resolveDefaultProjectStatusId() {
+    if (!(await this.tableExists('detalle_parametro'))) {
+      return null;
+    }
+
+    const [row] = await this.proyectoRepository.query(
+      `
+        SELECT det_par_ID AS detParId
+        FROM detalle_parametro
+        WHERE par_ID_FK = 1
+        ORDER BY det_par_ID ASC
+        LIMIT 1
+      `,
+    );
+
+    return row?.detParId ? Number(row.detParId) : null;
+  }
+
   async checkProjectExists(nombre: string) {
-    const proyecto = await this.proyectoRepository.findOne({ where: { proNombre: nombre } });
+    const proyecto = await this.proyectoRepository.findOne({
+      where: { proNombre: String(nombre || '').trim() },
+    });
     return { exists: !!proyecto };
   }
 
@@ -143,17 +255,29 @@ export class CrearproService {
     cedula: number;
     fichaNumero?: number | string | null;
   }) {
-    
-    // 1. Validar nombre
-    const existe = await this.proyectoRepository.findOne({ where: { proNombre: data.nombre } });
-    if (existe) throw new ConflictException('El nombre del proyecto ya está registrado');
+    const nombre = String(data.nombre || '').trim();
+    const objetivo = String(data.objetivo || '').trim();
+
+    if (!nombre) {
+      throw new BadRequestException('El nombre del proyecto es obligatorio.');
+    }
+
+    if (!objetivo) {
+      throw new BadRequestException('El objetivo del proyecto es obligatorio.');
+    }
+
+    const existe = await this.proyectoRepository.findOne({
+      where: { proNombre: nombre },
+    });
+
+    if (existe) {
+      throw new ConflictException('El nombre del proyecto ya esta registrado');
+    }
 
     try {
-      // 2. GENERAR ID MANUAL
-      // Buscamos el ID más alto actual
       const ultimo = await this.proyectoRepository.findOne({
         where: {},
-        order: { proId: 'DESC' }
+        order: { proId: 'DESC' },
       });
       const nuevoId = ultimo ? ultimo.proId + 1 : 1;
       const hasProjectCodeColumn = await this.ensureProjectCodeSchema();
@@ -162,12 +286,12 @@ export class CrearproService {
         : null;
       const fechaInicioNormalizada =
         typeof data.fechaInicio === 'string'
-          ? (data.fechaInicio.trim() || null)
-          : data.fecha;
+          ? data.fechaInicio.trim() || null
+          : null;
       const fechaFinNormalizada =
         typeof data.fechaFin === 'string'
-          ? (data.fechaFin.trim() || null)
-          : data.fecha;
+          ? data.fechaFin.trim() || null
+          : null;
 
       const fichaRaw =
         typeof data.fichaNumero === 'string'
@@ -185,50 +309,61 @@ export class CrearproService {
         throw new BadRequestException('La ficha seleccionada no es valida.');
       }
 
-      // 3. BUSCAR ID DE PARÁMETRO (O usar uno por defecto que sepas que existe)
-      const relacion = await this.usuRepository.findOne({
-        where: { detParId: data.cedula } // Ajustado según tu error TS anterior
-      });
-      const idParametroValido = relacion ? relacion.detParId : 1; // '1' debe existir en tu DB
+      if (fichaNumero !== null && !(await this.fichaExists(fichaNumero))) {
+        throw new BadRequestException('La ficha seleccionada no existe.');
+      }
 
-      // 4. CREAR INSTANCIA
+      const fechaCreacionNormalizada =
+        typeof data.fecha === 'string' && data.fecha.trim()
+          ? new Date(`${data.fecha.trim()}T00:00:00`)
+          : new Date();
+
+      const idParametroValido = await this.resolveDefaultProjectStatusId();
+
       const nuevoProyecto = this.proyectoRepository.create({
-        proId: nuevoId, // Asignamos el ID calculado
-        proNombre: data.nombre,
-        proObjetivoGeneral: data.objetivo,
+        proId: nuevoId,
+        proNombre: nombre,
+        proObjetivoGeneral: objetivo,
         proFechaInicio: fechaInicioNormalizada,
         detParIdFk: idParametroValido,
-        proDescription: data.objetivo,
-        proJustificacion: "N/A",
-        proObjetivosEspecificos: "N/A",
+        proDescription: objetivo,
+        proJustificacion: 'N/A',
+        proObjetivosEspecificos: 'N/A',
         proFechaFin: fechaFinNormalizada,
+        proFechaCreacion: fechaCreacionNormalizada,
       });
 
       if (hasProjectCodeColumn && codigoProyecto) {
         nuevoProyecto.proCodigo = codigoProyecto;
       }
 
-      // 5. GUARDAR
       const saved = await this.proyectoRepository.save(nuevoProyecto);
 
-      // 6. RELACIONAR CON FICHA (TABLA PUENTE)
       if (fichaNumero !== null) {
         await this.ensureFichaProyectoSchema();
         await this.proyectoRepository.query(
           `
-          INSERT INTO \`ficha_proyecto\` (pro_ID_FK, fic_numero_FK)
-          VALUES (?, ?)
-          ON DUPLICATE KEY UPDATE fic_numero_FK = VALUES(fic_numero_FK)
-        `,
+            INSERT INTO \`ficha_proyecto\` (pro_ID_FK, fic_numero_FK)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE fic_numero_FK = VALUES(fic_numero_FK)
+          `,
           [nuevoId, fichaNumero],
         );
       }
 
       return saved;
-
     } catch (error) {
-      console.error("ERROR CRÍTICO:", error);
-      throw new InternalServerErrorException('No se pudo completar el registro en la base de datos.');
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ConflictException
+      ) {
+        throw error;
+      }
+
+      console.error('ERROR CRITICO:', error);
+      throw new InternalServerErrorException(
+        'No se pudo completar el registro en la base de datos.',
+      );
     }
   }
 }

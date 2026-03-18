@@ -57,5 +57,95 @@ export declare class VerproController {
         success: boolean;
         message: string;
     }>;
+    createHistoriaUsuario(id: number, body: {
+        titulo?: string | null;
+        descripcion?: string | null;
+        puntaje?: number | string | null;
+        numeroSprint?: number | string | null;
+        actorCedula?: number | string | null;
+    }): Promise<{
+        proyecto: any;
+        aprendices: unknown[];
+        historiasUsuario: any[];
+        criteriosAceptacion: any[];
+        sugerencias: any[];
+    }>;
+    updateHistoriaUsuario(id: number, hisId: number, body: {
+        titulo?: string | null;
+        descripcion?: string | null;
+        puntaje?: number | string | null;
+        numeroSprint?: number | string | null;
+    }): Promise<{
+        proyecto: any;
+        aprendices: unknown[];
+        historiasUsuario: any[];
+        criteriosAceptacion: any[];
+        sugerencias: any[];
+    }>;
+    deleteHistoriaUsuario(id: number, hisId: number): Promise<{
+        proyecto: any;
+        aprendices: unknown[];
+        historiasUsuario: any[];
+        criteriosAceptacion: any[];
+        sugerencias: any[];
+    }>;
+    createCriterioAceptacion(id: number, body: {
+        descripcion?: string | null;
+        tiempo?: string | null;
+        hisId?: number | string | null;
+        actorCedula?: number | string | null;
+    }): Promise<{
+        proyecto: any;
+        aprendices: unknown[];
+        historiasUsuario: any[];
+        criteriosAceptacion: any[];
+        sugerencias: any[];
+    }>;
+    updateCriterioAceptacion(id: number, criId: number, body: {
+        descripcion?: string | null;
+        tiempo?: string | null;
+        hisId?: number | string | null;
+        actorCedula?: number | string | null;
+    }): Promise<{
+        proyecto: any;
+        aprendices: unknown[];
+        historiasUsuario: any[];
+        criteriosAceptacion: any[];
+        sugerencias: any[];
+    }>;
+    deleteCriterioAceptacion(id: number, criId: number): Promise<{
+        proyecto: any;
+        aprendices: unknown[];
+        historiasUsuario: any[];
+        criteriosAceptacion: any[];
+        sugerencias: any[];
+    }>;
+    createSugerencia(id: number, body: {
+        descripcion?: string | null;
+        actorCedula?: number | string | null;
+    }): Promise<{
+        proyecto: any;
+        aprendices: unknown[];
+        historiasUsuario: any[];
+        criteriosAceptacion: any[];
+        sugerencias: any[];
+    }>;
+    updateSugerencia(id: number, obsId: number, body: {
+        descripcion?: string | null;
+        actorCedula?: number | string | null;
+    }): Promise<{
+        proyecto: any;
+        aprendices: unknown[];
+        historiasUsuario: any[];
+        criteriosAceptacion: any[];
+        sugerencias: any[];
+    }>;
+    deleteSugerencia(id: number, obsId: number): Promise<{
+        proyecto: any;
+        aprendices: unknown[];
+        historiasUsuario: any[];
+        criteriosAceptacion: any[];
+        sugerencias: any[];
+    }>;
     getProyectoById(id: number): Promise<any>;
 }

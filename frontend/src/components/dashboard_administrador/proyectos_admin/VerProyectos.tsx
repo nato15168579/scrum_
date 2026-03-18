@@ -6,6 +6,15 @@
  * Nivel 3: Fichas
  * Nivel 4: Proyectos por ficha
  * Nivel 5: Detalle del proyecto (incluye aprendices)
+ *
+ * Responsabilidades principales:
+ * - Navegacion y filtros del arbol Programa -> Area -> Ficha -> Proyectos.
+ * - Detalle del proyecto con modales para:
+ *   - Edicion de aprendices y rol Scrum.
+ *   - Gestion de Historias de Usuario, Criterios de Aceptacion y Sugerencias (CRUD).
+ *
+ * Nota: por volumen de logica/estado, este componente es candidato natural a ser
+ * dividido en hooks y subcomponentes (sin cambiar UX) cuando el equipo lo requiera.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -33,6 +42,7 @@ import AdminProfileMenu from "../layout/AdminProfileMenu";
 import AdminLogoutModal from "../modals/AdminLogoutModal";
 import { logoutAndRedirect, requireAdminAccess } from "../session/adminSession";
 import { useClickOutside } from "../hooks/useClickOutside";
+import { normalizeComparableText, normalizeText } from "../utils/text";
 
 type ViewMode =
   | "programas"
@@ -108,6 +118,7 @@ interface AprendizDetalleApi {
   telefono?: string | null;
   sexo?: string | null;
   estado?: string | null;
+  rolScrum?: string | null;
   fichaNumero?: string | number | null;
   fichaPrograma?: string | null;
   fichaArea?: string | null;
@@ -120,6 +131,8 @@ interface HistoriaUsuarioDetalleItem {
   puntaje?: number | null;
   numeroSprint?: number | null;
   responsable?: string | null;
+  detParIdFk?: number | null;
+  responsableCedula?: string | number | null;
 }
 
 interface CriterioAceptacionDetalleItem {
@@ -127,12 +140,20 @@ interface CriterioAceptacionDetalleItem {
   tiempo?: string | null;
   descripcion?: string | null;
   responsable?: string | null;
+  hisId?: number | null;
+  historiaTitulo?: string | null;
+  estadoFk?: number | null;
+  responsableCedula?: string | number | null;
 }
 
 interface SugerenciaDetalleItem {
   obsId?: number | null;
   titulo?: string | null;
   descripcion?: string | null;
+  fecha?: string | null;
+  detParIdFk?: number | null;
+  responsable?: string | null;
+  responsableCedula?: string | number | null;
 }
 
 interface DetalleAdminResponse {
@@ -174,6 +195,56 @@ interface ProyectoAprendicesEditorResponse {
   rolesScrum: RolScrumOption[];
 }
 
+type DetailCrudKind = DetailSubview;
+
+interface HistoriaDraft {
+  titulo: string;
+  descripcion: string;
+  puntaje: string;
+  numeroSprint: string;
+}
+
+interface CriterioDraft {
+  descripcion: string;
+  tiempo: string;
+  hisId: string;
+}
+
+interface SugerenciaDraft {
+  descripcion: string;
+}
+
+type DetailViewerState =
+  | { kind: "historias"; item: HistoriaUsuarioDetalleItem }
+  | { kind: "criterios"; item: CriterioAceptacionDetalleItem }
+  | { kind: "sugerencias"; item: SugerenciaDetalleItem };
+
+type DetailEditorState =
+  | {
+      kind: "historias";
+      mode: "create" | "edit";
+      itemId?: number;
+      draft: HistoriaDraft;
+    }
+  | {
+      kind: "criterios";
+      mode: "create" | "edit";
+      itemId?: number;
+      draft: CriterioDraft;
+    }
+  | {
+      kind: "sugerencias";
+      mode: "create" | "edit";
+      itemId?: number;
+      draft: SugerenciaDraft;
+    };
+
+interface DetailDeleteDialogState {
+  kind: DetailCrudKind;
+  itemId: number;
+  label: string;
+}
+
 type MembershipChange = "none" | "add" | "remove";
 
 interface ProyectoAprendizDisplayItem extends AprendizProyectoEditorItem {
@@ -195,7 +266,10 @@ interface DeleteDialogState {
   fichaNumero?: string;
 }
 
-const normalizeText = (value: unknown) => String(value ?? "").trim();
+const isFichaActiva = (estado: unknown) => {
+  const normalizedEstado = normalizeComparableText(estado);
+  return normalizedEstado === "activa" || normalizedEstado === "activo";
+};
 
 const getAprendizNombreCompleto = (
   aprendiz?: Partial<AprendizDetalleApi> | null,
@@ -206,6 +280,66 @@ const getAprendizNombreCompleto = (
 
   if (fullName) return fullName;
   return normalizeText(aprendiz?.cedula) || "Aprendiz";
+};
+
+const parseOptionalIntegerDraft = (value: string, label: string) => {
+  const normalized = normalizeText(value);
+  if (!normalized) return null;
+
+  if (!/^-?\d+$/.test(normalized)) {
+    throw new Error(`El campo ${label} debe ser un numero entero.`);
+  }
+
+  return Number(normalized);
+};
+
+const createHistoriaDraft = (
+  item?: Partial<HistoriaUsuarioDetalleItem> | null,
+): HistoriaDraft => ({
+  titulo: normalizeText(item?.titulo),
+  descripcion: normalizeText(item?.descripcion),
+  puntaje: normalizeText(item?.puntaje),
+  numeroSprint: normalizeText(item?.numeroSprint),
+});
+
+const createCriterioDraft = (
+  item?: Partial<CriterioAceptacionDetalleItem> | null,
+): CriterioDraft => ({
+  descripcion: normalizeText(item?.descripcion),
+  tiempo: normalizeText(item?.tiempo),
+  hisId: normalizeText(item?.hisId),
+});
+
+const createSugerenciaDraft = (
+  item?: Partial<SugerenciaDetalleItem> | null,
+): SugerenciaDraft => ({
+  descripcion: normalizeText(item?.descripcion),
+});
+
+const getDetailSubviewTitle = (kind: DetailSubview) => {
+  if (kind === "historias") return "Historias de usuario";
+  if (kind === "criterios") return "Criterios de aceptacion";
+  return "Sugerencias";
+};
+
+const getDetailSubviewSingular = (kind: DetailCrudKind) => {
+  if (kind === "historias") return "historia de usuario";
+  if (kind === "criterios") return "criterio de aceptacion";
+  return "sugerencia";
+};
+
+const extractApiMessage = (payload: unknown) => {
+  if (!payload || typeof payload !== "object" || !("message" in payload)) {
+    return "";
+  }
+
+  const message = (payload as { message?: string | string[] }).message;
+
+  if (Array.isArray(message)) {
+    return message.map((item) => normalizeText(item)).filter(Boolean).join(". ");
+  }
+
+  return normalizeText(message);
 };
 
 const buildMembershipPreviewText = (added: string[], removed: string[]) => {
@@ -332,6 +466,13 @@ const VerProyectosAdmin = () => {
     Record<EditableProjectFieldKey, string> | null
   >(null);
   const [savingProjectField, setSavingProjectField] = useState(false);
+  const [viewingDetailItem, setViewingDetailItem] =
+    useState<DetailViewerState | null>(null);
+  const [editingDetailItem, setEditingDetailItem] =
+    useState<DetailEditorState | null>(null);
+  const [detailDeleteDialog, setDetailDeleteDialog] =
+    useState<DetailDeleteDialogState | null>(null);
+  const [savingDetailItem, setSavingDetailItem] = useState(false);
 
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState | null>(
     null,
@@ -456,6 +597,23 @@ const VerProyectosAdmin = () => {
         setAdminName(resolveUserName(dashboardData?.instructor, "Usuario"));
       } catch (error) {
         console.error("Error cargando datos de admin proyectos:", error);
+        const rawMessage = error instanceof Error ? error.message : "";
+        const normalizedMessage = normalizeComparableText(rawMessage);
+        const isNetworkError =
+          normalizedMessage.includes("failed to fetch") ||
+          normalizedMessage.includes("could not connect") ||
+          normalizedMessage.includes("connection refused") ||
+          normalizedMessage.includes("networkerror");
+
+        setTimedAlert({
+          id: Date.now(),
+          title: isNetworkError
+            ? "No se pudo conectar al servidor"
+            : "No se pudo cargar la informacion",
+          description: isNetworkError
+            ? `Verifica que el backend este activo en ${API_URL}.`
+            : "Intenta nuevamente en unos segundos.",
+        });
       } finally {
         setLoading(false);
       }
@@ -465,24 +623,29 @@ const VerProyectosAdmin = () => {
   }, [navigate, reloadKey]);
 
   const activeFichas = useMemo(
-    () => fichas.filter((f) => f.estado.toLowerCase() === "activa"),
+    () => fichas.filter((f) => isFichaActiva(f.estado)),
     [fichas],
+  );
+
+  const fichasForNavigation = useMemo(
+    () => (activeFichas.length > 0 ? activeFichas : fichas),
+    [activeFichas, fichas],
   );
 
   const programas = useMemo(() => {
     const set = new Set<string>();
-    activeFichas.forEach((ficha) => {
+    fichasForNavigation.forEach((ficha) => {
       if (!ficha.programa || ficha.programa === "Sin programa") return;
       set.add(ficha.programa);
     });
 
     return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
-  }, [activeFichas]);
+  }, [fichasForNavigation]);
 
   const areasForPrograma = useMemo(() => {
     const byPrograma: Record<string, Map<string, number>> = {};
 
-    activeFichas.forEach((ficha) => {
+    fichasForNavigation.forEach((ficha) => {
       const programa = ficha.programa;
       const area = ficha.nombre;
 
@@ -497,7 +660,7 @@ const VerProyectosAdmin = () => {
     });
 
     return byPrograma;
-  }, [activeFichas]);
+  }, [fichasForNavigation]);
 
   const term = searchTerm.toLowerCase().trim();
 
@@ -506,7 +669,7 @@ const VerProyectosAdmin = () => {
 
     return programas.filter((programa) => {
       const areas = Array.from(areasForPrograma[programa]?.keys() || []);
-      const fichasNums = activeFichas
+      const fichasNums = fichasForNavigation
         .filter((f) => f.programa === programa)
         .map((f) => f.numero);
 
@@ -520,7 +683,7 @@ const VerProyectosAdmin = () => {
 
       return searchValue.includes(term);
     });
-  }, [activeFichas, areasForPrograma, programas, proyectos, term]);
+  }, [areasForPrograma, fichasForNavigation, programas, proyectos, term]);
 
   const currentAreas = useMemo(() => {
     if (!selectedPrograma) return [];
@@ -536,7 +699,7 @@ const VerProyectosAdmin = () => {
     if (!term) return rows;
 
     return rows.filter((row) => {
-      const fichasNums = activeFichas
+      const fichasNums = fichasForNavigation
         .filter((f) => f.programa === selectedPrograma && f.nombre === row.nombre)
         .map((f) => f.numero);
 
@@ -552,12 +715,12 @@ const VerProyectosAdmin = () => {
 
       return searchValue.includes(term);
     });
-  }, [activeFichas, areasForPrograma, proyectos, selectedPrograma, term]);
+  }, [areasForPrograma, fichasForNavigation, proyectos, selectedPrograma, term]);
 
   const currentFichas = useMemo(() => {
     if (!selectedPrograma || !selectedArea) return [];
 
-    const rows = activeFichas
+    const rows = fichasForNavigation
       .filter((f) => f.programa === selectedPrograma && f.nombre === selectedArea)
       .sort((a, b) => Number(a.numero) - Number(b.numero));
 
@@ -566,7 +729,7 @@ const VerProyectosAdmin = () => {
     return rows.filter((f) =>
       [f.numero, f.estado].join(" ").toLowerCase().includes(term),
     );
-  }, [activeFichas, selectedArea, selectedPrograma, term]);
+  }, [fichasForNavigation, selectedArea, selectedPrograma, term]);
 
   const allFichasFiltered = useMemo(() => {
     const rows = [...fichas].sort((a, b) => Number(a.numero) - Number(b.numero));
@@ -623,6 +786,24 @@ const VerProyectosAdmin = () => {
     return <span className={`status-badge ${className}`}>{status}</span>;
   };
 
+  const closeDetailSubviewModal = () => {
+    if (savingDetailItem) return;
+
+    setDetailSubview(null);
+    setViewingDetailItem(null);
+    setEditingDetailItem(null);
+    setDetailDeleteDialog(null);
+  };
+
+  const toggleDetailSubviewModal = (nextSubview: DetailSubview) => {
+    setViewingDetailItem(null);
+    setEditingDetailItem(null);
+    setDetailDeleteDialog(null);
+    setDetailSubview((current) =>
+      current === nextSubview ? null : nextSubview,
+    );
+  };
+
   const goBack = () => {
     setSearchTerm("");
 
@@ -649,12 +830,15 @@ const VerProyectosAdmin = () => {
 
     if (view === "detalle") {
       if (detailSubview) {
-        setDetailSubview(null);
+        closeDetailSubviewModal();
         return;
       }
 
       setDetalle(null);
       setEditProjectContentModal(null);
+      setViewingDetailItem(null);
+      setEditingDetailItem(null);
+      setDetailDeleteDialog(null);
       setView(detailReturnView);
       return;
     }
@@ -703,6 +887,9 @@ const VerProyectosAdmin = () => {
     setDetalle(null);
     setDetailSubview(null);
     setEditProjectContentModal(null);
+    setViewingDetailItem(null);
+    setEditingDetailItem(null);
+    setDetailDeleteDialog(null);
     setDetalleLoading(true);
     setView("detalle");
 
@@ -954,6 +1141,240 @@ const VerProyectosAdmin = () => {
       });
     } finally {
       setSavingProjectField(false);
+    }
+  };
+
+  const openCreateDetailItem = (kind: DetailCrudKind) => {
+    if (kind === "historias") {
+      setEditingDetailItem({
+        kind,
+        mode: "create",
+        draft: createHistoriaDraft(),
+      });
+      return;
+    }
+
+    if (kind === "criterios") {
+      setEditingDetailItem({
+        kind,
+        mode: "create",
+        draft: createCriterioDraft(),
+      });
+      return;
+    }
+
+    setEditingDetailItem({
+      kind,
+      mode: "create",
+      draft: createSugerenciaDraft(),
+    });
+  };
+
+  const openEditDetailItem = (
+    item:
+      | HistoriaUsuarioDetalleItem
+      | CriterioAceptacionDetalleItem
+      | SugerenciaDetalleItem,
+    kind: DetailCrudKind,
+  ) => {
+    if (kind === "historias") {
+      setEditingDetailItem({
+        kind,
+        mode: "edit",
+        itemId: Number((item as HistoriaUsuarioDetalleItem).hisId || 0),
+        draft: createHistoriaDraft(item as HistoriaUsuarioDetalleItem),
+      });
+      return;
+    }
+
+    if (kind === "criterios") {
+      setEditingDetailItem({
+        kind,
+        mode: "edit",
+        itemId: Number((item as CriterioAceptacionDetalleItem).criId || 0),
+        draft: createCriterioDraft(item as CriterioAceptacionDetalleItem),
+      });
+      return;
+    }
+
+    setEditingDetailItem({
+      kind,
+      mode: "edit",
+      itemId: Number((item as SugerenciaDetalleItem).obsId || 0),
+      draft: createSugerenciaDraft(item as SugerenciaDetalleItem),
+    });
+  };
+
+  const saveDetailItem = async () => {
+    const projectId = Number(detalle?.proyecto.proId || 0);
+    if (!projectId || !editingDetailItem) return;
+
+    setSavingDetailItem(true);
+
+    try {
+      let endpoint = "";
+      let method: "POST" | "PATCH" = "POST";
+      let body: Record<string, unknown> = {};
+      let successTitle = "";
+      let successDescription = "";
+
+      if (editingDetailItem.kind === "historias") {
+        const puntaje = parseOptionalIntegerDraft(
+          editingDetailItem.draft.puntaje,
+          "Puntaje",
+        );
+        const numeroSprint = parseOptionalIntegerDraft(
+          editingDetailItem.draft.numeroSprint,
+          "Sprint",
+        );
+
+        endpoint =
+          editingDetailItem.mode === "create"
+            ? `${API_URL}/verpro/${projectId}/historias`
+            : `${API_URL}/verpro/${projectId}/historias/${editingDetailItem.itemId}`;
+        method = editingDetailItem.mode === "create" ? "POST" : "PATCH";
+        body = {
+          titulo: editingDetailItem.draft.titulo,
+          descripcion: editingDetailItem.draft.descripcion,
+          puntaje,
+          numeroSprint,
+          actorCedula,
+        };
+        successTitle =
+          editingDetailItem.mode === "create"
+            ? "Historia creada"
+            : "Historia actualizada";
+        successDescription =
+          editingDetailItem.mode === "create"
+            ? "La historia de usuario se agrego correctamente."
+            : "La historia de usuario se actualizo correctamente.";
+      } else if (editingDetailItem.kind === "criterios") {
+        const hisId = parseOptionalIntegerDraft(
+          editingDetailItem.draft.hisId,
+          "Historia de usuario",
+        );
+
+        endpoint =
+          editingDetailItem.mode === "create"
+            ? `${API_URL}/verpro/${projectId}/criterios`
+            : `${API_URL}/verpro/${projectId}/criterios/${editingDetailItem.itemId}`;
+        method = editingDetailItem.mode === "create" ? "POST" : "PATCH";
+        body = {
+          descripcion: editingDetailItem.draft.descripcion,
+          tiempo: editingDetailItem.draft.tiempo,
+          hisId,
+          actorCedula,
+        };
+        successTitle =
+          editingDetailItem.mode === "create"
+            ? "Criterio creado"
+            : "Criterio actualizado";
+        successDescription =
+          editingDetailItem.mode === "create"
+            ? "El criterio de aceptacion se agrego correctamente."
+            : "El criterio de aceptacion se actualizo correctamente.";
+      } else {
+        endpoint =
+          editingDetailItem.mode === "create"
+            ? `${API_URL}/verpro/${projectId}/sugerencias`
+            : `${API_URL}/verpro/${projectId}/sugerencias/${editingDetailItem.itemId}`;
+        method = editingDetailItem.mode === "create" ? "POST" : "PATCH";
+        body = {
+          descripcion: editingDetailItem.draft.descripcion,
+          actorCedula,
+        };
+        successTitle =
+          editingDetailItem.mode === "create"
+            ? "Sugerencia creada"
+            : "Sugerencia actualizada";
+        successDescription =
+          editingDetailItem.mode === "create"
+            ? "La sugerencia se agrego correctamente."
+            : "La sugerencia se actualizo correctamente.";
+      }
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | DetalleAdminResponse
+        | { message?: string | string[] }
+        | null;
+
+      if (!response.ok || !payload || !("proyecto" in payload)) {
+        throw new Error(
+          extractApiMessage(payload) || "No fue posible guardar los cambios.",
+        );
+      }
+
+      setDetalle(payload);
+      setEditingDetailItem(null);
+      setViewingDetailItem(null);
+      setDetailDeleteDialog(null);
+      setTimedAlert({
+        id: Date.now(),
+        title: successTitle,
+        description: successDescription,
+      });
+    } catch (error) {
+      console.error("Error guardando item del detalle del proyecto:", error);
+      setTimedAlert({
+        id: Date.now(),
+        title: "No se pudo guardar",
+        description: error instanceof Error ? error.message : "Intenta nuevamente.",
+      });
+    } finally {
+      setSavingDetailItem(false);
+    }
+  };
+
+  const confirmDetailDelete = async () => {
+    const projectId = Number(detalle?.proyecto.proId || 0);
+    if (!projectId || !detailDeleteDialog || savingDetailItem) return;
+
+    setSavingDetailItem(true);
+
+    try {
+      const endpoint =
+        detailDeleteDialog.kind === "historias"
+          ? `${API_URL}/verpro/${projectId}/historias/${detailDeleteDialog.itemId}`
+          : detailDeleteDialog.kind === "criterios"
+            ? `${API_URL}/verpro/${projectId}/criterios/${detailDeleteDialog.itemId}`
+            : `${API_URL}/verpro/${projectId}/sugerencias/${detailDeleteDialog.itemId}`;
+
+      const response = await fetch(endpoint, { method: "DELETE" });
+      const payload = (await response.json().catch(() => null)) as
+        | DetalleAdminResponse
+        | { message?: string | string[] }
+        | null;
+
+      if (!response.ok || !payload || !("proyecto" in payload)) {
+        throw new Error(
+          extractApiMessage(payload) || "No fue posible eliminar el registro.",
+        );
+      }
+
+      setDetalle(payload);
+      setDetailDeleteDialog(null);
+      setViewingDetailItem(null);
+      setEditingDetailItem(null);
+      setTimedAlert({
+        id: Date.now(),
+        title: "Registro eliminado",
+        description: "Los cambios se guardaron correctamente.",
+      });
+    } catch (error) {
+      console.error("Error eliminando item del detalle del proyecto:", error);
+      setTimedAlert({
+        id: Date.now(),
+        title: "No se pudo eliminar",
+        description: error instanceof Error ? error.message : "Intenta nuevamente.",
+      });
+    } finally {
+      setSavingDetailItem(false);
     }
   };
 
@@ -1625,11 +2046,7 @@ const VerProyectosAdmin = () => {
               <button
                 type="button"
                 className={`vp-detail-tab${detailSubview === "historias" ? " is-active" : ""}`}
-                onClick={() =>
-                  setDetailSubview((current) =>
-                    current === "historias" ? null : "historias",
-                  )
-                }
+                onClick={() => toggleDetailSubviewModal("historias")}
               >
                 Historias de usuario
                 <span className="vp-detail-tab-count">
@@ -1639,11 +2056,7 @@ const VerProyectosAdmin = () => {
               <button
                 type="button"
                 className={`vp-detail-tab${detailSubview === "criterios" ? " is-active" : ""}`}
-                onClick={() =>
-                  setDetailSubview((current) =>
-                    current === "criterios" ? null : "criterios",
-                  )
-                }
+                onClick={() => toggleDetailSubviewModal("criterios")}
               >
                 Criterios de aceptacion
                 <span className="vp-detail-tab-count">
@@ -1653,11 +2066,7 @@ const VerProyectosAdmin = () => {
               <button
                 type="button"
                 className={`vp-detail-tab${detailSubview === "sugerencias" ? " is-active" : ""}`}
-                onClick={() =>
-                  setDetailSubview((current) =>
-                    current === "sugerencias" ? null : "sugerencias",
-                  )
-                }
+                onClick={() => toggleDetailSubviewModal("sugerencias")}
               >
                 Sugerencias
                 <span className="vp-detail-tab-count">
@@ -1684,7 +2093,7 @@ const VerProyectosAdmin = () => {
                       const totalAreas = areasForPrograma[programa]
                         ? areasForPrograma[programa].size
                         : 0;
-                      const totalFichas = activeFichas.filter(
+                      const totalFichas = fichasForNavigation.filter(
                         (f) => f.programa === programa,
                       ).length;
 
@@ -1938,10 +2347,10 @@ const VerProyectosAdmin = () => {
                                 setProjectsReturnView("todas_fichas");
                                 setView("proyectos");
                               }}
-                              disabled={ficha.estado.toLowerCase() !== "activa"}
+                              disabled={!isFichaActiva(ficha.estado)}
                               aria-label={`Ver proyectos de la ficha ${ficha.numero}`}
                               title={
-                                ficha.estado.toLowerCase() === "activa"
+                                isFichaActiva(ficha.estado)
                                   ? "Ver proyectos"
                                   : "La ficha esta inactiva"
                               }
@@ -2195,14 +2604,14 @@ const VerProyectosAdmin = () => {
                           Editar aprendices
                         </button>
                       </div>
-                      <div className="vp-detail-table-wrap">
+                      <div className="vp-detail-table-wrap vp-list-scroll vp-aprendices-scroll">
                         <table className="vp-table">
                           <thead>
                             <tr>
+                              <th>Documento</th>
                               <th>Nombre</th>
                               <th>Apellido</th>
-                              <th>Documento</th>
-                              <th>Tipo</th>
+                              <th>Rol Scrum</th>
                               <th>Estado</th>
                             </tr>
                           </thead>
@@ -2213,14 +2622,14 @@ const VerProyectosAdmin = () => {
                                 <tr
                                   key={`${normalizeText(aprendiz.cedula) || "apr"}-${index}`}
                                 >
+                                  <td>{normalizeText(aprendiz.cedula) || "--"}</td>
                                   <td className="vp-name-cell">
                                     {normalizeText(aprendiz.nombres) || "--"}
                                   </td>
                                   <td className="vp-name-cell">
                                     {normalizeText(aprendiz.apellidos) || "--"}
                                   </td>
-                                  <td>{normalizeText(aprendiz.cedula) || "--"}</td>
-                                  <td>{normalizeText(aprendiz.tipoDocumento) || "--"}</td>
+                                  <td>{normalizeText(aprendiz.rolScrum) || "--"}</td>
                                   <td>{normalizeText(aprendiz.estado) || "--"}</td>
                                 </tr>
                               ))
@@ -2303,17 +2712,6 @@ const VerProyectosAdmin = () => {
                     </div>
                   </div>
 
-                  {detailSubview === "historias" ? (
-                    <DetalleHistoriasView items={detalle.historiasUsuario} />
-                  ) : null}
-
-                  {detailSubview === "criterios" ? (
-                    <DetalleCriteriosView items={detalle.criteriosAceptacion} />
-                  ) : null}
-
-                  {detailSubview === "sugerencias" ? (
-                    <DetalleSugerenciasView items={detalle.sugerencias} />
-                  ) : null}
                 </>
               ) : (
                 <div className="vp-empty-row">No se encontro informacion del proyecto.</div>
@@ -2322,6 +2720,490 @@ const VerProyectosAdmin = () => {
           ) : null}
         </div>
       </main>
+
+      {view === "detalle" && detalle && detailSubview ? (
+        <div className="modal-overlay" style={{ zIndex: 2300 }}>
+          <div className="modal-content vp-manage-modal vp-detail-subview-modal">
+            <div className="vp-modal-header">
+              <div>
+                <h2>{getDetailSubviewTitle(detailSubview)}</h2>
+                <p className="vp-detail-helper">
+                  {detailSubview === "historias"
+                    ? "Consulta, agrega, edita o elimina historias de usuario del proyecto."
+                    : detailSubview === "criterios"
+                      ? "Consulta, agrega, edita o elimina criterios de aceptacion del proyecto."
+                      : "Consulta, agrega, edita o elimina sugerencias del proyecto."}
+                </p>
+              </div>
+            </div>
+
+            <div className="vp-manage-body vp-detail-subview-body">
+              {detailSubview === "historias" ? (
+                <DetalleHistoriasView
+                  items={detalle.historiasUsuario}
+                  onViewItem={(item) =>
+                    setViewingDetailItem({ kind: "historias", item })
+                  }
+                  onEditItem={(item) => openEditDetailItem(item, "historias")}
+                  onDeleteItem={(item) => {
+                    const itemId = Number(item.hisId || 0);
+                    if (!itemId) return;
+                    setDetailDeleteDialog({
+                      kind: "historias",
+                      itemId,
+                      label:
+                        normalizeText(item.titulo) ||
+                        `HU #${normalizeText(item.hisId) || itemId}`,
+                    });
+                  }}
+                  onAddItem={() => openCreateDetailItem("historias")}
+                  isBusy={savingDetailItem}
+                />
+              ) : null}
+
+              {detailSubview === "criterios" ? (
+                <DetalleCriteriosView
+                  items={detalle.criteriosAceptacion}
+                  onViewItem={(item) =>
+                    setViewingDetailItem({ kind: "criterios", item })
+                  }
+                  onEditItem={(item) => openEditDetailItem(item, "criterios")}
+                  onDeleteItem={(item) => {
+                    const itemId = Number(item.criId || 0);
+                    if (!itemId) return;
+                    setDetailDeleteDialog({
+                      kind: "criterios",
+                      itemId,
+                      label: `CA #${normalizeText(item.criId) || itemId}`,
+                    });
+                  }}
+                  onAddItem={() => openCreateDetailItem("criterios")}
+                  isBusy={savingDetailItem}
+                />
+              ) : null}
+
+              {detailSubview === "sugerencias" ? (
+                <DetalleSugerenciasView
+                  items={detalle.sugerencias}
+                  onViewItem={(item) =>
+                    setViewingDetailItem({ kind: "sugerencias", item })
+                  }
+                  onEditItem={(item) => openEditDetailItem(item, "sugerencias")}
+                  onDeleteItem={(item) => {
+                    const itemId = Number(item.obsId || 0);
+                    if (!itemId) return;
+                    setDetailDeleteDialog({
+                      kind: "sugerencias",
+                      itemId,
+                      label:
+                        normalizeText(item.titulo) ||
+                        `Sugerencia #${normalizeText(item.obsId) || itemId}`,
+                    });
+                  }}
+                  onAddItem={() => openCreateDetailItem("sugerencias")}
+                  isBusy={savingDetailItem}
+                />
+              ) : null}
+            </div>
+
+            <div className="modal-buttons">
+              <button
+                className="btn-cancel-logout"
+                onClick={closeDetailSubviewModal}
+                disabled={savingDetailItem}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {viewingDetailItem ? (
+        <div className="modal-overlay" style={{ zIndex: 2500 }}>
+          <div className="modal-content vp-edit-modal vp-view-modal vp-detail-record-modal">
+            <h2 className="modal-title">
+              {viewingDetailItem.kind === "historias"
+                ? "Detalle de historia de usuario"
+                : viewingDetailItem.kind === "criterios"
+                  ? "Detalle de criterio de aceptacion"
+                  : "Detalle de sugerencia"}
+            </h2>
+
+            {viewingDetailItem.kind === "historias" ? (
+              <div className="vp-view-grid">
+                <div className="vp-view-item">
+                  <span>ID</span>
+                  <strong>{normalizeText(viewingDetailItem.item.hisId) || "--"}</strong>
+                </div>
+                <div className="vp-view-item">
+                  <span>Puntaje</span>
+                  <strong>
+                    {normalizeText(viewingDetailItem.item.puntaje) || "--"}
+                  </strong>
+                </div>
+                <div className="vp-view-item">
+                  <span>Sprint</span>
+                  <strong>
+                    {normalizeText(viewingDetailItem.item.numeroSprint) || "--"}
+                  </strong>
+                </div>
+                <div className="vp-view-item">
+                  <span>Responsable</span>
+                  <strong>
+                    {normalizeText(viewingDetailItem.item.responsable) ||
+                      "Sin responsable"}
+                  </strong>
+                </div>
+                <div className="vp-view-item vp-view-item-full">
+                  <span>Titulo</span>
+                  <strong>
+                    {normalizeText(viewingDetailItem.item.titulo) || "Sin titulo"}
+                  </strong>
+                </div>
+                <div className="vp-view-item vp-view-item-full">
+                  <span>Descripcion</span>
+                  <strong>
+                    {normalizeText(viewingDetailItem.item.descripcion) ||
+                      "Sin descripcion"}
+                  </strong>
+                </div>
+              </div>
+            ) : null}
+
+            {viewingDetailItem.kind === "criterios" ? (
+              <div className="vp-view-grid">
+                <div className="vp-view-item">
+                  <span>ID</span>
+                  <strong>{normalizeText(viewingDetailItem.item.criId) || "--"}</strong>
+                </div>
+                <div className="vp-view-item">
+                  <span>Tiempo</span>
+                  <strong>
+                    {normalizeText(viewingDetailItem.item.tiempo) || "--"}
+                  </strong>
+                </div>
+                <div className="vp-view-item">
+                  <span>Historia relacionada</span>
+                  <strong>
+                    {normalizeText(viewingDetailItem.item.historiaTitulo) ||
+                      (viewingDetailItem.item.hisId
+                        ? `HU #${normalizeText(viewingDetailItem.item.hisId)}`
+                        : "Sin relacion")}
+                  </strong>
+                </div>
+                <div className="vp-view-item">
+                  <span>Responsable</span>
+                  <strong>
+                    {normalizeText(viewingDetailItem.item.responsable) ||
+                      "Sin responsable"}
+                  </strong>
+                </div>
+                <div className="vp-view-item vp-view-item-full">
+                  <span>Descripcion</span>
+                  <strong>
+                    {normalizeText(viewingDetailItem.item.descripcion) ||
+                      "Sin descripcion"}
+                  </strong>
+                </div>
+              </div>
+            ) : null}
+
+            {viewingDetailItem.kind === "sugerencias" ? (
+              <div className="vp-view-grid">
+                <div className="vp-view-item">
+                  <span>ID</span>
+                  <strong>{normalizeText(viewingDetailItem.item.obsId) || "--"}</strong>
+                </div>
+                <div className="vp-view-item">
+                  <span>Fecha</span>
+                  <strong>
+                    {normalizeText(viewingDetailItem.item.fecha) || "--"}
+                  </strong>
+                </div>
+                <div className="vp-view-item vp-view-item-full">
+                  <span>Titulo</span>
+                  <strong>
+                    {normalizeText(viewingDetailItem.item.titulo) ||
+                      `Sugerencia #${normalizeText(viewingDetailItem.item.obsId) || "--"}`}
+                  </strong>
+                </div>
+                <div className="vp-view-item">
+                  <span>Responsable</span>
+                  <strong>
+                    {normalizeText(viewingDetailItem.item.responsable) ||
+                      "Sin responsable"}
+                  </strong>
+                </div>
+                <div className="vp-view-item vp-view-item-full">
+                  <span>Descripcion</span>
+                  <strong>
+                    {normalizeText(viewingDetailItem.item.descripcion) ||
+                      "Sin descripcion"}
+                  </strong>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="modal-buttons">
+              <button
+                className="btn-cancel-logout"
+                onClick={() => setViewingDetailItem(null)}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {editingDetailItem ? (
+        <div className="modal-overlay" style={{ zIndex: 2600 }}>
+          <div className="modal-content vp-edit-modal vp-detail-editor-modal">
+            <h2 className="modal-title">
+              {editingDetailItem.kind === "historias"
+                ? editingDetailItem.mode === "create"
+                  ? "Agregar historia de usuario"
+                  : "Editar historia de usuario"
+                : editingDetailItem.kind === "criterios"
+                  ? editingDetailItem.mode === "create"
+                    ? "Agregar criterio de aceptacion"
+                    : "Editar criterio de aceptacion"
+                  : editingDetailItem.mode === "create"
+                    ? "Agregar sugerencia"
+                    : "Editar sugerencia"}
+            </h2>
+
+            {editingDetailItem.kind === "historias" ? (
+              <div className="vp-edit-stack">
+                <div className="vp-edit-field">
+                  <label>Titulo</label>
+                  <input
+                    type="text"
+                    value={editingDetailItem.draft.titulo}
+                    onChange={(e) =>
+                      setEditingDetailItem((prev) =>
+                        prev && prev.kind === "historias"
+                          ? {
+                              ...prev,
+                              draft: { ...prev.draft, titulo: e.target.value },
+                            }
+                          : prev,
+                      )
+                    }
+                    disabled={savingDetailItem}
+                  />
+                </div>
+                <div className="vp-edit-field">
+                  <label>Descripcion</label>
+                  <textarea
+                    rows={6}
+                    value={editingDetailItem.draft.descripcion}
+                    onChange={(e) =>
+                      setEditingDetailItem((prev) =>
+                        prev && prev.kind === "historias"
+                          ? {
+                              ...prev,
+                              draft: {
+                                ...prev.draft,
+                                descripcion: e.target.value,
+                              },
+                            }
+                          : prev,
+                      )
+                    }
+                    disabled={savingDetailItem}
+                  />
+                </div>
+                <div className="vp-edit-grid">
+                  <div className="vp-edit-field">
+                    <label>Puntaje</label>
+                    <input
+                      type="text"
+                      value={editingDetailItem.draft.puntaje}
+                      onChange={(e) =>
+                        setEditingDetailItem((prev) =>
+                          prev && prev.kind === "historias"
+                            ? {
+                                ...prev,
+                                draft: { ...prev.draft, puntaje: e.target.value },
+                              }
+                            : prev,
+                        )
+                      }
+                      disabled={savingDetailItem}
+                    />
+                  </div>
+                  <div className="vp-edit-field">
+                    <label>Sprint</label>
+                    <input
+                      type="text"
+                      value={editingDetailItem.draft.numeroSprint}
+                      onChange={(e) =>
+                        setEditingDetailItem((prev) =>
+                          prev && prev.kind === "historias"
+                            ? {
+                                ...prev,
+                                draft: {
+                                  ...prev.draft,
+                                  numeroSprint: e.target.value,
+                                },
+                              }
+                            : prev,
+                        )
+                      }
+                      disabled={savingDetailItem}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {editingDetailItem.kind === "criterios" ? (
+              <div className="vp-edit-stack">
+                <div className="vp-edit-field">
+                  <label>Historia relacionada</label>
+                  <select
+                    value={editingDetailItem.draft.hisId}
+                    onChange={(e) =>
+                      setEditingDetailItem((prev) =>
+                        prev && prev.kind === "criterios"
+                          ? {
+                              ...prev,
+                              draft: { ...prev.draft, hisId: e.target.value },
+                            }
+                          : prev,
+                      )
+                    }
+                    disabled={savingDetailItem}
+                  >
+                    <option value="">Sin relacion</option>
+                    {(detalle?.historiasUsuario || []).map((historia, index) => (
+                      <option
+                        key={`${normalizeText(historia.hisId) || "hu"}-${index}`}
+                        value={normalizeText(historia.hisId)}
+                      >
+                        {normalizeText(historia.hisId)
+                          ? `HU #${normalizeText(historia.hisId)}`
+                          : "HU"}{" "}
+                        - {normalizeText(historia.titulo) || "Sin titulo"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="vp-edit-grid">
+                  <div className="vp-edit-field">
+                    <label>Tiempo</label>
+                    <input
+                      type="text"
+                      value={editingDetailItem.draft.tiempo}
+                      onChange={(e) =>
+                        setEditingDetailItem((prev) =>
+                          prev && prev.kind === "criterios"
+                            ? {
+                                ...prev,
+                                draft: { ...prev.draft, tiempo: e.target.value },
+                              }
+                            : prev,
+                        )
+                      }
+                      disabled={savingDetailItem}
+                    />
+                  </div>
+                </div>
+                <div className="vp-edit-field">
+                  <label>Descripcion</label>
+                  <textarea
+                    rows={6}
+                    value={editingDetailItem.draft.descripcion}
+                    onChange={(e) =>
+                      setEditingDetailItem((prev) =>
+                        prev && prev.kind === "criterios"
+                          ? {
+                              ...prev,
+                              draft: {
+                                ...prev.draft,
+                                descripcion: e.target.value,
+                              },
+                            }
+                          : prev,
+                      )
+                    }
+                    disabled={savingDetailItem}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {editingDetailItem.kind === "sugerencias" ? (
+              <div className="vp-edit-stack">
+                <div className="vp-edit-field">
+                  <label>Descripcion</label>
+                  <textarea
+                    rows={6}
+                    value={editingDetailItem.draft.descripcion}
+                    onChange={(e) =>
+                      setEditingDetailItem((prev) =>
+                        prev && prev.kind === "sugerencias"
+                          ? {
+                              ...prev,
+                              draft: {
+                                ...prev.draft,
+                                descripcion: e.target.value,
+                              },
+                            }
+                          : prev,
+                      )
+                    }
+                    disabled={savingDetailItem}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            <div className="modal-buttons">
+              <button
+                className="btn-confirm-logout"
+                onClick={() => void saveDetailItem()}
+                disabled={savingDetailItem}
+              >
+                {savingDetailItem ? "Guardando..." : "Guardar cambios"}
+              </button>
+              <button
+                className="btn-cancel-logout"
+                onClick={() => {
+                  if (savingDetailItem) return;
+                  setEditingDetailItem(null);
+                }}
+                disabled={savingDetailItem}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <AdminLogoutModal
+        isOpen={Boolean(detailDeleteDialog)}
+        title={
+          detailDeleteDialog
+            ? `Eliminar ${getDetailSubviewSingular(detailDeleteDialog.kind)}`
+            : "Eliminar"
+        }
+        description={
+          detailDeleteDialog
+            ? `Se eliminara "${detailDeleteDialog.label}". Esta accion no se puede deshacer.`
+            : "Esta accion no se puede deshacer."
+        }
+        confirmLabel={savingDetailItem ? "Eliminando..." : "Si, eliminar"}
+        onCancel={() => {
+          if (savingDetailItem) return;
+          setDetailDeleteDialog(null);
+        }}
+        onConfirm={() => void confirmDetailDelete()}
+        zIndex={2700}
+      />
 
       <AdminLogoutModal
         isOpen={showLogoutModal}
@@ -2639,13 +3521,13 @@ const VerProyectosAdmin = () => {
                         />
                       </div>
                     </div>
-                    <div className="vp-detail-table-wrap vp-list-scroll">
+                    <div className="vp-detail-table-wrap vp-list-scroll vp-aprendices-scroll">
                       <table className="vp-table">
                         <thead>
                           <tr>
+                            <th>Documento</th>
                             <th>Nombre</th>
                             <th>Apellido</th>
-                            <th>Documento</th>
                             <th>Estado</th>
                             <th>Disponibilidad</th>
                             <th style={{ textAlign: "center" }}>Acciones</th>
@@ -2678,13 +3560,13 @@ const VerProyectosAdmin = () => {
                                   key={`${cedula || "cand"}-${index}`}
                                   className={rowClassName}
                                 >
+                                  <td>{normalizeText(aprendiz.cedula) || "--"}</td>
                                   <td className="vp-name-cell">
                                     {normalizeText(aprendiz.nombres) || "--"}
                                   </td>
                                   <td className="vp-name-cell">
                                     {normalizeText(aprendiz.apellidos) || "--"}
                                   </td>
-                                  <td>{normalizeText(aprendiz.cedula) || "--"}</td>
                                   <td>{normalizeText(aprendiz.estado) || "--"}</td>
                                   <td>
                                     {pendingAdd ? (
@@ -2789,13 +3671,13 @@ const VerProyectosAdmin = () => {
                       </span>
                     ) : null}
                   </div>
-                  <div className="vp-detail-table-wrap vp-list-scroll">
+                  <div className="vp-detail-table-wrap vp-list-scroll vp-aprendices-scroll">
                     <table className="vp-table">
                       <thead>
                         <tr>
+                          <th>Documento</th>
                           <th>Nombre</th>
                           <th>Apellido</th>
-                          <th>Documento</th>
                           <th>Rol Scrum</th>
                           <th>Estado</th>
                           <th>Cambio</th>
@@ -2815,13 +3697,13 @@ const VerProyectosAdmin = () => {
                                     : ""
                               }
                             >
+                              <td>{normalizeText(aprendiz.cedula) || "--"}</td>
                               <td className="vp-name-cell">
                                 {normalizeText(aprendiz.nombres) || "--"}
                               </td>
                               <td className="vp-name-cell">
                                 {normalizeText(aprendiz.apellidos) || "--"}
                               </td>
-                              <td>{normalizeText(aprendiz.cedula) || "--"}</td>
                               <td>{normalizeText(aprendiz.rolScrum) || "--"}</td>
                               <td>{normalizeText(aprendiz.estado) || "--"}</td>
                               <td>

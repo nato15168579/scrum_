@@ -650,3 +650,7 @@ body, html {
     }
 }
 
+/* AdminDashboard.css
+ * Estilos base del shell del panel Administrador (layout, cards y bloques comunes).
+ * Se reutiliza en varias pantallas admin para mantener consistencia visual.
+ */

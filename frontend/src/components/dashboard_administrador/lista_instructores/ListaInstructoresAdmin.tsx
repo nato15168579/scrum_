@@ -33,6 +33,7 @@ import AdminProfileMenu from "../layout/AdminProfileMenu";
 import AdminSidebar from "../layout/AdminSidebar";
 import { logoutAndRedirect, requireAdminAccess } from "../session/adminSession";
 import { useClickOutside } from "../hooks/useClickOutside";
+import { normalizeText } from "../utils/text";
 
 interface FichaDetalle {
   ficha: string;
@@ -122,8 +123,6 @@ const formatFechaRegistro = (value?: string | null) => {
     year: "numeric",
   });
 };
-
-const normalizeText = (value: unknown) => String(value ?? "").trim();
 
 const normalizeFichasCargo = (value: unknown): string[] => {
   if (Array.isArray(value)) {

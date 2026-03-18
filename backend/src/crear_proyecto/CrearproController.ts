@@ -1,3 +1,12 @@
+/**
+ * CrearproController
+ * -----------------
+ * Endpoints HTTP para crear proyectos desde el panel administrador.
+ *
+ * Nota: el frontend usa:
+ * - `GET /check-project?nombre=...` para validacion rapida de nombre.
+ * - `POST /create-project` para crear el registro.
+ */
 import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { CrearproService } from './CrearproService';
 

@@ -12,21 +12,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AsigProyectoService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("typeorm");
+const SchemaIntrospection_1 = require("../shared/database/SchemaIntrospection");
 let AsigProyectoService = class AsigProyectoService {
     constructor(dataSource) {
         this.dataSource = dataSource;
+        this.schema = new SchemaIntrospection_1.SchemaIntrospection(dataSource);
     }
     wrapIdentifier(identifier) {
-        return `\`${identifier.replace(/`/g, '``')}\``;
+        return this.schema.wrapIdentifier(identifier);
     }
     async tableExists(tableName) {
-        const [row] = await this.dataSource.query(`
-        SELECT COUNT(*) AS total
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-      `, [tableName]);
-        return Number((row === null || row === void 0 ? void 0 : row.total) || 0) > 0;
+        return this.schema.tableExists(tableName);
     }
     async resolveProyectoTable() {
         const candidates = ['proyecto', ' proyecto'];
@@ -69,7 +65,7 @@ let AsigProyectoService = class AsigProyectoService {
             for (const assign of assignments) {
                 await queryRunner.query(`
           INSERT INTO proyecto_usuarios (pro_ID, usu_cedula, rol_scrum_ID)
-          VALUES ($1, $2, $3)`, [projectId, assign.cedula, assign.rolId]);
+          VALUES (?, ?, ?)`, [projectId, assign.cedula, assign.rolId]);
             }
             await queryRunner.commitTransaction();
             return { success: true };

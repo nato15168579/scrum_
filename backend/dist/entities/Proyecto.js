@@ -74,6 +74,13 @@ __decorate([
     __metadata("design:type", Number)
 ], Proyecto.prototype, "detParIdFk", void 0);
 __decorate([
+    (0, typeorm_1.Column)("datetime", {
+        name: "pro_fecha_creacion",
+        comment: "fecha de la creacion del proyecto",
+    }),
+    __metadata("design:type", Date)
+], Proyecto.prototype, "proFechaCreacion", void 0);
+__decorate([
     (0, typeorm_1.OneToMany)(() => HistoriaUsuario_1.HistoriaUsuario, (h) => h.proIdFk2),
     __metadata("design:type", Array)
 ], Proyecto.prototype, "historiaUsuarios", void 0);

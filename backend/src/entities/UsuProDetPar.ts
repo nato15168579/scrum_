@@ -1,3 +1,13 @@
+/**
+ * UsuProDetPar entity
+ * ------------------
+ * Mapeo TypeORM de la tabla `usu_pro_det_par`.
+ *
+ * Esta tabla relaciona:
+ * - Usuario (cedula)
+ * - Proyecto (pro_ID)
+ * - Detalle parametro (det_par_ID_FK), usado como rol Scrum.
+ */
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import { Usuario } from "./Usuario";
 import { DetalleParametro } from "./DetalleParametro";
@@ -16,7 +26,7 @@ export class UsuProDetPar {
 
   @Column("int", {
     primary: true,
-    name: "det_par_ID_",
+    name: "det_par_ID_FK",
     comment: "id del detalle parametro",
   })
   detParId: number;
@@ -36,7 +46,7 @@ export class UsuProDetPar {
     (detalleParametro) => detalleParametro.usuProDetPars,
     { onDelete: "RESTRICT", onUpdate: "RESTRICT" }
   )
-  @JoinColumn([{ name: "det_par_ID_", referencedColumnName: "detParId" }])
+  @JoinColumn([{ name: "det_par_ID_FK", referencedColumnName: "detParId" }])
   detParId_2: DetalleParametro;
 
   @ManyToOne(() => Proyecto, (proyecto) => proyecto.usuProDetPars, {

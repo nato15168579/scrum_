@@ -9,17 +9,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.VerproModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
+const Proyecto_1 = require("../entities/Proyecto");
 const VerproController_1 = require("./VerproController");
 const VerproService_1 = require("./VerproService");
-const Proyecto_1 = require("../entities/Proyecto");
 let VerproModule = class VerproModule {
 };
 exports.VerproModule = VerproModule;
 exports.VerproModule = VerproModule = __decorate([
     (0, common_1.Module)({
-        imports: [
-            typeorm_1.TypeOrmModule.forFeature([Proyecto_1.Proyecto])
-        ],
+        imports: [typeorm_1.TypeOrmModule.forFeature([Proyecto_1.Proyecto])],
         controllers: [VerproController_1.VerproController],
         providers: [VerproService_1.VerproService],
     })

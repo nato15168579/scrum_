@@ -12,18 +12,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CambiosSistemaService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("typeorm");
+const SchemaIntrospection_1 = require("../shared/database/SchemaIntrospection");
 let CambiosSistemaService = class CambiosSistemaService {
     constructor(dataSource) {
         this.dataSource = dataSource;
+        this.schema = new SchemaIntrospection_1.SchemaIntrospection(dataSource);
     }
     async tableExists(tableName) {
-        const [result] = await this.dataSource.query(`
-        SELECT COUNT(*) AS total
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = ?
-      `, [tableName]);
-        return Number((result === null || result === void 0 ? void 0 : result.total) || 0) > 0;
+        return this.schema.tableExists(tableName);
     }
     async listarCambios({ estado, limit }) {
         const hasTable = await this.tableExists("cambios_sistema");

@@ -1,3 +1,13 @@
+/**
+ * AppModule
+ * ---------
+ * Modulo raiz de NestJS.
+ *
+ * - Configura conexion a MySQL via TypeORM usando variables de entorno.
+ * - Registra los feature-modules que exponen la API (auth, admin, estudiantes, etc.).
+ *
+ * Nota: `synchronize` esta deshabilitado a proposito para no mutar el esquema en runtime.
+ */
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoginModule } from './login/LoginModule';
@@ -8,7 +18,7 @@ import { CrearproModule } from './crear_proyecto/CrearproModules';
 import { AsigProyectoModule } from './asignar_proyecto/AsigproyectoModules';
 import { AsigProVerModule } from './asignar_proyecto/asignar_proyecto_vermas/AsigproverModules';
 import { VerproModule } from './ver_proyecto/VerproModules';
-import { CambiosSistemaModule } from "./cambios_sistema/CambiosSistemaModule";
+import { CambiosSistemaModule } from './cambios_sistema/CambiosSistemaModule';
 
 @Module({
   imports: [

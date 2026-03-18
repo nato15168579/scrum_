@@ -12,13 +12,12 @@ const typeorm_1 = require("@nestjs/typeorm");
 const CrearproController_1 = require("./CrearproController");
 const CrearproService_1 = require("./CrearproService");
 const Proyecto_1 = require("../entities/Proyecto");
-const UsuProDetPar_1 = require("../entities/UsuProDetPar");
 let CrearproModule = class CrearproModule {
 };
 exports.CrearproModule = CrearproModule;
 exports.CrearproModule = CrearproModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([Proyecto_1.Proyecto, UsuProDetPar_1.UsuProDetPar])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([Proyecto_1.Proyecto])],
         controllers: [CrearproController_1.CrearproController],
         providers: [CrearproService_1.CrearproService],
     })

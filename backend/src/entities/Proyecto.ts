@@ -1,3 +1,14 @@
+/**
+ * Proyecto entity
+ * --------------
+ * Mapeo TypeORM de la tabla `proyecto`.
+ *
+ * En el sistema, un proyecto puede tener:
+ * - Historias de usuario (HU)
+ * - Sprints
+ * - Observaciones/sugerencias
+ * - Miembros (tabla `usu_pro_det_par`)
+ */
 import {
   Column,
   Entity,
@@ -58,6 +69,12 @@ export class Proyecto {
 
   @Column("int", { name: "det_par_ID_FK", nullable: true })
   detParIdFk: number | null;
+
+  @Column("datetime", {
+    name: "pro_fecha_creacion",
+    comment: "fecha de la creacion del proyecto",
+  })
+  proFechaCreacion: Date;
 
   @OneToMany(() => HistoriaUsuario, (h) => h.proIdFk2)
   historiaUsuarios: HistoriaUsuario[];

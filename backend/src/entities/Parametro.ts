@@ -1,3 +1,10 @@
+/**
+ * Parametro entity
+ * ---------------
+ * Mapeo TypeORM de la tabla `parametro`.
+ *
+ * Agrupa categorias de parametros. Cada `Parametro` tiene multiples `DetalleParametro`.
+ */
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { DetalleParametro } from "./DetalleParametro";
 

@@ -1,3 +1,16 @@
+/**
+ * DashboardService (Student)
+ * -------------------------
+ * Construye el payload del dashboard de estudiante.
+ *
+ * Responsabilidades:
+ * - Resolver el usuario por cedula.
+ * - Consultar metricas simples (reuniones y proyectos).
+ *
+ * Nota:
+ * Este service contiene logica defensiva (try/catch) para evitar caidas cuando
+ * ciertas tablas no existan o cambien entre scripts SQL.
+ */
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';

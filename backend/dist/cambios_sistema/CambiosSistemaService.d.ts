@@ -5,6 +5,7 @@ interface ListCambiosOptions {
 }
 export declare class CambiosSistemaService {
     private readonly dataSource;
+    private readonly schema;
     constructor(dataSource: DataSource);
     private tableExists;
     listarCambios({ estado, limit }: ListCambiosOptions): Promise<{

@@ -1,3 +1,11 @@
+/**
+ * session.ts
+ * ----------
+ * Helpers pequenos para resolver informacion de sesion guardada en localStorage.
+ *
+ * Nota:
+ * Este archivo no implementa seguridad. Solo mejora UX (nombre por defecto, fallback).
+ */
 export const getStoredUserName = () =>
   (localStorage.getItem("userName") || "").trim();
 
@@ -13,4 +21,3 @@ export const resolveUserName = (
 
   return fallback;
 };
-

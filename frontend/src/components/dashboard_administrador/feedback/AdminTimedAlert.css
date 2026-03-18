@@ -1,3 +1,12 @@
+/*
+AdminTimedAlert.css
+------------------
+Estilos del componente `AdminTimedAlert` (feedback no bloqueante en el panel admin).
+
+Convenciones:
+- El componente se usa dentro de contenedores con modales, por eso evita z-index agresivo.
+- Se prioriza accesibilidad: botones grandes, contraste, y estados hover/active claros.
+*/
 .admin-timed-alert {
   position: relative;
 }
@@ -73,4 +82,7 @@
     transition: none;
   }
 }
-
+/* AdminTimedAlert.css
+ * Estilos del componente `AdminTimedAlert` (feedback temporal).
+ * Debe ser visible encima de modales cuando se usa `zIndex`.
+ */

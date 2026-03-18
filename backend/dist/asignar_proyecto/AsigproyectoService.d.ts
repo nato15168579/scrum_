@@ -5,6 +5,7 @@ interface AssignmentInput {
 }
 export declare class AsigProyectoService {
     private dataSource;
+    private readonly schema;
     constructor(dataSource: DataSource);
     private wrapIdentifier;
     private tableExists;

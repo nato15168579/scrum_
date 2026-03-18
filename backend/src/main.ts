@@ -1,3 +1,17 @@
+/**
+ * API Bootstrap (NestJS)
+ * ---------------------
+ * Punto de entrada del backend.
+ *
+ * Responsabilidades:
+ * - Cargar variables de entorno (`loadEnv.ts`).
+ * - Verificar disponibilidad del puerto (mejor UX en desarrollo cuando ya hay un proceso).
+ * - Crear la app Nest y habilitar CORS.
+ *
+ * Nota de produccion:
+ * - Configurar CORS con origenes permitidos (no usar `enableCors()` sin opciones).
+ * - Ejecutar detras de un reverse proxy con TLS y timeouts controlados.
+ */
 import './loadEnv';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';

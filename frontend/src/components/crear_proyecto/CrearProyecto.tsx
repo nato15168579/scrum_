@@ -1,3 +1,11 @@
+/**
+ * CrearProyecto (Instructor)
+ * -------------------------
+ * Formulario para crear un proyecto desde el dashboard de instructor.
+ *
+ * Obtiene catalogos (fichas activas) para filtrar por programa/area y asociar
+ * el proyecto a una ficha cuando aplique.
+ */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Home,

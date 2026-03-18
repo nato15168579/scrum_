@@ -1,3 +1,11 @@
+/**
+ * CriteriosAceptacion entity
+ * -------------------------
+ * Mapeo TypeORM de la tabla `criterios_aceptacion`.
+ *
+ * En esta base, el criterio puede referenciar una historia (`his_ID_FK`) y el proyecto
+ * (`pro_ID_his_FK`) como PK compuesta segun el script SQL.
+ */
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import { Usuario } from "./Usuario";
 import { DetalleParametro } from "./DetalleParametro";

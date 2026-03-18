@@ -17,7 +17,7 @@ exports.AsigProVerModule = AsigProVerModule = __decorate([
     (0, common_1.Module)({
         controllers: [AsigproverController_1.AsigProVerController],
         providers: [AsigproverService_1.AsigProVerService],
-        exports: [AsigproverService_1.AsigProVerService]
+        exports: [AsigproverService_1.AsigProVerService],
     })
 ], AsigProVerModule);
 //# sourceMappingURL=AsigproverModules.js.map

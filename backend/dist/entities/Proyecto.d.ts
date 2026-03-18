@@ -14,6 +14,7 @@ export declare class Proyecto {
     proFechaFin: string | null;
     proJustificacion: string | null;
     detParIdFk: number | null;
+    proFechaCreacion: Date;
     historiaUsuarios: HistoriaUsuario[];
     observaciones: Observaciones[];
     detParIdFk2: DetalleParametro;

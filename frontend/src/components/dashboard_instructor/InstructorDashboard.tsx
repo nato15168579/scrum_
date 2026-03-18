@@ -1,3 +1,11 @@
+/**
+ * InstructorDashboard
+ * -------------------
+ * Pantalla principal del rol Instructor.
+ *
+ * Carga informacion del dashboard (stats, proyectos por estado) y renderiza el layout
+ * base con sidebar/menu. Reutiliza estilos generales del dashboard.
+ */
 import { useState, useEffect } from "react";
 import {
   LogOut,

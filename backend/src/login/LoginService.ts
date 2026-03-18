@@ -1,3 +1,16 @@
+/**
+ * LoginService
+ * ------------
+ * Servicio de autenticacion para validar credenciales de usuario.
+ *
+ * Comportamiento:
+ * - Si la contrasena almacenada ya es bcrypt, compara con bcrypt.
+ * - Si la contrasena almacenada esta en texto plano (legacy), valida por igualdad y
+ *   migra a bcrypt en el primer login exitoso.
+ *
+ * Nota:
+ * - `fixPasswords()` existe como helper de migracion, pero no debe exponerse sin proteccion.
+ */
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';

@@ -1,3 +1,13 @@
+/**
+ * AsignarProyecto
+ * --------------
+ * Pantalla del flujo instructor para listar proyectos y navegar al "ver mas"
+ * de cada proyecto dentro del modulo de asignacion.
+ *
+ * Data:
+ * - GET /proyectos (lista basica de proyectos)
+ * - GET /dashboard?cedula=... (nombre del usuario para avatar/menu)
+ */
 import { useState, useEffect, useRef } from 'react';
 import { 
     Home, Users, Plus, MapPin, Eye, List, 

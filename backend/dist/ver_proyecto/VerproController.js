@@ -43,6 +43,33 @@ let VerproController = class VerproController {
     async removeAprendizFromProyecto(id, cedula) {
         return await this.verproService.removeAprendizFromProyecto(id, cedula);
     }
+    async createHistoriaUsuario(id, body) {
+        return await this.verproService.createHistoriaUsuario(id, body);
+    }
+    async updateHistoriaUsuario(id, hisId, body) {
+        return await this.verproService.updateHistoriaUsuario(id, hisId, body);
+    }
+    async deleteHistoriaUsuario(id, hisId) {
+        return await this.verproService.deleteHistoriaUsuario(id, hisId);
+    }
+    async createCriterioAceptacion(id, body) {
+        return await this.verproService.createCriterioAceptacion(id, body);
+    }
+    async updateCriterioAceptacion(id, criId, body) {
+        return await this.verproService.updateCriterioAceptacion(id, criId, body);
+    }
+    async deleteCriterioAceptacion(id, criId) {
+        return await this.verproService.deleteCriterioAceptacion(id, criId);
+    }
+    async createSugerencia(id, body) {
+        return await this.verproService.createSugerencia(id, body);
+    }
+    async updateSugerencia(id, obsId, body) {
+        return await this.verproService.updateSugerencia(id, obsId, body);
+    }
+    async deleteSugerencia(id, obsId) {
+        return await this.verproService.deleteSugerencia(id, obsId);
+    }
     async getProyectoById(id) {
         return await this.verproService.findOne(id);
     }
@@ -109,6 +136,81 @@ __decorate([
     __metadata("design:paramtypes", [Number, String]),
     __metadata("design:returntype", Promise)
 ], VerproController.prototype, "removeAprendizFromProyecto", null);
+__decorate([
+    (0, common_1.Post)(':id/historias'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "createHistoriaUsuario", null);
+__decorate([
+    (0, common_1.Patch)(':id/historias/:hisId'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('hisId', common_1.ParseIntPipe)),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number, Object]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "updateHistoriaUsuario", null);
+__decorate([
+    (0, common_1.Delete)(':id/historias/:hisId'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('hisId', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "deleteHistoriaUsuario", null);
+__decorate([
+    (0, common_1.Post)(':id/criterios'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "createCriterioAceptacion", null);
+__decorate([
+    (0, common_1.Patch)(':id/criterios/:criId'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('criId', common_1.ParseIntPipe)),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number, Object]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "updateCriterioAceptacion", null);
+__decorate([
+    (0, common_1.Delete)(':id/criterios/:criId'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('criId', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "deleteCriterioAceptacion", null);
+__decorate([
+    (0, common_1.Post)(':id/sugerencias'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "createSugerencia", null);
+__decorate([
+    (0, common_1.Patch)(':id/sugerencias/:obsId'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('obsId', common_1.ParseIntPipe)),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number, Object]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "updateSugerencia", null);
+__decorate([
+    (0, common_1.Delete)(':id/sugerencias/:obsId'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('obsId', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number]),
+    __metadata("design:returntype", Promise)
+], VerproController.prototype, "deleteSugerencia", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

@@ -1,3 +1,11 @@
+/**
+ * RolSistema entity
+ * ----------------
+ * Mapeo TypeORM de la tabla `rol_sistema`.
+ *
+ * Define roles del sistema (ej: administrador, instructor, aprendiz) y su relacion
+ * con permisos/parametros via `rol_sis_det_par`.
+ */
 import { Column, Entity, JoinTable, ManyToMany, OneToMany } from "typeorm";
 import { DetalleParametro } from "./DetalleParametro";
 import { Usuario } from "./Usuario";

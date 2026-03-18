@@ -1,3 +1,11 @@
+/**
+ * StudentDashboard
+ * ----------------
+ * Dashboard del rol Aprendiz.
+ *
+ * Consume un endpoint de dashboard y renderiza metricas y secciones principales.
+ * Mantiene su propio menu y modales (logout/soporte).
+ */
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   LogOut,

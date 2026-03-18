@@ -1,3 +1,15 @@
+/**
+ * LoginController
+ * ---------------
+ * Controlador de autenticacion basica.
+ *
+ * Rutas:
+ * - POST /auth/login
+ *
+ * Nota de seguridad:
+ * - En produccion, este modulo deberia emitir un token (JWT) o manejar sesion
+ *   en servidor. Actualmente retorna datos del usuario para consumo del frontend.
+ */
 import { Body, Controller, Post } from '@nestjs/common';
 import { LoginService } from './LoginService';
 

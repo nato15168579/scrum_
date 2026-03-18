@@ -1,3 +1,13 @@
+/**
+ * LoginScreen
+ * -----------
+ * Pantalla de autenticacion del sistema.
+ *
+ * Flujo:
+ * - Envia credenciales a `POST /auth/login`.
+ * - Persiste cedula/rol/nombre en localStorage.
+ * - Redirige segun rol: admin (3), instructor (2), aprendiz (1).
+ */
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import senaLogo from "../../assets/sena.png";

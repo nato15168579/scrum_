@@ -1,3 +1,11 @@
+/**
+ * Reuniones entity
+ * ---------------
+ * Mapeo TypeORM de la tabla `reuniones`.
+ *
+ * Representa reuniones asociadas a un sprint, con un tipo (detalle_parametro) y una
+ * relacion many-to-many con usuarios asistentes via tabla intermedia `usu_asis`.
+ */
 import {
   Column,
   Entity,

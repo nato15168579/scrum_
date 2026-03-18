@@ -1,3 +1,11 @@
+/**
+ * Observaciones entity
+ * -------------------
+ * Mapeo TypeORM de la tabla `observaciones`.
+ *
+ * En el contexto del panel administrador, se usa como "sugerencias" del proyecto.
+ * Guarda descripcion, fecha, responsable (usuario) y estado.
+ */
 import {
   Column,
   Entity,
