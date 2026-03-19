@@ -20,7 +20,7 @@ import { DetalleParametro } from "./DetalleParametro";
 
 @Index("usu_fk", ["usuCedulaFk"], {})
 @Index("pro_ID_FK", ["proIdFk"], {})
-@Index("obs_estado_FK", ["obsEstadoFk"], {})
+@Index("obs_estado_FK", ["detParIdFk"], {})
 @Entity("observaciones", { schema: "pro_scrum" })
 export class Observaciones {
   @PrimaryGeneratedColumn({
@@ -38,12 +38,12 @@ export class Observaciones {
   obsFecha: string | null;
 
   @Column("int", {
-    name: "obs_estado_FK",
+    name: "det_par_id_FK",
     nullable: true,
     comment:
       "especifique en que estado se estado est ala observacion (por hacer, en progreso, hecho)",
   })
-  obsEstadoFk: number | null;
+  detParIdFk: number | null;
 
   @Column("varchar", {
     name: "obs_descripcion",
@@ -78,6 +78,6 @@ export class Observaciones {
     (detalleParametro) => detalleParametro.observaciones,
     { onDelete: "RESTRICT", onUpdate: "RESTRICT" }
   )
-  @JoinColumn([{ name: "obs_estado_FK", referencedColumnName: "detParId" }])
-  obsEstadoFk2: DetalleParametro;
+  @JoinColumn([{ name: "det_par_id_FK", referencedColumnName: "detParId" }])
+  detParIdFk2: DetalleParametro;
 }

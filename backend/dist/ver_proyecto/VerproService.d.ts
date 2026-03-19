@@ -15,9 +15,11 @@ export declare class VerproService {
     private resolveDefaultRolScrumId;
     private resolveDefaultEstadoId;
     private resolveHistoriaEstadoColumn;
+    private resolveHistoriaSprintColumn;
     private resolveObservacionEstadoColumn;
     private resolveCriteriaProjectColumn;
     private resolveCriteriaHistoriaColumn;
+    private resolveCriteriaEstadoColumn;
     private normalizeIntegerFieldInput;
     private resolveUsuarioResponsableCedula;
     private resolveNextProjectScopedId;

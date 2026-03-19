@@ -54,7 +54,7 @@ export class DetalleParametro {
 
   @OneToMany(
     () => CriteriosAceptacion,
-    (criteriosAceptacion) => criteriosAceptacion.estadoFk2
+    (criteriosAceptacion) => criteriosAceptacion.detParIdFk2
   )
   criteriosAceptacions: CriteriosAceptacion[];
 
@@ -67,11 +67,11 @@ export class DetalleParametro {
 
   @OneToMany(
     () => HistoriaUsuario,
-    (historiaUsuario) => historiaUsuario.detParIdEstadoFk2
+    (historiaUsuario) => historiaUsuario.detParIdFk2
   )
   historiaUsuarios: HistoriaUsuario[];
 
-  @OneToMany(() => Observaciones, (observaciones) => observaciones.obsEstadoFk2)
+  @OneToMany(() => Observaciones, (observaciones) => observaciones.detParIdFk2)
   observaciones: Observaciones[];
 
   @OneToMany(() => Proyecto, (proyecto) => proyecto.detParIdFk2)

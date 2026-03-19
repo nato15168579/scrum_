@@ -19,7 +19,6 @@ export declare class LoginService {
         criteriosAceptacions: import("../entities/CriteriosAceptacion").CriteriosAceptacion[];
         observaciones: import("../entities/Observaciones").Observaciones[];
         rolSisIdFk2: import("../entities/RolSistema").RolSistema;
-        reuniones: import("../entities/Reuniones").Reuniones[];
         usuProDetPars: import("../entities/UsuProDetPar").UsuProDetPar[];
     }>;
     fixPasswords(): Promise<{

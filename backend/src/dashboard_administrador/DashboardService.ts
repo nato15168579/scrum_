@@ -58,6 +58,10 @@ export class DashboardService {
   }
 
   private async resolveReunionUsuarioTable() {
+    if (await this.tableExists("usu_reu_pro")) {
+      return { tableName: "usu_reu_pro", userColumn: "usu_cedula_FK" };
+    }
+
     if (await this.tableExists("usu_asis")) {
       return { tableName: "usu_asis", userColumn: "usu_cedula" };
     }

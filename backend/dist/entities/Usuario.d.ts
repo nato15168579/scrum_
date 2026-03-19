@@ -1,7 +1,6 @@
 import { CriteriosAceptacion } from "./CriteriosAceptacion";
 import { Observaciones } from "./Observaciones";
 import { RolSistema } from "./RolSistema";
-import { Reuniones } from "./Reuniones";
 import { UsuProDetPar } from "./UsuProDetPar";
 export type EstadoUsuario = "Activo" | "Inactivo";
 export type SexoUsuario = "Hombre" | "Mujer";
@@ -21,6 +20,5 @@ export declare class Usuario {
     criteriosAceptacions: CriteriosAceptacion[];
     observaciones: Observaciones[];
     rolSisIdFk2: RolSistema;
-    reuniones: Reuniones[];
     usuProDetPars: UsuProDetPar[];
 }

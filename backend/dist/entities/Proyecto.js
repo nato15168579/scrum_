@@ -14,7 +14,6 @@ const typeorm_1 = require("typeorm");
 const HistoriaUsuario_1 = require("./HistoriaUsuario");
 const Observaciones_1 = require("./Observaciones");
 const DetalleParametro_1 = require("./DetalleParametro");
-const Sprint_1 = require("./Sprint");
 const UsuProDetPar_1 = require("./UsuProDetPar");
 let Proyecto = class Proyecto {
 };
@@ -93,10 +92,6 @@ __decorate([
     (0, typeorm_1.JoinColumn)([{ name: "det_par_ID_FK", referencedColumnName: "detParId" }]),
     __metadata("design:type", DetalleParametro_1.DetalleParametro)
 ], Proyecto.prototype, "detParIdFk2", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => Sprint_1.Sprint, (s) => s.proIdFk2),
-    __metadata("design:type", Array)
-], Proyecto.prototype, "sprints", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => UsuProDetPar_1.UsuProDetPar, (u) => u.pro),
     __metadata("design:type", Array)

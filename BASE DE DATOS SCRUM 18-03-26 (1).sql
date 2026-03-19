@@ -24,24 +24,25 @@ CREATE TABLE `cambios_sistema` (
   `cam_ID` int(11) NOT NULL AUTO_INCREMENT COMMENT 'id del cambio del sistema',
   `cam_descripcion` varchar(500) NOT NULL COMMENT 'descripcion del cambio',
   `usu_cedula_FK` bigint(20) NOT NULL COMMENT 'cedula del usuario que realiza el cambio',
-  `cam_observado` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0 pendiente, 1 observado',
   `cam_fecha` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'fecha del cambio',
   `cam_fecha_observado` datetime DEFAULT NULL COMMENT 'fecha en que se marco como observado',
+  `det_par_FK` int(11) DEFAULT NULL,
   PRIMARY KEY (`cam_ID`),
-  KEY `idx_cam_observado` (`cam_observado`),
   KEY `usu_cedula_FK` (`usu_cedula_FK`),
-  CONSTRAINT `cambios_sistema_ibfk_1` FOREIGN KEY (`usu_cedula_FK`) REFERENCES `usuario` (`usu_cedula`)
+  KEY `det_par_FK` (`det_par_FK`),
+  CONSTRAINT `cambios_sistema_ibfk_1` FOREIGN KEY (`usu_cedula_FK`) REFERENCES `usuario` (`usu_cedula`),
+  CONSTRAINT `cambios_sistema_ibfk_2` FOREIGN KEY (`det_par_FK`) REFERENCES `detalle_parametro` (`det_par_ID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `cambios_sistema` */
 
 LOCK TABLES `cambios_sistema` WRITE;
 
-insert  into `cambios_sistema`(`cam_ID`,`cam_descripcion`,`usu_cedula_FK`,`cam_observado`,`cam_fecha`,`cam_fecha_observado`) values 
-(1,'Actualizo instructor 3789156322 (Adriana Buelvas). Cambios: Fichas: [8924517] -> [8924511,8924517]',1234567890,1,'2026-03-16 22:23:54','2026-03-16 22:25:38'),
-(2,'Actualizo instructor 3789156322 (Adriana Buelvas). Cambios: Fichas: [8924511,8924517] -> [8924517]',1234567890,1,'2026-03-16 22:24:13','2026-03-16 22:25:28'),
-(3,'Actualizo instructor 3789156322 (Adriana Buelvas). Cambios: Fichas: [8924517] -> [8713657,8924511,8924517]',1234567890,1,'2026-03-16 22:24:35','2026-03-16 22:25:16'),
-(4,'Programa eliminado. Programa: \"ARTES GRÁFICAS\" -> \"(vacio)\". Fichas afectadas: 1.',1234567890,0,'2026-03-16 22:27:40',NULL);
+insert  into `cambios_sistema`(`cam_ID`,`cam_descripcion`,`usu_cedula_FK`,`cam_fecha`,`cam_fecha_observado`,`det_par_FK`) values 
+(1,'Actualizo instructor 3789156322 (Adriana Buelvas). Cambios: Fichas: [8924517] -> [8924511,8924517]',1234567890,'2026-03-16 22:23:54','2026-03-16 22:25:38',3),
+(2,'Actualizo instructor 3789156322 (Adriana Buelvas). Cambios: Fichas: [8924511,8924517] -> [8924517]',1234567890,'2026-03-16 22:24:13','2026-03-16 22:25:28',3),
+(3,'Actualizo instructor 3789156322 (Adriana Buelvas). Cambios: Fichas: [8924517] -> [8713657,8924511,8924517]',1234567890,'2026-03-16 22:24:35','2026-03-16 22:25:16',3),
+(4,'Programa eliminado. Programa: \"ARTES GRÁFICAS\" -> \"(vacio)\". Fichas afectadas: 1.',1234567890,'2026-03-16 22:27:40',NULL,NULL);
 
 UNLOCK TABLES;
 
@@ -53,22 +54,21 @@ CREATE TABLE `criterios_aceptacion` (
   `cri_ID` int(11) NOT NULL COMMENT 'id de criterio de aceptacion',
   `pro_ID_FK` int(11) NOT NULL COMMENT 'id del proyecto',
   `usu_cedula_FK` bigint(20) NOT NULL,
-  `estado_FK` int(11) NOT NULL COMMENT 'Estado del criterio (pendiente, en proceso, finalizado)',
+  `det_par_id_FK` int(11) NOT NULL COMMENT 'Estado del criterio (pendiente, en proceso, finalizado)',
   `cri_tiempo` varchar(50) DEFAULT NULL COMMENT 'defina cuanto tiempo en horas va a ejercer cada criterio',
   `cri_descripcion` varchar(500) DEFAULT NULL COMMENT 'descripcion del criterio de aceptacion',
   `his_id_FK` int(11) DEFAULT NULL,
   PRIMARY KEY (`cri_ID`,`pro_ID_FK`),
   KEY `usu_cedula_FK` (`usu_cedula_FK`),
   KEY `cri_ID` (`cri_ID`),
-  KEY `estado_FK` (`estado_FK`),
+  KEY `estado_FK` (`det_par_id_FK`),
   KEY `his_ID_FK_2` (`pro_ID_FK`),
   KEY `his_id_FK` (`his_id_FK`),
-  KEY `fk_historia_relacion` (`his_id_FK`,`pro_ID_FK`),
-  CONSTRAINT `criterios_aceptacion_ibfk_2` FOREIGN KEY (`estado_FK`) REFERENCES `detalle_parametro` (`det_par_ID`),
+  KEY `fk_criterios_historia_final` (`his_id_FK`,`pro_ID_FK`),
+  CONSTRAINT `criterios_aceptacion_ibfk_2` FOREIGN KEY (`det_par_id_FK`) REFERENCES `detalle_parametro` (`det_par_ID`),
   CONSTRAINT `criterios_aceptacion_ibfk_4` FOREIGN KEY (`usu_cedula_FK`) REFERENCES `usuario` (`usu_cedula`),
-  CONSTRAINT `criterios_aceptacion_ibfk_6` FOREIGN KEY (`pro_ID_FK`) REFERENCES `proyecto` (`pro_ID`),
   CONSTRAINT `criterios_aceptacion_ibfk_7` FOREIGN KEY (`his_id_FK`) REFERENCES `historia_usuario` (`his_ID`),
-  CONSTRAINT `criterios_aceptacion_ibfk_8` FOREIGN KEY (`pro_ID_FK`) REFERENCES `historia_usuario` (`pro_ID_FK`),
+  CONSTRAINT `fk_criterios_historia_final` FOREIGN KEY (`his_id_FK`, `pro_ID_FK`) REFERENCES `historia_usuario` (`his_ID`, `pro_ID_FK`),
   CONSTRAINT `fk_historia_relacion` FOREIGN KEY (`his_id_FK`, `pro_ID_FK`) REFERENCES `historia_usuario` (`his_ID`, `pro_ID_FK`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -76,13 +76,13 @@ CREATE TABLE `criterios_aceptacion` (
 
 LOCK TABLES `criterios_aceptacion` WRITE;
 
-insert  into `criterios_aceptacion`(`cri_ID`,`pro_ID_FK`,`usu_cedula_FK`,`estado_FK`,`cri_tiempo`,`cri_descripcion`,`his_id_FK`) values 
-(1,1,1046696769,1,'5 horas','tendrá que presionar la opción \"registrar aprendiz\" y se redireccionara a una vista donde tendrá que llenar los datos obligatorios de cada aprendiz y si están los campos correctos se genera un alerta \"registro exitoso\"',NULL),
-(1,2,1043134580,1,'6 horas','En caso que se quiera añadir a un nuevo aprendiz	Cuando se complete el formulario de inscripción	Se almacenan los datos basicos (Nombre, identificacón, etc)',NULL),
+insert  into `criterios_aceptacion`(`cri_ID`,`pro_ID_FK`,`usu_cedula_FK`,`det_par_id_FK`,`cri_tiempo`,`cri_descripcion`,`his_id_FK`) values 
+(1,1,1046696769,1,'5 horas','tendrá que presionar la opción \"registrar aprendiz\" y se redireccionara a una vista donde tendrá que llenar los datos obligatorios de cada aprendiz y si están los campos correctos se genera un alerta \"registro exitoso\"',1),
+(1,2,1043134580,1,'6 horas','En caso que se quiera añadir a un nuevo aprendiz	Cuando se complete el formulario de inscripción	Se almacenan los datos basicos (Nombre, identificacón, etc)',1),
 (1,3,1048069515,1,'16 horas','La aplicación tendrá una interfaz simple y eficaz para una mejor experiencia de digitación',NULL),
 (1,4,1081914694,1,'4 horas','En caso que se ingresen los datos necesarios del inicio de sesión correctamente Cuando se de click en iniciar sesión A continuación mostrará un mensaje donde se muestre que inició correctamente y redireccionar a la página principal.',NULL),
 (1,5,1048068189,1,'4 horas','El usuario ingresa su credenciales, al dar click en el botón ingresar se hace la validación de sus credenciales y si están correctas ingresa el usuario',NULL),
-(2,1,1046696769,1,'5 horas','tendrá que presionar la opción \"registrar aprendiz\", en caso de que hayan campos obligatorios con entradas vacías se generara una alerta de \"registro fallido\"',NULL),
+(2,1,1046696769,1,'5 horas','tendrá que presionar la opción \"registrar aprendiz\", en caso de que hayan campos obligatorios con entradas vacías se generara una alerta de \"registro fallido\"',1),
 (2,2,1043134580,1,NULL,'En caso de que se deba añadir un acudiente para un aprendiz	cuando se registre al acudiente al sistema	Se almacenan los datos de los acudientes como nombre, identificacion, contacto y relación con el aprendiz',NULL),
 (2,3,1048069515,1,'16 horas','La interfaz muestra un flujo lógico de tareas, ordenadas como se realizan en la vida real.\n- Las funciones relacionadas se agrupan visual y funcionalmente.\n- Se siguen principios de diseño centrado en el usuario, priorizando accesibilidad, legibilidad y claridad',NULL),
 (2,4,1081914694,1,'4 horas','En caso que ingrese uno de los datos del inicio de sesión incorrectamente Cuando se de click en iniciar sesión A continuación mostrará una alerta en el campo donde el dato esté incorrecto.\r\n',NULL),
@@ -362,7 +362,7 @@ CREATE TABLE `detalle_parametro` (
   PRIMARY KEY (`det_par_ID`),
   KEY `par_ID_FK` (`par_ID_FK`),
   CONSTRAINT `detalle_parametro_ibfk_1` FOREIGN KEY (`par_ID_FK`) REFERENCES `parametro` (`par_ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `detalle_parametro` */
 
@@ -392,11 +392,13 @@ insert  into `detalle_parametro`(`det_par_ID`,`det_par_descripcion`,`par_ID_FK`)
 (21,'asignar proyectos a grupos de aprendices',5),
 (22,'retroalimentar los proyectos',5),
 (23,'visualizar el control de avance en cada grupo',5),
-(24,'enviar notificaciones masivas o individuales',5),
+(24,'enviar notificaciones de cambios individuales',5),
 (25,'habilitar o deshabilitar funciones del sistema',5),
 (26,'gestionar copias de seguridad y actualizaciones',5),
 (27,'administrar el ingreso de todos los usuarios',5),
-(28,'crear proyectos formativos',5);
+(28,'crear proyectos formativos',5),
+(29,'visto',6),
+(30,'pendiente',6);
 
 UNLOCK TABLES;
 
@@ -455,28 +457,6 @@ insert  into `ficha_proyecto`(`pro_ID_FK`,`fic_numero_FK`,`fip_fecha_asignacion`
 
 UNLOCK TABLES;
 
-/*Table structure for table `his_spr` */
-
-DROP TABLE IF EXISTS `his_spr`;
-
-CREATE TABLE `his_spr` (
-  `spr_id_FK` int(11) NOT NULL,
-  `his_usu_id_FK` int(11) NOT NULL,
-  PRIMARY KEY (`spr_id_FK`,`his_usu_id_FK`),
-  KEY `his_usu_id_FK` (`his_usu_id_FK`),
-  CONSTRAINT `his_spr_ibfk_1` FOREIGN KEY (`spr_id_FK`) REFERENCES `sprint` (`spr_ID`),
-  CONSTRAINT `his_spr_ibfk_2` FOREIGN KEY (`his_usu_id_FK`) REFERENCES `historia_usuario` (`his_ID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-/*Data for the table `his_spr` */
-
-LOCK TABLES `his_spr` WRITE;
-
-insert  into `his_spr`(`spr_id_FK`,`his_usu_id_FK`) values 
-(1,1);
-
-UNLOCK TABLES;
-
 /*Table structure for table `historia_usuario` */
 
 DROP TABLE IF EXISTS `historia_usuario`;
@@ -487,148 +467,149 @@ CREATE TABLE `historia_usuario` (
   `his_titulo` varchar(255) DEFAULT NULL COMMENT 'titulo de la historia de usuario',
   `his_descripcion` varchar(500) DEFAULT NULL COMMENT 'prioridada de la historia de usuario',
   `his_puntaje` int(20) DEFAULT NULL COMMENT 'puntaje de la historia de usuario',
-  `his_numero_sprint` int(20) DEFAULT NULL COMMENT 'Es el número de sprint que se encuentra',
   `det_par_ID_FK` int(11) DEFAULT NULL COMMENT 'Estado de la HU (To Do, Doing, Done)',
   `usu_cedula_FK` bigint(20) DEFAULT NULL,
-  `his_estado` enum('por hacer','en proceso') DEFAULT NULL,
+  `sprint_id_FK` int(11) DEFAULT NULL,
   PRIMARY KEY (`his_ID`,`pro_ID_FK`),
-  KEY `pro_ID_FK` (`pro_ID_FK`),
   KEY `fk_hu_estado` (`det_par_ID_FK`),
   KEY `usu_cedula_FK` (`usu_cedula_FK`),
+  KEY `pro_ID_FK` (`pro_ID_FK`),
+  KEY `sprint_id_FK` (`sprint_id_FK`),
+  CONSTRAINT `fk_historia_a_proyecto` FOREIGN KEY (`pro_ID_FK`) REFERENCES `proyecto` (`pro_ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_hu_estado` FOREIGN KEY (`det_par_ID_FK`) REFERENCES `detalle_parametro` (`det_par_ID`),
   CONSTRAINT `historia_usuario_ibfk_1` FOREIGN KEY (`usu_cedula_FK`) REFERENCES `usuario` (`usu_cedula`),
-  CONSTRAINT `historia_usuario_ibfk_2` FOREIGN KEY (`pro_ID_FK`) REFERENCES `proyecto` (`pro_ID`)
+  CONSTRAINT `historia_usuario_ibfk_2` FOREIGN KEY (`sprint_id_FK`) REFERENCES `sprint` (`spr_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `historia_usuario` */
 
 LOCK TABLES `historia_usuario` WRITE;
 
-insert  into `historia_usuario`(`his_ID`,`pro_ID_FK`,`his_titulo`,`his_descripcion`,`his_puntaje`,`his_numero_sprint`,`det_par_ID_FK`,`usu_cedula_FK`,`his_estado`) values 
-(1,1,'registro','como instructor quiero registrar al aprendiz en el sistema para que acceda a la pagina',10,0,3,1001855307,NULL),
-(1,2,'almacenar datos','Como instructor, quiero guardar datos del estudiante y acudientes para notificar en caso de comité',5,NULL,3,NULL,NULL),
-(1,3,'Registrar aprendiz','Como instructor quiero registrar datos del aprendiz para tener su información básica en el sistema',8,1,1,NULL,NULL),
-(1,4,'Inicio de sesion como usuario\n','como usuario necesito iniciar sesion con la finalidad de poder acceder a la aplicacion',10,NULL,1,NULL,NULL),
-(1,5,'inicio de sesion','como usuario ingreso las credenciales correctamente, si esta correcto me permite el ingreso',8,1,1,NULL,NULL),
-(2,1,'iniciar sesion','como usuario quiero iniciar sesion para acceder al contenido principal',10,1,2,NULL,NULL),
-(2,2,'Consultar historial de comités','Como instructor, quiero consultar historial de comités por ficha o aprendiz para verificar información.',5,NULL,1,NULL,NULL),
-(2,3,'Registrar acudiente','Como instructor quiero registrar datos del acudiente para tener contacto en caso de emergencia',8,1,1,NULL,NULL),
-(2,4,'Inicio de sesion como psicologo\n','como psicologo necesito iniciar sesion con la finalidad de acceder a la aplicacion',10,NULL,1,NULL,NULL),
-(2,5,'interfaz de usuario','como usuario quiero acceder a la interfaz de usuario',8,1,1,NULL,NULL),
-(3,1,'ayuda y soporte','como usuario del sistema quiero ver ayuda y soporte para guiarme al ingresar a la plataforma',8,1,2,NULL,NULL),
-(3,2,'Reportar inasistencias y retardos con excusas','como instructor quiero reportar las inasistencias de cada aprendiz por horas y fecha a demas de los retardos y excusas para Controlar la deserción de los aprendices',5,NULL,1,NULL,NULL),
-(3,3,'Registrar ubicación','Como instructor quiero registrar la ubicación del aprendiz para saber dónde reside',7,1,1,NULL,NULL),
-(3,4,'material sobre la salud mental\n','como psicologo quiero que el aprendiz al entrar a la app pueda ver materail que trate de salud mental con la finalidad de orientar a los aprendices',10,NULL,1,NULL,NULL),
-(3,5,'interfaz de ficha','como usuario quiero acceder a la interfafaz de ficha para ver la gestion de las fichas',7,NULL,1,NULL,NULL),
-(4,1,'Recuperar Contraseña','como usuario quiero recuperar mi contraseña para recuperar el acceso al sistema',10,1,1,NULL,NULL),
-(4,2,'Aprobación y conceptos remotos sobre temas a debatir','como coordinador quiero Aprobar, desaprobar o conceptuar remotamente para controlar situaciones sin presencia físic',5,NULL,1,NULL,NULL),
-(4,3,'Consultar y editar datos','Como instructor quiero consultar y editar los datos de los aprendices o acudientes en cualquier momento',9,1,1,NULL,NULL),
-(4,4,'notificaciones visibles\n','como psicologo quiero que exista una campana de notificaciones acerca de alguna solicitud de cita o mensaje con la finalidad de garantizar una atencion oportuna hacia los aprendices',9,NULL,1,NULL,NULL),
-(4,5,'asistencia','como usuario quiero registrar la asistencia de los aprendices en la bitacora para mantener un seguimiento de su participacion',8,NULL,1,NULL,NULL),
-(5,1,'perfil_usuario','como Usuario del sistema quiero ingresar a mi perfil para cambiar mis datos o cambiar de contraseña',7,1,1,NULL,NULL),
-(5,2,'Reporte de aprendices aptos para etapa productiva','como asistencias quiero Reporte de aprendices aptos para etapa productiva para identificar qué aprendices han cumplido con los requisitos académicos y están preparados para iniciar la etapa productiva de su formación',5,NULL,1,NULL,NULL),
-(5,3,'Consultar historial de comités','Como instructor quiero consultar el historial del comité para evaluar decisiones pasadas',9,1,1,NULL,NULL),
-(5,4,'historial de registros de atencion\n','como psicologo quiero que se pueda delar un registro de atenciones tanto por citas, mensajes, etc con la finalidad de tener informacion detallada de los anteriores pacientes',10,NULL,1,NULL,NULL),
-(5,5,'interfaz de horario','como usuario quiero poder ver los horarios de ambientes para poder ver que dias estan disponibles',9,NULL,1,NULL,NULL),
-(6,1,'listado-aprendices','como instructor quiero ver el listado de todos los aprendices para saber cuantos hay en cada ficha',10,1,1,NULL,NULL),
-(6,2,'Evaluar aspectos tecnicos - actitudinales\r\n\r\n\r\n\r\n\r\n','como asistencias quiero Evaluar aspectos tecnicos y actitudinales para valuar no solo el conocimiento técnico de los aprendices, sino también sus comportamientos, actitudes y competencias blandas, lo cual es esencial para su desarrollo profesional',5,NULL,1,NULL,NULL),
-(6,3,'Consultar historial por aprendiz','Como instructor quiero consultar el historial del comité por aprendiz específico',8,1,1,NULL,NULL),
-(6,4,'recibir notificacion por otras plataformas\n','como psicologo quiero recibir una notificacion ya sea por whatsapp, correo cuando se envie alguna informacion desde la aplicacion para estar al tanto de las acciones realizadas con la finalidad de estar al tanto en tiempo real sin necesidad de abrir la app',8,NULL,1,NULL,NULL),
-(6,5,'Interfaz de calificaciones ','como usuario quiero poder gestionar las calificacionnes de los aprendices para saber las calificaciones ',7,NULL,1,NULL,NULL),
-(7,1,'crear_proyectos','como instructor quiero crear proyectos formativos para ponerlos en desarrollo',10,1,1,NULL,NULL),
-(7,2,'Reportar en comité llamados de atención a aprendices','como instructor, quiero reportar aprendices al comité para seguimiento con Bienestar',5,NULL,1,NULL,NULL),
-(7,3,'Registrar inasistencias','Como instructor quiero registrar las inasistencias para tener control de la asistencia de los aprendices',10,1,1,NULL,NULL),
-(7,4,'perzonalisacion de historias para claridad de datos','como psicologo quiero crear historias personalizadas de cada persona con sus datos personales, gustos y estados de animos al momento de entrar a la app para tener informacion mas concreta de cada uno a la hora de solicitar orientacion',10,NULL,1,NULL,NULL),
-(7,5,' Busqueda de fichas','como usuario quiero buscar fichas especificas para poder encontrar rapidamente la informacion necesaria',9,NULL,1,NULL,NULL),
-(8,1,'asignar_proyectos','como instructor quiero asignar los proyectos formativo a los grupos de aprendices para que cada aprendiz tenga y cumpla un proyecto en la duración del programa tecnólogo',8,1,1,NULL,NULL),
-(8,2,'Acceder al historial del aprendiz','como bienestar quiero acceder al historial de aprendiz para gestionar cada caso de manera más eficiente',5,NULL,1,NULL,NULL),
-(8,3,'Registrar retardos','Como instructor quiero registrar los retardos con sus respectivas horas',8,1,1,NULL,NULL),
-(8,4,'agendacion de citas\n','como psicologo quiero que cada aprendiz pueda agendar sus visitas en la app, ya sea por chat o hablar directamente con el profesional para poder tener sesiones de orinetacion segun la disponibilidad',10,NULL,1,NULL,NULL),
-(8,5,'Filtrado de ficha','como usuario quiero filtrar fichas especificas para poder encontrar rapidamente la informacion necesaria',7,NULL,1,NULL,NULL),
-(9,1,'ver_proyectos','como instructor quiero ver los proyectos formativos por ficha para ver el proceso de cada grupo',9,1,1,NULL,NULL),
-(9,2,'Historial de seguimiento en Bienestar','como instructor quiero  Ver en el sistema el seguimiento que Bienestar hace tras un llamado de atención o plan de mejoramiento para hacerle seguimiento al \naprendiz',5,NULL,1,NULL,NULL),
-(9,3,'Subir excusas','Como instructor quiero permitir subir excusas justificando inasistencia o retardo',8,1,1,NULL,NULL),
-(9,4,'testing para monitoreo de emociones\n','como psicologo quiero que la app tenga la opcion de realizar un test de ansiedad y adiccion para poder identificar de manera rapida y efectiva el nivel de ansiedad de cada uno y brindarles apoyo adecuado',10,NULL,1,NULL,NULL),
-(9,5,'Detalles de ficha','como usuario quiero acceder a los detalles de una ficha en especifico para revisar la informacion relevante y gestionar',8,NULL,1,NULL,NULL),
-(10,1,'ver_HU','como instructor quiero visualizar las historias de usuarios para ver los requerimientos que se necesitan para que el cliente final quede satisfecho',10,1,1,NULL,NULL),
-(10,2,'Aportes previos al comité','como instructor quiero hacer mis aportes al comité\nantes de la fecha de\nreunión para tener la información lista\ny evitar contratiempos',5,NULL,1,NULL,NULL),
-(10,3,'Generar reporte de asistencia','Como instructor quiero generar un reporte de asistencia detallado con inasistencias, retardos y excusas',8,1,1,NULL,NULL),
-(10,4,'informacion detallada de enfermedades \n','como usuario quiero que me expliquen que son las enfermedades mentales y que tipos hay para tener mas conocimiento de estas y poder identificar si necesito un diagnostico por un profesional',10,NULL,1,NULL,NULL),
-(10,5,'descargar asistencia','como usuario quiero descargar la asistencia por medio de un pdf para encontrar la informacion necesaria',6,NULL,1,NULL,NULL),
-(11,1,'ver_CA','como instructor quiero visualizar los criterios de aceptación para ver las funcionalidades y objetivo de cada proyecto',9,1,1,NULL,NULL),
-(11,2,'Registro, cambio y recuperación de usuario y contraseña','como instructor quiero Tener registro de mi usuario y\n contraseña, para poder cambiar\nla clave y también poder \nrecuperarla para tener acceso al sistema',5,NULL,1,NULL,NULL),
-(11,3,'Votar decisiones en comité','Como coordinador quiero aprobar o desaprobar temas del comité para resolver situaciones sin presencia física',8,1,1,NULL,NULL),
-(11,4,'informacion de otros usuarios\n','como usuario quiero acceder a un blog en la aplicacion para poder ver opciones personales de otras personas',9,NULL,1,NULL,NULL),
-(11,5,'Edicion de asistencia','como usuario quiero editar registros de asistencia para poder corregir errores al registro de asistencia',7,NULL,1,NULL,NULL),
-(12,1,'ver_reuniones','como instructor quiero ver las reuniones realizadas por el grupo de proyecto para ver el avance que van teniendo ',9,1,1,NULL,NULL),
-(12,2,'Interfaz para ver actas del comité por ficha y fecha','como secretaria quiero una interfaz de reportes para ver actas del comite por ficha y hora para nn caso de requerirlo tenerlo a la mano',5,NULL,1,NULL,NULL),
-(12,3,'Conceptuar remotamente','Como usuario quiero agregar análisis o comentarios remotamente sobre situaciones del comité',8,1,1,NULL,NULL),
-(12,4,'editar informacion de perfil\n','como usuario quiero acceder a mi perfil para poder editar, ver o eliminar algun dato o parametro',9,NULL,1,NULL,NULL),
-(12,5,'creacion de horario','como usuario quiero poder crear horarios para cada ambiente y poder asignar horarios para cada ambiente y organizar las horas',5,NULL,1,NULL,NULL),
-(13,1,'crear_sugerencia','como instructor quiero crear una sugerencia para algún cambio u opinión en el proyecto  ',9,1,1,NULL,NULL),
-(13,2,'firmar digitalmente actas del comité con verificación de identidad','como instructor quiero crear una sugerencia para algún cambio u opinión en el proyecto  ',5,NULL,1,NULL,NULL),
-(13,3,'Participación remota','Como usuario quiero participar remotamente en comités desde la web',8,1,1,NULL,NULL),
-(13,4,'comunicarce con profecional de bienestar\n','como usuario quiero que tenga la opcion de contactar con un profesional de bienestar para poder interactuar con esa persona por chat',10,NULL,1,NULL,NULL),
-(13,5,'soporte tecnico (interfaz de ficha)','como usuario quiero poder tener un apartado de soporte para tener una forma de reportar errores en este apartado',7,NULL,1,NULL,NULL),
-(14,1,'acceder a la interfaz','como aprendiz quiero acceder a la interfaz principal para trabajar en mi proyecto formativo asignado',9,1,1,NULL,NULL),
-(14,2,'evaluar comportamiento con escala ESAID y observaciones\n\n\n\n\n\n\n\n\n\n','como instructor quiero evaluar comportamiento con escala ESAID y observaciones para controlar el rendimiento academico y comportamental de cada aprendiz por trimestre',5,NULL,1,NULL,NULL),
-(14,3,'Reporte de aptitud','Como coordinador quiero generar reporte de aprendices aptos para etapa productiva',9,1,1,NULL,NULL),
-(14,4,'videos de ejercicios de yoga \n','como usuario quiero que tenga videos de ejercicios de yoga para aprender a liberar estres y tener mas control sobre mis pensamientos',8,NULL,1,NULL,NULL),
-(14,5,'soporte tecnico (horarios)','como usuario quiero poder tener un apartado de soporte para tener una forma de reportar errores en este apartado',5,NULL,1,NULL,NULL),
-(15,1,'ver mi proyecto','como aprendiz quiero ver mi proyecto para trabajar en el',8,1,1,NULL,NULL),
-(15,2,'Evaluar competencias pendientes','como profecional asistencial quiero evaluar competencias pendientes para identificar areas de mejora y asegurarme de cumplir con los requisitos de formacion',5,NULL,1,NULL,NULL),
-(15,3,'Filtrar reportes','Como usuario quiero filtrar por fechas o programas para generar reportes específicos',8,1,1,NULL,NULL),
-(15,4,'test rapidos de sintomas\n','como psicologo quiero un test rapido de sintomas con la finalidad de detectar sintomas',10,NULL,1,NULL,NULL),
-(15,5,'soporte tecnico (asistencia)','como usuario quiero poder tener un apartado de soporte para tener una forma de reportar errores en este apartado',9,NULL,1,NULL,NULL),
-(16,1,'historias de usuarios','como aprendiz quiero entrar a las historia de usuario para establecer las funcionalidades que se harán para satisfacer las necesidades del cliente final',8,1,1,NULL,NULL),
-(16,2,'Realizar actas de seguimiento','como asistencia quiero realizar actas de seguimiento a la ficha en general para garantizar un seguimiento, comunicación clara y la rendición de cuentas en la gestión de la ficha',5,NULL,1,NULL,NULL),
-(16,3,'Ver detalle de aprendiz','Como usuario quiero ver detalles de un aprendiz específico en los reportes',8,1,1,NULL,NULL),
-(16,4,'evaluacion post test\n','como psicologo quiero una evaluacion por test con la finalidad de evaluar al paciente y darle los pasos a seguir',10,NULL,1,NULL,NULL),
-(16,5,'soporte tecnico (inicio de sesion)','como usuario quiero poder tener un apartado de soporte para tener una forma de reportar errores en este apartado',7,NULL,1,NULL,NULL),
-(17,1,'criterios de aceptacion','como aprendiz quiero entrar a los criterios de aceptación para implementarlo en el proceso de desarrollo del proyecto',8,1,1,NULL,NULL),
-(17,2,'Reconocimiento a buen comportamiento','como instructor quiero felicitar a los aprendices que tienen excelente comportamiento academico y disciplina para dejar registro en su hoja de vida y sirva de premio para el buen comportamiento',5,NULL,1,NULL,NULL),
-(17,3,'Informe descargable','Como usuario quiero descargar los reportes en PDF o Excel para archivarlos',9,1,1,NULL,NULL),
-(17,4,'diario o seguimiento del progreso\n','como usuario quiero un diario donde pueda plasmar mis progresos, sentimientos y emociones',10,NULL,1,NULL,NULL),
-(17,5,'interfaz de soporte tecnico','como usuario quiero poder tener un apartado de soporte para tener una forma de reportar errores en este apartado',8,NULL,1,NULL,NULL),
-(18,1,'reuniones','como aprendiz quiero entrar a las reuniones para implementarlo en el proceso de desarrollo de proyecto',8,1,1,NULL,NULL),
-(18,2,'Abrir y cerrar las actas de comité','como secretaria quiero abrir y cerrar las actas de comité para dejar cosnignado y firmado, todos los acuerdos de la reunión',5,NULL,1,NULL,NULL),
-(18,3,'Evaluación técnica','Como instructor quiero evaluar conocimientos técnicos del aprendiz',8,1,1,NULL,NULL),
-(18,4,'historial del diario\n','como usuario quiero un historial de las anotaciones escritas en el diario para poder tener un mejor seguimiento mental de uno mismo',10,NULL,1,NULL,NULL),
-(19,1,'informes','como aprendiz quiero subir los informes de cada reunión realizada para llevar el orden del proyecto',8,NULL,1,NULL,NULL),
-(19,2,'mensaje de alerta','como instructor quiero Que sa active un  mensaje de alerta a  coordinación cuando el  aprendiz se le reporte más de dos inasistencias consecutivas y sin excusa para controlar la deserción',5,NULL,1,NULL,NULL),
-(19,3,'Evaluación actitudinal','Como instructor quiero evaluar actitudes y comportamientos del aprendiz',8,1,1,NULL,NULL),
-(19,4,'eliminar cuenta','como usuario quiero eliminar mi cuenta',10,NULL,1,NULL,NULL),
-(20,1,'observaciones','como aprendiz quiero ver las observaciones que han hecho los instructores para ver en que fallamos y mejorar',6,NULL,1,NULL,NULL),
-(20,2,'ingresar al sistema','como instructor quiero Ingresar al sistema y que solo me aparezcan datos de mis fichas activas para no perder el tiempo en fichas que ya no están fuera de permanencia o históricas',5,NULL,3,NULL,NULL),
-(20,3,'Feedback del evaluador','Como evaluador quiero dejar comentarios sobre el desempeño del aprendiz',7,1,1,NULL,NULL),
-(21,1,'soporte','como usuario quiero entrar a la pagina de ayuda y soporte para tener acceso a las preguntas frecuentes en cualquier momento',6,NULL,1,NULL,NULL),
-(21,2,'anotaciones por competencias\n\n\n\n\n\n\n\n\n','como instructor quiero una interfaz donde pueda ver todas las anotaciones de los instructores para ver el rendimiento del aprendiz de forma integral',5,NULL,1,NULL,NULL),
-(21,3,'Informe de evaluación','Como usuario quiero obtener un informe con resultados técnicos y actitudinales',9,1,1,NULL,NULL),
-(22,2,'cita a comité extraordinario ','como instructor quiero citar a comité extraordinario para convocar al equipo ejecutor de la ficha y debatir situaciones extraordinarias',5,NULL,1,NULL,NULL),
-(22,3,'Buscar aprendiz con llamado de atención','Como instructor quiero buscar el perfil de un aprendiz que recibió un llamado de atención',8,1,1,NULL,NULL),
-(23,2,'comite cada 3 meses','como instructor quiero programar comite cada 3 meses y notificar a los instructores y lideres de ficha para evualuar el comportamiento academico comportamental de la ficha ',5,NULL,1,NULL,NULL),
-(23,3,'Crear ítem de llamado de atención','Como instructor quiero registrar un ítem de llamado de atención con su descripción',8,1,1,NULL,NULL),
-(24,2,'tener control de los usuarios','como administrador quiero tener control de los usuarios, darle acceso a privilegios al sistema para tener seguridad en el uso de la aplicacion',5,NULL,1,NULL,NULL),
-(24,3,'Generar ID automático','Como sistema quiero asignar un ID único a cada ítem de llamado de atención',8,1,1,NULL,NULL),
-(25,2,'atender novedades','como asistencial quiero atender novedades de estudiantes en esoecificos ',5,NULL,1,NULL,NULL),
-(25,3,'Notificar a Bienestar','Como sistema quiero enviar notificación automática a Bienestar tras registrar un llamado',9,1,1,NULL,NULL),
-(26,3,'Ver historial de reportes','Como usuario quiero acceder al historial de reportes del aprendiz',8,1,1,NULL,NULL),
-(27,3,'Cambiar estado del caso','Como usuario quiero marcar el estado de un caso como Pendiente, En seguimiento o Cerrado',8,1,1,NULL,NULL),
-(28,3,'Agregar comentario al caso','Como usuario quiero añadir comentarios al caso del aprendiz',8,1,1,NULL,NULL),
-(29,3,'Filtrar reportes por estado','Como usuario quiero filtrar los reportes de un aprendiz según el estado del caso',8,1,1,NULL,NULL),
-(30,3,'Buscar aprendiz por ficha','Como usuario quiero buscar aprendiz por nombre, ficha o programa',8,1,1,NULL,NULL),
-(31,3,'Ver estado del caso','Como usuario quiero visualizar el estado actual del caso de un aprendiz',8,1,1,NULL,NULL),
-(32,3,'Ver proceso del caso','Como usuario quiero ver el proceso o seguimiento del caso de un aprendiz',8,1,1,NULL,NULL),
-(33,3,'Interfaz clara y controles semanticos','Como valoradora \nquiero una interfaz que muestre mensajes claros y botones bien etiquetados para que pueda aprender a usar la aplicación sin necesitar un tutorial. ',8,NULL,1,NULL,NULL),
-(34,3,'Carga de datos excel respetando la plantilla original','Como valoradora quiero poder ingresar los datos especificados en la plantilla excel a la aplicación para Mantener un formato con la misma información',8,NULL,1,NULL,NULL),
-(35,3,'Recordatorio automatico de fechas de valoracion','Como valoradora quiero poder automatizar recordatorios de valoraciones para recordar al cliente que la valoración es en cierta fecha',5,NULL,1,NULL,NULL),
-(36,3,'Administracion de roles con permisos definidos','Como administrador quiero poder crear usuarios del sistema para garantizar que cada persona tenga acceso controlado segun su rol y responsabilidad dentro de la aplicacion',9,NULL,1,NULL,NULL),
-(37,3,'Guardar informacion de clientes','Como valoradora quiero que la información de los clientes esté guardada en una base de datos para facilitar el acceso de la informacion',5,NULL,1,NULL,NULL),
-(38,3,'Aislamiento de base de datos para confidencialidad','Como valoradora quiero que la aplicacion solo funcione desde un pc con su base de datos separada de la organización para mantener la confidencialidad ',8,NULL,1,NULL,NULL),
-(39,3,'Mecanismo de acceso seguro para usuarios','Como valoradora quiero que mi app posea un control de acceso para controlar la seguridad',9,NULL,1,NULL,NULL),
-(40,3,'Programacion de notificaciones automaticas','Como valoradora quiero poder agregar citas por medio de los correos automaticos para mandar resultados y consultas',5,NULL,1,NULL,NULL),
-(41,3,'Exportacion de datos graficos en formato pdf','Como valoradora quiero que la App posea la funcionalidad de exportar los datos de las valoraciones de los usuarios, graficos estadisticos y de progreso para exportar informacion de los clientes en formato PDF',8,NULL,1,NULL,NULL),
-(42,3,'Soporte para imagenes con descripciones en el registro de datos','Como valoradora quiero que las imagenes tengan una descripción y puedan usarse al momento de registrar la información para facilitar el proceso de digitación de información',5,NULL,1,NULL,NULL);
+insert  into `historia_usuario`(`his_ID`,`pro_ID_FK`,`his_titulo`,`his_descripcion`,`his_puntaje`,`det_par_ID_FK`,`usu_cedula_FK`,`sprint_id_FK`) values 
+(1,1,'almacenar datos','Como instructor, quiero guardar datos del estudiante y acudientes para notificar en caso de comité',5,3,1130267265,1),
+(1,2,'registro','como instructor quiero registrar al aprendiz en el sistema para que acceda a la pagina',10,3,1001855307,NULL),
+(1,3,'Registrar aprendiz','Como instructor quiero registrar datos del aprendiz para tener su información básica en el sistema',8,1,NULL,NULL),
+(1,4,'Inicio de sesion como usuario\n','como usuario necesito iniciar sesion con la finalidad de poder acceder a la aplicacion',10,1,NULL,NULL),
+(1,5,'inicio de sesion','como usuario ingreso las credenciales correctamente, si esta correcto me permite el ingreso',8,1,NULL,NULL),
+(2,1,'iniciar sesion','como usuario quiero iniciar sesion para acceder al contenido principal',10,2,NULL,NULL),
+(2,2,'Consultar historial de comités','Como instructor, quiero consultar historial de comités por ficha o aprendiz para verificar información.',5,1,NULL,NULL),
+(2,3,'Registrar acudiente','Como instructor quiero registrar datos del acudiente para tener contacto en caso de emergencia',8,1,NULL,NULL),
+(2,4,'Inicio de sesion como psicologo\n','como psicologo necesito iniciar sesion con la finalidad de acceder a la aplicacion',10,1,NULL,NULL),
+(2,5,'interfaz de usuario','como usuario quiero acceder a la interfaz de usuario',8,1,NULL,NULL),
+(3,1,'ayuda y soporte','como usuario del sistema quiero ver ayuda y soporte para guiarme al ingresar a la plataforma',8,2,NULL,NULL),
+(3,2,'Reportar inasistencias y retardos con excusas','como instructor quiero reportar las inasistencias de cada aprendiz por horas y fecha a demas de los retardos y excusas para Controlar la deserción de los aprendices',5,1,NULL,NULL),
+(3,3,'Registrar ubicación','Como instructor quiero registrar la ubicación del aprendiz para saber dónde reside',7,1,NULL,NULL),
+(3,4,'material sobre la salud mental\n','como psicologo quiero que el aprendiz al entrar a la app pueda ver materail que trate de salud mental con la finalidad de orientar a los aprendices',10,1,NULL,NULL),
+(3,5,'interfaz de ficha','como usuario quiero acceder a la interfafaz de ficha para ver la gestion de las fichas',7,1,NULL,NULL),
+(4,1,'Recuperar Contraseña','como usuario quiero recuperar mi contraseña para recuperar el acceso al sistema',10,1,NULL,NULL),
+(4,2,'Aprobación y conceptos remotos sobre temas a debatir','como coordinador quiero Aprobar, desaprobar o conceptuar remotamente para controlar situaciones sin presencia físic',5,1,NULL,NULL),
+(4,3,'Consultar y editar datos','Como instructor quiero consultar y editar los datos de los aprendices o acudientes en cualquier momento',9,1,NULL,NULL),
+(4,4,'notificaciones visibles\n','como psicologo quiero que exista una campana de notificaciones acerca de alguna solicitud de cita o mensaje con la finalidad de garantizar una atencion oportuna hacia los aprendices',9,1,NULL,NULL),
+(4,5,'asistencia','como usuario quiero registrar la asistencia de los aprendices en la bitacora para mantener un seguimiento de su participacion',8,1,NULL,NULL),
+(5,1,'perfil_usuario','como Usuario del sistema quiero ingresar a mi perfil para cambiar mis datos o cambiar de contraseña',7,1,NULL,NULL),
+(5,2,'Reporte de aprendices aptos para etapa productiva','como asistencias quiero Reporte de aprendices aptos para etapa productiva para identificar qué aprendices han cumplido con los requisitos académicos y están preparados para iniciar la etapa productiva de su formación',5,1,NULL,NULL),
+(5,3,'Consultar historial de comités','Como instructor quiero consultar el historial del comité para evaluar decisiones pasadas',9,1,NULL,NULL),
+(5,4,'historial de registros de atencion\n','como psicologo quiero que se pueda delar un registro de atenciones tanto por citas, mensajes, etc con la finalidad de tener informacion detallada de los anteriores pacientes',10,1,NULL,NULL),
+(5,5,'interfaz de horario','como usuario quiero poder ver los horarios de ambientes para poder ver que dias estan disponibles',9,1,NULL,NULL),
+(6,1,'listado-aprendices','como instructor quiero ver el listado de todos los aprendices para saber cuantos hay en cada ficha',10,1,NULL,NULL),
+(6,2,'Evaluar aspectos tecnicos - actitudinales\r\n\r\n\r\n\r\n\r\n','como asistencias quiero Evaluar aspectos tecnicos y actitudinales para valuar no solo el conocimiento técnico de los aprendices, sino también sus comportamientos, actitudes y competencias blandas, lo cual es esencial para su desarrollo profesional',5,1,NULL,NULL),
+(6,3,'Consultar historial por aprendiz','Como instructor quiero consultar el historial del comité por aprendiz específico',8,1,NULL,NULL),
+(6,4,'recibir notificacion por otras plataformas\n','como psicologo quiero recibir una notificacion ya sea por whatsapp, correo cuando se envie alguna informacion desde la aplicacion para estar al tanto de las acciones realizadas con la finalidad de estar al tanto en tiempo real sin necesidad de abrir la app',8,1,NULL,NULL),
+(6,5,'Interfaz de calificaciones ','como usuario quiero poder gestionar las calificacionnes de los aprendices para saber las calificaciones ',7,1,NULL,NULL),
+(7,1,'crear_proyectos','como instructor quiero crear proyectos formativos para ponerlos en desarrollo',10,1,NULL,NULL),
+(7,2,'Reportar en comité llamados de atención a aprendices','como instructor, quiero reportar aprendices al comité para seguimiento con Bienestar',5,1,NULL,NULL),
+(7,3,'Registrar inasistencias','Como instructor quiero registrar las inasistencias para tener control de la asistencia de los aprendices',10,1,NULL,NULL),
+(7,4,'perzonalisacion de historias para claridad de datos','como psicologo quiero crear historias personalizadas de cada persona con sus datos personales, gustos y estados de animos al momento de entrar a la app para tener informacion mas concreta de cada uno a la hora de solicitar orientacion',10,1,NULL,NULL),
+(7,5,' Busqueda de fichas','como usuario quiero buscar fichas especificas para poder encontrar rapidamente la informacion necesaria',9,1,NULL,NULL),
+(8,1,'asignar_proyectos','como instructor quiero asignar los proyectos formativo a los grupos de aprendices para que cada aprendiz tenga y cumpla un proyecto en la duración del programa tecnólogo',8,1,NULL,NULL),
+(8,2,'Acceder al historial del aprendiz','como bienestar quiero acceder al historial de aprendiz para gestionar cada caso de manera más eficiente',5,1,NULL,NULL),
+(8,3,'Registrar retardos','Como instructor quiero registrar los retardos con sus respectivas horas',8,1,NULL,NULL),
+(8,4,'agendacion de citas\n','como psicologo quiero que cada aprendiz pueda agendar sus visitas en la app, ya sea por chat o hablar directamente con el profesional para poder tener sesiones de orinetacion segun la disponibilidad',10,1,NULL,NULL),
+(8,5,'Filtrado de ficha','como usuario quiero filtrar fichas especificas para poder encontrar rapidamente la informacion necesaria',7,1,NULL,NULL),
+(9,1,'ver_proyectos','como instructor quiero ver los proyectos formativos por ficha para ver el proceso de cada grupo',9,1,NULL,NULL),
+(9,2,'Historial de seguimiento en Bienestar','como instructor quiero  Ver en el sistema el seguimiento que Bienestar hace tras un llamado de atención o plan de mejoramiento para hacerle seguimiento al \naprendiz',5,1,NULL,NULL),
+(9,3,'Subir excusas','Como instructor quiero permitir subir excusas justificando inasistencia o retardo',8,1,NULL,NULL),
+(9,4,'testing para monitoreo de emociones\n','como psicologo quiero que la app tenga la opcion de realizar un test de ansiedad y adiccion para poder identificar de manera rapida y efectiva el nivel de ansiedad de cada uno y brindarles apoyo adecuado',10,1,NULL,NULL),
+(9,5,'Detalles de ficha','como usuario quiero acceder a los detalles de una ficha en especifico para revisar la informacion relevante y gestionar',8,1,NULL,NULL),
+(10,1,'ver_HU','como instructor quiero visualizar las historias de usuarios para ver los requerimientos que se necesitan para que el cliente final quede satisfecho',10,1,NULL,NULL),
+(10,2,'Aportes previos al comité','como instructor quiero hacer mis aportes al comité\nantes de la fecha de\nreunión para tener la información lista\ny evitar contratiempos',5,1,NULL,NULL),
+(10,3,'Generar reporte de asistencia','Como instructor quiero generar un reporte de asistencia detallado con inasistencias, retardos y excusas',8,1,NULL,NULL),
+(10,4,'informacion detallada de enfermedades \n','como usuario quiero que me expliquen que son las enfermedades mentales y que tipos hay para tener mas conocimiento de estas y poder identificar si necesito un diagnostico por un profesional',10,1,NULL,NULL),
+(10,5,'descargar asistencia','como usuario quiero descargar la asistencia por medio de un pdf para encontrar la informacion necesaria',6,1,NULL,NULL),
+(11,1,'ver_CA','como instructor quiero visualizar los criterios de aceptación para ver las funcionalidades y objetivo de cada proyecto',9,1,NULL,NULL),
+(11,2,'Registro, cambio y recuperación de usuario y contraseña','como instructor quiero Tener registro de mi usuario y\n contraseña, para poder cambiar\nla clave y también poder \nrecuperarla para tener acceso al sistema',5,1,NULL,NULL),
+(11,3,'Votar decisiones en comité','Como coordinador quiero aprobar o desaprobar temas del comité para resolver situaciones sin presencia física',8,1,NULL,NULL),
+(11,4,'informacion de otros usuarios\n','como usuario quiero acceder a un blog en la aplicacion para poder ver opciones personales de otras personas',9,1,NULL,NULL),
+(11,5,'Edicion de asistencia','como usuario quiero editar registros de asistencia para poder corregir errores al registro de asistencia',7,1,NULL,NULL),
+(12,1,'ver_reuniones','como instructor quiero ver las reuniones realizadas por el grupo de proyecto para ver el avance que van teniendo ',9,1,NULL,NULL),
+(12,2,'Interfaz para ver actas del comité por ficha y fecha','como secretaria quiero una interfaz de reportes para ver actas del comite por ficha y hora para nn caso de requerirlo tenerlo a la mano',5,1,NULL,NULL),
+(12,3,'Conceptuar remotamente','Como usuario quiero agregar análisis o comentarios remotamente sobre situaciones del comité',8,1,NULL,NULL),
+(12,4,'editar informacion de perfil\n','como usuario quiero acceder a mi perfil para poder editar, ver o eliminar algun dato o parametro',9,1,NULL,NULL),
+(12,5,'creacion de horario','como usuario quiero poder crear horarios para cada ambiente y poder asignar horarios para cada ambiente y organizar las horas',5,1,NULL,NULL),
+(13,1,'crear_sugerencia','como instructor quiero crear una sugerencia para algún cambio u opinión en el proyecto  ',9,1,NULL,NULL),
+(13,2,'firmar digitalmente actas del comité con verificación de identidad','como instructor quiero crear una sugerencia para algún cambio u opinión en el proyecto  ',5,1,NULL,NULL),
+(13,3,'Participación remota','Como usuario quiero participar remotamente en comités desde la web',8,1,NULL,NULL),
+(13,4,'comunicarce con profecional de bienestar\n','como usuario quiero que tenga la opcion de contactar con un profesional de bienestar para poder interactuar con esa persona por chat',10,1,NULL,NULL),
+(13,5,'soporte tecnico (interfaz de ficha)','como usuario quiero poder tener un apartado de soporte para tener una forma de reportar errores en este apartado',7,1,NULL,NULL),
+(14,1,'acceder a la interfaz','como aprendiz quiero acceder a la interfaz principal para trabajar en mi proyecto formativo asignado',9,1,NULL,NULL),
+(14,2,'evaluar comportamiento con escala ESAID y observaciones\n\n\n\n\n\n\n\n\n\n','como instructor quiero evaluar comportamiento con escala ESAID y observaciones para controlar el rendimiento academico y comportamental de cada aprendiz por trimestre',5,1,NULL,NULL),
+(14,3,'Reporte de aptitud','Como coordinador quiero generar reporte de aprendices aptos para etapa productiva',9,1,NULL,NULL),
+(14,4,'videos de ejercicios de yoga \n','como usuario quiero que tenga videos de ejercicios de yoga para aprender a liberar estres y tener mas control sobre mis pensamientos',8,1,NULL,NULL),
+(14,5,'soporte tecnico (horarios)','como usuario quiero poder tener un apartado de soporte para tener una forma de reportar errores en este apartado',5,1,NULL,NULL),
+(15,1,'ver mi proyecto','como aprendiz quiero ver mi proyecto para trabajar en el',8,1,NULL,NULL),
+(15,2,'Evaluar competencias pendientes','como profecional asistencial quiero evaluar competencias pendientes para identificar areas de mejora y asegurarme de cumplir con los requisitos de formacion',5,1,NULL,NULL),
+(15,3,'Filtrar reportes','Como usuario quiero filtrar por fechas o programas para generar reportes específicos',8,1,NULL,NULL),
+(15,4,'test rapidos de sintomas\n','como psicologo quiero un test rapido de sintomas con la finalidad de detectar sintomas',10,1,NULL,NULL),
+(15,5,'soporte tecnico (asistencia)','como usuario quiero poder tener un apartado de soporte para tener una forma de reportar errores en este apartado',9,1,NULL,NULL),
+(16,1,'historias de usuarios','como aprendiz quiero entrar a las historia de usuario para establecer las funcionalidades que se harán para satisfacer las necesidades del cliente final',8,1,NULL,NULL),
+(16,2,'Realizar actas de seguimiento','como asistencia quiero realizar actas de seguimiento a la ficha en general para garantizar un seguimiento, comunicación clara y la rendición de cuentas en la gestión de la ficha',5,1,NULL,NULL),
+(16,3,'Ver detalle de aprendiz','Como usuario quiero ver detalles de un aprendiz específico en los reportes',8,1,NULL,NULL),
+(16,4,'evaluacion post test\n','como psicologo quiero una evaluacion por test con la finalidad de evaluar al paciente y darle los pasos a seguir',10,1,NULL,NULL),
+(16,5,'soporte tecnico (inicio de sesion)','como usuario quiero poder tener un apartado de soporte para tener una forma de reportar errores en este apartado',7,1,NULL,NULL),
+(17,1,'criterios de aceptacion','como aprendiz quiero entrar a los criterios de aceptación para implementarlo en el proceso de desarrollo del proyecto',8,1,NULL,NULL),
+(17,2,'Reconocimiento a buen comportamiento','como instructor quiero felicitar a los aprendices que tienen excelente comportamiento academico y disciplina para dejar registro en su hoja de vida y sirva de premio para el buen comportamiento',5,1,NULL,NULL),
+(17,3,'Informe descargable','Como usuario quiero descargar los reportes en PDF o Excel para archivarlos',9,1,NULL,NULL),
+(17,4,'diario o seguimiento del progreso\n','como usuario quiero un diario donde pueda plasmar mis progresos, sentimientos y emociones',10,1,NULL,NULL),
+(17,5,'interfaz de soporte tecnico','como usuario quiero poder tener un apartado de soporte para tener una forma de reportar errores en este apartado',8,1,NULL,NULL),
+(18,1,'reuniones','como aprendiz quiero entrar a las reuniones para implementarlo en el proceso de desarrollo de proyecto',8,1,NULL,NULL),
+(18,2,'Abrir y cerrar las actas de comité','como secretaria quiero abrir y cerrar las actas de comité para dejar cosnignado y firmado, todos los acuerdos de la reunión',5,1,NULL,NULL),
+(18,3,'Evaluación técnica','Como instructor quiero evaluar conocimientos técnicos del aprendiz',8,1,NULL,NULL),
+(18,4,'historial del diario\n','como usuario quiero un historial de las anotaciones escritas en el diario para poder tener un mejor seguimiento mental de uno mismo',10,1,NULL,NULL),
+(19,1,'informes','como aprendiz quiero subir los informes de cada reunión realizada para llevar el orden del proyecto',8,1,NULL,NULL),
+(19,2,'mensaje de alerta','como instructor quiero Que sa active un  mensaje de alerta a  coordinación cuando el  aprendiz se le reporte más de dos inasistencias consecutivas y sin excusa para controlar la deserción',5,1,NULL,NULL),
+(19,3,'Evaluación actitudinal','Como instructor quiero evaluar actitudes y comportamientos del aprendiz',8,1,NULL,NULL),
+(19,4,'eliminar cuenta','como usuario quiero eliminar mi cuenta',10,1,NULL,NULL),
+(20,1,'observaciones','como aprendiz quiero ver las observaciones que han hecho los instructores para ver en que fallamos y mejorar',6,1,NULL,NULL),
+(20,2,'ingresar al sistema','como instructor quiero Ingresar al sistema y que solo me aparezcan datos de mis fichas activas para no perder el tiempo en fichas que ya no están fuera de permanencia o históricas',5,3,NULL,NULL),
+(20,3,'Feedback del evaluador','Como evaluador quiero dejar comentarios sobre el desempeño del aprendiz',7,1,NULL,NULL),
+(21,1,'soporte','como usuario quiero entrar a la pagina de ayuda y soporte para tener acceso a las preguntas frecuentes en cualquier momento',6,1,NULL,NULL),
+(21,2,'anotaciones por competencias\n\n\n\n\n\n\n\n\n','como instructor quiero una interfaz donde pueda ver todas las anotaciones de los instructores para ver el rendimiento del aprendiz de forma integral',5,1,NULL,NULL),
+(21,3,'Informe de evaluación','Como usuario quiero obtener un informe con resultados técnicos y actitudinales',9,1,NULL,NULL),
+(22,2,'cita a comité extraordinario ','como instructor quiero citar a comité extraordinario para convocar al equipo ejecutor de la ficha y debatir situaciones extraordinarias',5,1,NULL,NULL),
+(22,3,'Buscar aprendiz con llamado de atención','Como instructor quiero buscar el perfil de un aprendiz que recibió un llamado de atención',8,1,NULL,NULL),
+(23,2,'comite cada 3 meses','como instructor quiero programar comite cada 3 meses y notificar a los instructores y lideres de ficha para evualuar el comportamiento academico comportamental de la ficha ',5,1,NULL,NULL),
+(23,3,'Crear ítem de llamado de atención','Como instructor quiero registrar un ítem de llamado de atención con su descripción',8,1,NULL,NULL),
+(24,2,'tener control de los usuarios','como administrador quiero tener control de los usuarios, darle acceso a privilegios al sistema para tener seguridad en el uso de la aplicacion',5,1,NULL,NULL),
+(24,3,'Generar ID automático','Como sistema quiero asignar un ID único a cada ítem de llamado de atención',8,1,NULL,NULL),
+(25,2,'atender novedades','como asistencial quiero atender novedades de estudiantes en esoecificos ',5,1,NULL,NULL),
+(25,3,'Notificar a Bienestar','Como sistema quiero enviar notificación automática a Bienestar tras registrar un llamado',9,1,NULL,NULL),
+(26,3,'Ver historial de reportes','Como usuario quiero acceder al historial de reportes del aprendiz',8,1,NULL,NULL),
+(27,3,'Cambiar estado del caso','Como usuario quiero marcar el estado de un caso como Pendiente, En seguimiento o Cerrado',8,1,NULL,NULL),
+(28,3,'Agregar comentario al caso','Como usuario quiero añadir comentarios al caso del aprendiz',8,1,NULL,NULL),
+(29,3,'Filtrar reportes por estado','Como usuario quiero filtrar los reportes de un aprendiz según el estado del caso',8,1,NULL,NULL),
+(30,3,'Buscar aprendiz por ficha','Como usuario quiero buscar aprendiz por nombre, ficha o programa',8,1,NULL,NULL),
+(31,3,'Ver estado del caso','Como usuario quiero visualizar el estado actual del caso de un aprendiz',8,1,NULL,NULL),
+(32,3,'Ver proceso del caso','Como usuario quiero ver el proceso o seguimiento del caso de un aprendiz',8,1,NULL,NULL),
+(33,3,'Interfaz clara y controles semanticos','Como valoradora \nquiero una interfaz que muestre mensajes claros y botones bien etiquetados para que pueda aprender a usar la aplicación sin necesitar un tutorial. ',8,1,NULL,NULL),
+(34,3,'Carga de datos excel respetando la plantilla original','Como valoradora quiero poder ingresar los datos especificados en la plantilla excel a la aplicación para Mantener un formato con la misma información',8,1,NULL,NULL),
+(35,3,'Recordatorio automatico de fechas de valoracion','Como valoradora quiero poder automatizar recordatorios de valoraciones para recordar al cliente que la valoración es en cierta fecha',5,1,NULL,NULL),
+(36,3,'Administracion de roles con permisos definidos','Como administrador quiero poder crear usuarios del sistema para garantizar que cada persona tenga acceso controlado segun su rol y responsabilidad dentro de la aplicacion',9,1,NULL,NULL),
+(37,3,'Guardar informacion de clientes','Como valoradora quiero que la información de los clientes esté guardada en una base de datos para facilitar el acceso de la informacion',5,1,NULL,NULL),
+(38,3,'Aislamiento de base de datos para confidencialidad','Como valoradora quiero que la aplicacion solo funcione desde un pc con su base de datos separada de la organización para mantener la confidencialidad ',8,1,NULL,NULL),
+(39,3,'Mecanismo de acceso seguro para usuarios','Como valoradora quiero que mi app posea un control de acceso para controlar la seguridad',9,1,NULL,NULL),
+(40,3,'Programacion de notificaciones automaticas','Como valoradora quiero poder agregar citas por medio de los correos automaticos para mandar resultados y consultas',5,1,NULL,NULL),
+(41,3,'Exportacion de datos graficos en formato pdf','Como valoradora quiero que la App posea la funcionalidad de exportar los datos de las valoraciones de los usuarios, graficos estadisticos y de progreso para exportar informacion de los clientes en formato PDF',8,1,NULL,NULL),
+(42,3,'Soporte para imagenes con descripciones en el registro de datos','Como valoradora quiero que las imagenes tengan una descripción y puedan usarse al momento de registrar la información para facilitar el proceso de digitación de información',5,1,NULL,NULL);
 
 UNLOCK TABLES;
 
@@ -678,7 +659,7 @@ CREATE TABLE `parametro` (
   `par_ID` int(11) NOT NULL AUTO_INCREMENT COMMENT 'id del parametro',
   `par_descripcion` varchar(500) DEFAULT NULL COMMENT 'descripcion del parametro',
   PRIMARY KEY (`par_ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `parametro` */
 
@@ -689,7 +670,8 @@ insert  into `parametro`(`par_ID`,`par_descripcion`) values
 (2,'rol scrum'),
 (3,'rol sistema'),
 (4,'tipo de reunion'),
-(5,'permisos');
+(5,'permisos'),
+(6,'estado_obs');
 
 UNLOCK TABLES;
 
@@ -748,7 +730,7 @@ insert  into `proyecto`(`pro_ID`,`pro_codigo`,`pro_nombre`,`pro_objetivo_general
 (2,'PRO-000002','Comité de evaluación y seguimiento','Implementar un sistema digital que permita gestionar y evaluar las actividades del Comité de Seguimiento y Evaluación, mejorando su eficiencia y efectividad.','Organizar agendas, actas y tareas del comité, evaluar procesos educativos en tiempo real, analizar datos con informes y gráficos, garantizar seguridad con acceso por roles y encriptación.','','2025-06-01','2025-12-19','Modernizar los procesos del comité, mejorar la eficiencia, facilitar la toma de decisiones y fortalecer la transformación digital del SENA.',NULL,'2025-05-01 00:00:00'),
 (3,'PRO-000003','O.R.I.A','Implementar un sistema integral de gestión para ambiente y ficha','Facilitar el seguimiento, control y evaluación académica y disciplinaria de los aprendices','optimizacion de registro de informacion antroprometrica','2025-06-01','2025-12-19','Necesidad de un sistema digitalizado para gestión de ambiente y ficha',NULL,'2025-05-01 00:00:00'),
 (4,'PRO-000004','Healthy Mind',NULL,NULL,'mente sana','2025-06-01','2025-12-19',NULL,NULL,'2025-05-01 00:00:00'),
-(5,'PRO-000005','SIGAF',NULL,NULL,'sistema integral de gestion ambiente y ficha',NULL,'2025-12-19',NULL,NULL,'2025-05-01 00:00:00'),
+(5,'PRO-000005','SIGAF',NULL,NULL,'sistema integral de gestion ambiente y ficha','2026-03-18','2025-12-19',NULL,NULL,'2025-05-01 00:00:00'),
 (6,'PRO-000006','proyectooo','ajdhfkajfha','N/A','ajdhfkajfha','2026-03-05','2026-03-05','N/A',1,'0000-00-00 00:00:00'),
 (7,'PRO-000007','proyecto p.','ksdjfhakflf adljfhlas ','N/A','ksdjfhakflf adljfhlas ','2026-03-29',NULL,'N/A',1,'0000-00-00 00:00:00'),
 (8,'PRO-000008','proyecto p..','hola mundos','N/A','hola mundos','2028-10-30',NULL,'N/A',1,'0000-00-00 00:00:00'),
@@ -768,9 +750,6 @@ CREATE TABLE `reuniones` (
   `reu_descripcion` text DEFAULT NULL COMMENT 'descripcion de la reunion',
   `reu_lugar` varchar(255) DEFAULT NULL COMMENT 'lugar en el que se realizo la reunion',
   `reu_hora` time DEFAULT NULL COMMENT 'hora en la que se realizo la reunion',
-  `reu_cedula_FK` bigint(20) DEFAULT NULL COMMENT 'cedula del aprendiz responsable',
-  `reu_estado` enum('por hacer','en proceso','finalizado') DEFAULT NULL COMMENT 'estado de la reunion',
-  `reu_puntaje` int(20) DEFAULT NULL COMMENT 'puntaje estimado para realizar la tarea',
   PRIMARY KEY (`reu_ID`),
   KEY `spr_ID_FK` (`spr_ID_FK`),
   KEY `det_par_ID_tipo_FK` (`det_par_ID_tipo_FK`),
@@ -782,12 +761,12 @@ CREATE TABLE `reuniones` (
 
 LOCK TABLES `reuniones` WRITE;
 
-insert  into `reuniones`(`reu_ID`,`spr_ID_FK`,`det_par_ID_tipo_FK`,`reu_fecha`,`reu_descripcion`,`reu_lugar`,`reu_hora`,`reu_cedula_FK`,`reu_estado`,`reu_puntaje`) values 
-(1,1,10,'2025-11-25','Planificación inicial del Sprint 1',NULL,NULL,NULL,NULL,NULL),
-(2,1,11,'2025-11-25','Avances de login',NULL,NULL,NULL,NULL,NULL),
-(3,1,11,'2025-11-25','Bloqueos en base de datos',NULL,NULL,NULL,NULL,NULL),
-(4,1,12,'2025-11-25','Revisión con el cliente',NULL,NULL,NULL,NULL,NULL),
-(5,1,13,'2025-11-25','Retrospectiva: Mejorar comunicación',NULL,NULL,NULL,NULL,NULL);
+insert  into `reuniones`(`reu_ID`,`spr_ID_FK`,`det_par_ID_tipo_FK`,`reu_fecha`,`reu_descripcion`,`reu_lugar`,`reu_hora`) values 
+(1,1,10,'2025-11-25','Planificación inicial del Sprint 1',NULL,NULL),
+(2,1,11,'2025-11-25','Avances de login',NULL,NULL),
+(3,1,11,'2025-11-25','Bloqueos en base de datos',NULL,NULL),
+(4,1,12,'2025-11-25','Revisión con el cliente',NULL,NULL),
+(5,1,13,'2025-11-25','Retrospectiva: Mejorar comunicación',NULL,NULL);
 
 UNLOCK TABLES;
 
@@ -842,24 +821,23 @@ DROP TABLE IF EXISTS `sprint`;
 
 CREATE TABLE `sprint` (
   `spr_ID` int(11) NOT NULL COMMENT 'id del sprint',
-  `spr_nombre` varchar(100) NOT NULL COMMENT 'nombre del sprint',
-  `spr_fecha_inicio` date NOT NULL COMMENT 'fecha de inicio del sprint',
+  `spr_nombre` varchar(100) DEFAULT NULL COMMENT 'nombre del sprint',
+  `spr_fecha_inicio` date DEFAULT NULL COMMENT 'fecha de inicio del sprint',
   `spr_fecha_fin` date DEFAULT NULL COMMENT 'fecha fin del sprint',
-  `spr_estado` varchar(50) DEFAULT NULL COMMENT 'especifique en que estado se encuentra el sprint (por hacer, en progreso, hecho)',
   `spr_descripcion` varchar(500) DEFAULT NULL COMMENT 'descripcion del sprint',
-  `pro_ID_FK` int(11) DEFAULT NULL,
-  PRIMARY KEY (`spr_ID`,`spr_nombre`,`spr_fecha_inicio`),
-  KEY `pro_ID_FK` (`pro_ID_FK`),
+  `det_par_FK` int(11) DEFAULT NULL,
+  PRIMARY KEY (`spr_ID`),
   KEY `spr_ID` (`spr_ID`),
-  CONSTRAINT `fk_sprint_proyecto` FOREIGN KEY (`pro_ID_FK`) REFERENCES `proyecto` (`pro_ID`)
+  KEY `det_par_FK` (`det_par_FK`),
+  CONSTRAINT `sprint_ibfk_1` FOREIGN KEY (`det_par_FK`) REFERENCES `detalle_parametro` (`det_par_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*Data for the table `sprint` */
 
 LOCK TABLES `sprint` WRITE;
 
-insert  into `sprint`(`spr_ID`,`spr_nombre`,`spr_fecha_inicio`,`spr_fecha_fin`,`spr_estado`,`spr_descripcion`,`pro_ID_FK`) values 
-(1,'Sprint 1','2025-06-01','2025-06-28','en progreso','diseño de la interfaz inicial del sistema y la interfaz de inicio sesion',1);
+insert  into `sprint`(`spr_ID`,`spr_nombre`,`spr_fecha_inicio`,`spr_fecha_fin`,`spr_descripcion`,`det_par_FK`) values 
+(1,'Sprint 1','2025-06-01','2025-06-28','diseño de la interfaz inicial del sistema y la interfaz de inicio sesion',NULL);
 
 UNLOCK TABLES;
 
@@ -954,11 +932,11 @@ insert  into `usu_pro_det_par`(`usu_cedula`,`det_par_ID_FK`,`pro_ID`) values
 
 UNLOCK TABLES;
 
-/*Table structure for table `usu_reu` */
+/*Table structure for table `usu_reu_pro` */
 
-DROP TABLE IF EXISTS `usu_reu`;
+DROP TABLE IF EXISTS `usu_reu_pro`;
 
-CREATE TABLE `usu_reu` (
+CREATE TABLE `usu_reu_pro` (
   `reu_id_FK` int(50) NOT NULL,
   `usu_cedula_FK` bigint(20) NOT NULL,
   `pro_id_FK` int(11) DEFAULT NULL,
@@ -966,16 +944,16 @@ CREATE TABLE `usu_reu` (
   KEY `reu_asistente` (`reu_id_FK`),
   KEY `usu_cedula` (`usu_cedula_FK`),
   KEY `pro_id_FK` (`pro_id_FK`),
-  CONSTRAINT `usu_reu_ibfk_2` FOREIGN KEY (`usu_cedula_FK`) REFERENCES `usuario` (`usu_cedula`),
-  CONSTRAINT `usu_reu_ibfk_3` FOREIGN KEY (`reu_id_FK`) REFERENCES `reuniones` (`reu_ID`),
-  CONSTRAINT `usu_reu_ibfk_4` FOREIGN KEY (`pro_id_FK`) REFERENCES `proyecto` (`pro_ID`)
+  CONSTRAINT `usu_reu_pro_ibfk_2` FOREIGN KEY (`usu_cedula_FK`) REFERENCES `usuario` (`usu_cedula`),
+  CONSTRAINT `usu_reu_pro_ibfk_3` FOREIGN KEY (`reu_id_FK`) REFERENCES `reuniones` (`reu_ID`),
+  CONSTRAINT `usu_reu_pro_ibfk_4` FOREIGN KEY (`pro_id_FK`) REFERENCES `proyecto` (`pro_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-/*Data for the table `usu_reu` */
+/*Data for the table `usu_reu_pro` */
 
-LOCK TABLES `usu_reu` WRITE;
+LOCK TABLES `usu_reu_pro` WRITE;
 
-insert  into `usu_reu`(`reu_id_FK`,`usu_cedula_FK`,`pro_id_FK`) values 
+insert  into `usu_reu_pro`(`reu_id_FK`,`usu_cedula_FK`,`pro_id_FK`) values 
 (2,1001855307,1),
 (2,1130267265,1);
 
@@ -995,7 +973,7 @@ CREATE TABLE `usuario` (
   `fecha_registro` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'fecha de registro del usuario',
   `rol_sis_ID_FK` int(11) DEFAULT NULL COMMENT 'id del rol del sistema',
   `usu_estado` enum('Activo','Inactivo') NOT NULL DEFAULT 'Activo' COMMENT 'estado del usuario (Activo o Inactivo)',
-  `usu_especializacion` varchar(120) DEFAULT NULL COMMENT 'especializacion del instructor',
+  `usu_especializacion` enum('INGENIERO DE SOFTWARE','INGENIERO EN BASE DE DATOS','LENGUAS EXTRANJERAS','INGENIERO EN FLUTTER') DEFAULT NULL COMMENT 'especializacion del instructor',
   `usu_sexo` enum('Hombre','Mujer') DEFAULT NULL COMMENT 'sexo del aprendiz',
   `usu_tipodedocumento` enum('CC','TI','CE','PEP','PPT') DEFAULT NULL COMMENT 'tipo de documento del usuario (TI; tarjeta de identidad, CC; cedula de ciudadania; CE; Cédula de Extranjería, PPT\n; permiso por proteccion temporal, PEP; permiso especial de permanencia',
   `det_par_id_FK` int(11) DEFAULT NULL COMMENT 'id del detalle parametro',
@@ -1012,10 +990,10 @@ LOCK TABLES `usuario` WRITE;
 
 insert  into `usuario`(`usu_cedula`,`usu_nombres`,`usu_apellidos`,`usu_correo`,`usu_telefono`,`usu_contraseña`,`fecha_registro`,`rol_sis_ID_FK`,`usu_estado`,`usu_especializacion`,`usu_sexo`,`usu_tipodedocumento`,`det_par_id_FK`) values 
 (1678922,'Yeleimis','Vides','yl@gmail.com','9283742964','$2b$10$09mXKviMTD7MY3DnkxuA8eNICGtXG3h/UgG6LaLB0LfFkg0Yt/Fs6','2026-03-07 16:09:52',1,'Activo',NULL,'Mujer','CC',NULL),
-(7812455,'Benjamin','camargo','bjc@gmail.com','1726354907','$2b$10$.XQV7Yj7w934KPbDSfk7.uAUB/0Oqst9aZXVFpi51DauFDhxbbcce','2026-03-07 16:09:51',2,'Activo','SISTEMAS','Hombre','CC',NULL),
-(990000001,'Prueba','Instructor','prueba.instructor.test@sena.edu.co','3000000001','$2b$10$.oORRAKBydeOTuPAcVAxYeEsk5eGyldUKJ2cvBa2szZdM3EC.Qh3C','2026-03-07 15:37:25',2,'Activo','SISTEMAS',NULL,'CC',NULL),
-(1000000001,'juan','olivares','juanolivares@gmail.com','3100000000','$2b$10$MXzo.RloxM1IcceK4nMrhe0LOC7izc0YtTtjCUQfsK4LuF5qoGV1C','2025-09-24 06:24:19',2,'Activo','Ing Software',NULL,'CC',8),
-(1000000002,'katherine paola','blanco','kathe@gmail.com','3200000000','kathe123','2026-02-27 22:04:25',2,'Activo','Ing en base de datos',NULL,'CC',NULL),
+(7812455,'Benjamin','camargo','bjc@gmail.com','1726354907','$2b$10$.XQV7Yj7w934KPbDSfk7.uAUB/0Oqst9aZXVFpi51DauFDhxbbcce','2026-03-07 16:09:51',2,'Activo','','Hombre','CC',NULL),
+(990000001,'Prueba','Instructor','prueba.instructor.test@sena.edu.co','3000000001','$2b$10$.oORRAKBydeOTuPAcVAxYeEsk5eGyldUKJ2cvBa2szZdM3EC.Qh3C','2026-03-07 15:37:25',2,'Activo','INGENIERO EN FLUTTER',NULL,'CC',NULL),
+(1000000001,'juan','olivares','juanolivares@gmail.com','3100000000','$2b$10$MXzo.RloxM1IcceK4nMrhe0LOC7izc0YtTtjCUQfsK4LuF5qoGV1C','2025-09-24 06:24:19',2,'Activo','INGENIERO DE SOFTWARE',NULL,'CC',8),
+(1000000002,'katherine paola','blanco','kathe@gmail.com','3200000000','kathe123','2026-02-27 22:04:25',2,'Activo','INGENIERO EN BASE DE DATOS',NULL,'CC',NULL),
 (1001855307,'jocy hans','charris fernandez','Jocy@gmail.com','3002201010','j123','2026-01-19 17:20:36',1,'Activo',NULL,NULL,'CC',NULL),
 (1010006601,'jean carlos','coronell castro','jean@gmail.com','4235386883','jean123','2026-03-05 19:51:55',1,'Activo',NULL,NULL,'CC',NULL),
 (1016011848,'madeleine','castillo cardenas','madeleine@gmail.com','3000000005','made123','2026-01-18 17:33:09',1,'Activo',NULL,NULL,'CC',NULL),
@@ -1047,7 +1025,7 @@ insert  into `usuario`(`usu_cedula`,`usu_nombres`,`usu_apellidos`,`usu_correo`,`
 (1234567890,'Elemir elias','Gomez zarso','isaacjim1706@gmail.com','3013677446','$2b$10$9Yi.nACflwrIn68G0gSbteSxLg90rHD9k35Z.0sybzu5N66i3MWJi','2026-03-05 19:51:55',3,'Activo',NULL,NULL,'CC',NULL),
 (1526781502,'Angie','Vides','an.v@gmail.com','3247823561','$2b$10$HbPugRK1J3g/OMkFoXN8ROPv/iWjWC5xAMZX/NF1Kz4K4.uAUN41e','2026-03-07 16:09:51',1,'Activo',NULL,'Mujer','TI',NULL),
 (1890725347,'Andres David','Riveras Castro','andres@gmail.com','3678923451','$2b$10$/jtPPikA4qfkpnh3gKPJteLu3blXP.u.2qUlVb1REIWZT3URJYUmO','2026-03-07 13:07:49',1,'Activo',NULL,'Hombre','CC',NULL),
-(3789156322,'Adriana','Buelvas','sther@hotmail.com','3561238946','$2b$10$R2dNgl2kZrVwjUO1qH/60eTDNPJVp75WmFYKbUEwarblfCg2sLzJ6','2026-03-07 16:09:51',2,'Activo','ARTES GRÁFICAS',NULL,'CC',NULL);
+(3789156322,'Adriana','Buelvas','sther@hotmail.com','3561238946','$2b$10$R2dNgl2kZrVwjUO1qH/60eTDNPJVp75WmFYKbUEwarblfCg2sLzJ6','2026-03-07 16:09:51',2,'Activo','',NULL,'CC',NULL);
 
 UNLOCK TABLES;
 

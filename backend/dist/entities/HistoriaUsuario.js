@@ -14,6 +14,8 @@ const typeorm_1 = require("typeorm");
 const CriteriosAceptacion_1 = require("./CriteriosAceptacion");
 const DetalleParametro_1 = require("./DetalleParametro");
 const Proyecto_1 = require("./Proyecto");
+const Sprint_1 = require("./Sprint");
+const Usuario_1 = require("./Usuario");
 let HistoriaUsuario = class HistoriaUsuario {
 };
 exports.HistoriaUsuario = HistoriaUsuario;
@@ -48,15 +50,6 @@ __decorate([
     __metadata("design:type", String)
 ], HistoriaUsuario.prototype, "hisDescripcion", void 0);
 __decorate([
-    (0, typeorm_1.Column)("varchar", {
-        name: "his_prioridad",
-        nullable: true,
-        comment: "numero de sprint de historia de usuario",
-        length: 50,
-    }),
-    __metadata("design:type", String)
-], HistoriaUsuario.prototype, "hisPrioridad", void 0);
-__decorate([
     (0, typeorm_1.Column)("int", {
         name: "his_puntaje",
         nullable: true,
@@ -65,17 +58,21 @@ __decorate([
     __metadata("design:type", Number)
 ], HistoriaUsuario.prototype, "hisPuntaje", void 0);
 __decorate([
-    (0, typeorm_1.Column)("int", { name: "his_numero_sprint", nullable: true }),
-    __metadata("design:type", Number)
-], HistoriaUsuario.prototype, "hisNumeroSprint", void 0);
-__decorate([
     (0, typeorm_1.Column)("int", {
-        name: "det_par_ID_estado_FK",
+        name: "det_par_ID_FK",
         nullable: true,
         comment: "Estado de la HU (To Do, Doing, Done)",
     }),
     __metadata("design:type", Number)
-], HistoriaUsuario.prototype, "detParIdEstadoFk", void 0);
+], HistoriaUsuario.prototype, "detParIdFk", void 0);
+__decorate([
+    (0, typeorm_1.Column)("bigint", { name: "usu_cedula_FK", nullable: true }),
+    __metadata("design:type", Number)
+], HistoriaUsuario.prototype, "usuCedulaFk", void 0);
+__decorate([
+    (0, typeorm_1.Column)("int", { name: "sprint_id_FK", nullable: true }),
+    __metadata("design:type", Number)
+], HistoriaUsuario.prototype, "sprintIdFk", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => CriteriosAceptacion_1.CriteriosAceptacion, (criteriosAceptacion) => criteriosAceptacion.historiaUsuario),
     __metadata("design:type", Array)
@@ -83,21 +80,33 @@ __decorate([
 __decorate([
     (0, typeorm_1.ManyToOne)(() => DetalleParametro_1.DetalleParametro, (detalleParametro) => detalleParametro.historiaUsuarios, { onDelete: "RESTRICT", onUpdate: "RESTRICT" }),
     (0, typeorm_1.JoinColumn)([
-        { name: "det_par_ID_estado_FK", referencedColumnName: "detParId" },
+        { name: "det_par_ID_FK", referencedColumnName: "detParId" },
     ]),
     __metadata("design:type", DetalleParametro_1.DetalleParametro)
-], HistoriaUsuario.prototype, "detParIdEstadoFk2", void 0);
+], HistoriaUsuario.prototype, "detParIdFk2", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => Usuario_1.Usuario, { onDelete: "RESTRICT", onUpdate: "RESTRICT" }),
+    (0, typeorm_1.JoinColumn)([{ name: "usu_cedula_FK", referencedColumnName: "usuCedula" }]),
+    __metadata("design:type", Usuario_1.Usuario)
+], HistoriaUsuario.prototype, "usuCedulaFk2", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => Sprint_1.Sprint, { onDelete: "RESTRICT", onUpdate: "RESTRICT" }),
+    (0, typeorm_1.JoinColumn)([{ name: "sprint_id_FK", referencedColumnName: "sprId" }]),
+    __metadata("design:type", Sprint_1.Sprint)
+], HistoriaUsuario.prototype, "sprintIdFk2", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => Proyecto_1.Proyecto, (proyecto) => proyecto.historiaUsuarios, {
-        onDelete: "RESTRICT",
-        onUpdate: "RESTRICT",
+        onDelete: "CASCADE",
+        onUpdate: "CASCADE",
     }),
     (0, typeorm_1.JoinColumn)([{ name: "pro_ID_FK", referencedColumnName: "proId" }]),
     __metadata("design:type", Proyecto_1.Proyecto)
 ], HistoriaUsuario.prototype, "proIdFk2", void 0);
 exports.HistoriaUsuario = HistoriaUsuario = __decorate([
     (0, typeorm_1.Index)("pro_ID_FK", ["proIdFk"], {}),
-    (0, typeorm_1.Index)("fk_hu_estado", ["detParIdEstadoFk"], {}),
+    (0, typeorm_1.Index)("fk_hu_estado", ["detParIdFk"], {}),
+    (0, typeorm_1.Index)("usu_cedula_FK", ["usuCedulaFk"], {}),
+    (0, typeorm_1.Index)("sprint_id_FK", ["sprintIdFk"], {}),
     (0, typeorm_1.Entity)("historia_usuario", { schema: "pro_scrum" })
 ], HistoriaUsuario);
 //# sourceMappingURL=HistoriaUsuario.js.map

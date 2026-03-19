@@ -114,6 +114,15 @@ let VerproService = class VerproService {
         }
         return null;
     }
+    async resolveHistoriaSprintColumn() {
+        const candidates = ['sprint_id_FK', 'his_numero_sprint'];
+        for (const candidate of candidates) {
+            if (await this.columnExists('historia_usuario', candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
     async resolveObservacionEstadoColumn() {
         const candidates = ['det_par_id_FK', 'obs_estado_FK'];
         for (const candidate of candidates) {
@@ -134,6 +143,15 @@ let VerproService = class VerproService {
     }
     async resolveCriteriaHistoriaColumn() {
         const candidates = ['his_id_FK', 'his_ID_FK'];
+        for (const candidate of candidates) {
+            if (await this.columnExists('criterios_aceptacion', candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+    async resolveCriteriaEstadoColumn() {
+        const candidates = ['det_par_id_FK', 'estado_FK', 'det_par_ID_FK'];
         for (const candidate of candidates) {
             if (await this.columnExists('criterios_aceptacion', candidate)) {
                 return candidate;
@@ -401,6 +419,7 @@ let VerproService = class VerproService {
         const hasCriterios = await this.tableExists('criterios_aceptacion');
         const hasUsuario = await this.tableExists('usuario');
         const historiaEstadoColumn = await this.resolveHistoriaEstadoColumn();
+        const historiaSprintColumn = await this.resolveHistoriaSprintColumn();
         const hasHistoriaResponsable = await this.columnExists('historia_usuario', 'usu_cedula_FK');
         const criteriaHistoriaColumn = await this.resolveCriteriaHistoriaColumn();
         const criteriaProjectHistoryColumn = await this.resolveCriteriaProjectColumn();
@@ -452,13 +471,16 @@ let VerproService = class VerproService {
         const estadoSelect = historiaEstadoColumn
             ? `hu.${this.wrapIdentifier(historiaEstadoColumn)} AS detParIdFk`
             : 'NULL AS detParIdFk';
+        const sprintSelect = historiaSprintColumn
+            ? `hu.${this.wrapIdentifier(historiaSprintColumn)} AS numeroSprint`
+            : 'NULL AS numeroSprint';
         const rows = await this.dataSource.query(`
         SELECT
           hu.his_ID AS hisId,
           hu.his_titulo AS titulo,
           hu.his_descripcion AS descripcion,
           hu.his_puntaje AS puntaje,
-          hu.his_numero_sprint AS numeroSprint,
+          ${sprintSelect},
           ${estadoSelect},
           ${responsableCedulaSelect},
           ${responsablesSelect}
@@ -470,7 +492,7 @@ let VerproService = class VerproService {
           hu.his_titulo,
           hu.his_descripcion,
           hu.his_puntaje,
-          hu.his_numero_sprint,
+          ${historiaSprintColumn ? `hu.${this.wrapIdentifier(historiaSprintColumn)}` : 'NULL'},
           ${historiaEstadoColumn ? `hu.${this.wrapIdentifier(historiaEstadoColumn)}` : 'NULL'},
           ${hasHistoriaResponsable ? 'hu.usu_cedula_FK' : 'NULL'}
         ORDER BY hu.his_ID ASC
@@ -485,10 +507,12 @@ let VerproService = class VerproService {
         const hasHistorias = await this.tableExists('historia_usuario');
         const criteriaProjectColumn = await this.resolveCriteriaProjectColumn();
         const criteriaHistoriaColumn = await this.resolveCriteriaHistoriaColumn();
+        const criteriaEstadoColumn = await this.resolveCriteriaEstadoColumn();
+        const hasCriteriaResponsableCedula = await this.columnExists('criterios_aceptacion', 'usu_cedula_FK');
         if (!criteriaProjectColumn) {
             return [];
         }
-        const joinUsuario = hasUsuario
+        const joinUsuario = hasUsuario && hasCriteriaResponsableCedula
             ? `
         LEFT JOIN usuario u
           ON u.usu_cedula = ca.usu_cedula_FK
@@ -501,7 +525,7 @@ let VerproService = class VerproService {
          AND hu.pro_ID_FK = ca.${this.wrapIdentifier(criteriaProjectColumn)}
       `
             : '';
-        const responsableSelect = hasUsuario
+        const responsableSelect = hasUsuario && hasCriteriaResponsableCedula
             ? `
         NULLIF(
           TRIM(CONCAT(COALESCE(u.usu_nombres, ''), ' ', COALESCE(u.usu_apellidos, ''))),
@@ -518,12 +542,10 @@ let VerproService = class VerproService {
             ? `ca.${this.wrapIdentifier(criteriaHistoriaColumn)} AS hisId`
             : 'NULL AS hisId'},
           ${joinHistoria ? 'hu.his_titulo AS historiaTitulo' : 'NULL AS historiaTitulo'},
-          ${await this.columnExists('criterios_aceptacion', 'estado_FK')
-            ? 'ca.estado_FK AS estadoFk'
+          ${criteriaEstadoColumn
+            ? `ca.${this.wrapIdentifier(criteriaEstadoColumn)} AS estadoFk`
             : 'NULL AS estadoFk'},
-          ${await this.columnExists('criterios_aceptacion', 'usu_cedula_FK')
-            ? 'ca.usu_cedula_FK AS responsableCedula'
-            : 'NULL AS responsableCedula'},
+          ${hasCriteriaResponsableCedula ? 'ca.usu_cedula_FK AS responsableCedula' : 'NULL AS responsableCedula'},
           ${responsableSelect}
         FROM criterios_aceptacion ca
         ${joinUsuario}
@@ -1122,6 +1144,7 @@ let VerproService = class VerproService {
             throw new common_1.BadRequestException('No fue posible crear historias de usuario en este proyecto.');
         }
         const historiaEstadoColumn = await this.resolveHistoriaEstadoColumn();
+        const historiaSprintColumn = await this.resolveHistoriaSprintColumn();
         const titulo = this.normalizeTextFieldInput(payload === null || payload === void 0 ? void 0 : payload.titulo, 255, 'Titulo');
         const descripcion = this.normalizeTextFieldInput(payload === null || payload === void 0 ? void 0 : payload.descripcion, 500, 'Descripcion');
         if (!titulo) {
@@ -1143,10 +1166,14 @@ let VerproService = class VerproService {
             'his_titulo',
             'his_descripcion',
             'his_puntaje',
-            'his_numero_sprint',
         ];
-        const values = [nextHistoriaId, id, titulo, descripcion, puntaje, numeroSprint];
-        const placeholders = ['?', '?', '?', '?', '?', '?'];
+        const values = [nextHistoriaId, id, titulo, descripcion, puntaje];
+        const placeholders = ['?', '?', '?', '?', '?'];
+        if (historiaSprintColumn) {
+            columns.push(historiaSprintColumn);
+            values.push(numeroSprint);
+            placeholders.push('?');
+        }
         if (historiaEstadoColumn && defaultEstadoId) {
             columns.push(historiaEstadoColumn);
             values.push(defaultEstadoId);
@@ -1203,7 +1230,11 @@ let VerproService = class VerproService {
             }));
         }
         if (Object.prototype.hasOwnProperty.call(payload, 'numeroSprint')) {
-            updates.push('his_numero_sprint = ?');
+            const historiaSprintColumn = await this.resolveHistoriaSprintColumn();
+            if (!historiaSprintColumn) {
+                throw new common_1.BadRequestException('La base de datos no soporta asignacion de sprint en historias de usuario.');
+            }
+            updates.push(`${this.wrapIdentifier(historiaSprintColumn)} = ?`);
             values.push(this.normalizeIntegerFieldInput(payload === null || payload === void 0 ? void 0 : payload.numeroSprint, 'Sprint', {
                 min: 0,
             }));
@@ -1243,8 +1274,12 @@ let VerproService = class VerproService {
         }
         const criteriaProjectColumn = await this.resolveCriteriaProjectColumn();
         const criteriaHistoriaColumn = await this.resolveCriteriaHistoriaColumn();
+        const criteriaEstadoColumn = await this.resolveCriteriaEstadoColumn();
         if (!criteriaProjectColumn) {
             throw new common_1.BadRequestException('No fue posible relacionar el criterio de aceptacion con el proyecto.');
+        }
+        if (!criteriaEstadoColumn) {
+            throw new common_1.BadRequestException('No fue posible identificar la columna de estado del criterio.');
         }
         const descripcion = this.normalizeTextFieldInput(payload === null || payload === void 0 ? void 0 : payload.descripcion, 500, 'Descripcion');
         const tiempo = this.normalizeTextFieldInput(payload === null || payload === void 0 ? void 0 : payload.tiempo, 50, 'Tiempo');
@@ -1281,7 +1316,7 @@ let VerproService = class VerproService {
             'cri_ID',
             criteriaProjectColumn,
             'usu_cedula_FK',
-            'estado_FK',
+            criteriaEstadoColumn,
             'cri_tiempo',
             'cri_descripcion',
         ];

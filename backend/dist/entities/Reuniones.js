@@ -13,7 +13,6 @@ exports.Reuniones = void 0;
 const typeorm_1 = require("typeorm");
 const Sprint_1 = require("./Sprint");
 const DetalleParametro_1 = require("./DetalleParametro");
-const Usuario_1 = require("./Usuario");
 let Reuniones = class Reuniones {
 };
 exports.Reuniones = Reuniones;
@@ -37,13 +36,17 @@ __decorate([
     __metadata("design:type", String)
 ], Reuniones.prototype, "reuFecha", void 0);
 __decorate([
-    (0, typeorm_1.Column)("text", { name: "reu_resumen", nullable: true }),
+    (0, typeorm_1.Column)("text", { name: "reu_descripcion", nullable: true }),
     __metadata("design:type", String)
-], Reuniones.prototype, "reuResumen", void 0);
+], Reuniones.prototype, "reuDescripcion", void 0);
 __decorate([
-    (0, typeorm_1.Column)("int", { name: "reu_asistentes_FK", nullable: true }),
-    __metadata("design:type", Number)
-], Reuniones.prototype, "reuAsistentesFk", void 0);
+    (0, typeorm_1.Column)("varchar", { name: "reu_lugar", nullable: true, length: 255 }),
+    __metadata("design:type", String)
+], Reuniones.prototype, "reuLugar", void 0);
+__decorate([
+    (0, typeorm_1.Column)("time", { name: "reu_hora", nullable: true }),
+    __metadata("design:type", String)
+], Reuniones.prototype, "reuHora", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => Sprint_1.Sprint, (sprint) => sprint.reuniones, {
         onDelete: "RESTRICT",
@@ -59,14 +62,9 @@ __decorate([
     ]),
     __metadata("design:type", DetalleParametro_1.DetalleParametro)
 ], Reuniones.prototype, "detParIdTipoFk2", void 0);
-__decorate([
-    (0, typeorm_1.ManyToMany)(() => Usuario_1.Usuario, (usuario) => usuario.reuniones),
-    __metadata("design:type", Array)
-], Reuniones.prototype, "usuarios", void 0);
 exports.Reuniones = Reuniones = __decorate([
     (0, typeorm_1.Index)("spr_ID_FK", ["sprIdFk"], {}),
     (0, typeorm_1.Index)("det_par_ID_tipo_FK", ["detParIdTipoFk"], {}),
-    (0, typeorm_1.Index)("reu_asistentes_FK", ["reuAsistentesFk"], {}),
     (0, typeorm_1.Entity)("reuniones", { schema: "pro_scrum" })
 ], Reuniones);
 //# sourceMappingURL=Reuniones.js.map

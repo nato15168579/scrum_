@@ -3,7 +3,7 @@
  * ------------
  * Mapeo TypeORM de la tabla `sprint`.
  *
- * Representa iteraciones del proyecto, con fechas, estado y una relacion 1:N con reuniones.
+ * Representa iteraciones (sprints) con fechas y una relacion 1:N con reuniones.
  */
 import {
   Column,
@@ -12,13 +12,13 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
-  PrimaryColumn, 
+  PrimaryColumn,
 } from "typeorm";
+import { DetalleParametro } from "./DetalleParametro";
 import { Reuniones } from "./Reuniones";
-import { Proyecto } from "./Proyecto";
 
-@Index("pro_ID_FK", ["proIdFk"], {})
 @Index("spr_ID", ["sprId"], {})
+@Index("det_par_FK", ["detParFk"], {})
 @Entity("sprint", { schema: "pro_scrum" })
 export class Sprint {
   @PrimaryColumn("int", { name: "spr_ID", comment: "id del sprint" })
@@ -47,14 +47,6 @@ export class Sprint {
   sprFechaFin: string | null;
 
   @Column("varchar", {
-    name: "spr_estado",
-    nullable: true,
-    comment: "especifique en que estado se encuentra el sprint (por hacer, en progreso, hecho)",
-    length: 50,
-  })
-  sprEstado: string | null;
-
-  @Column("varchar", {
     name: "spr_descripcion",
     nullable: true,
     comment: "descripcion del sprint",
@@ -62,16 +54,16 @@ export class Sprint {
   })
   sprDescripcion: string | null;
 
-  @Column("int", { name: "pro_ID_FK", nullable: true })
-  proIdFk: number | null;
+  @Column("int", { name: "det_par_FK", nullable: true })
+  detParFk: number | null;
 
   @OneToMany(() => Reuniones, (reuniones) => reuniones.sprIdFk2)
   reuniones: Reuniones[];
 
-  @ManyToOne(() => Proyecto, (proyecto) => proyecto.sprints, {
+  @ManyToOne(() => DetalleParametro, {
     onDelete: "RESTRICT",
     onUpdate: "RESTRICT",
   })
-  @JoinColumn([{ name: "pro_ID_FK", referencedColumnName: "proId" }])
-  proIdFk2: Proyecto;
+  @JoinColumn([{ name: "det_par_FK", referencedColumnName: "detParId" }])
+  detParFk2: DetalleParametro;
 }

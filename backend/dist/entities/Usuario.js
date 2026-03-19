@@ -14,7 +14,6 @@ const typeorm_1 = require("typeorm");
 const CriteriosAceptacion_1 = require("./CriteriosAceptacion");
 const Observaciones_1 = require("./Observaciones");
 const RolSistema_1 = require("./RolSistema");
-const Reuniones_1 = require("./Reuniones");
 const UsuProDetPar_1 = require("./UsuProDetPar");
 let Usuario = class Usuario {
 };
@@ -95,7 +94,7 @@ __decorate([
         name: "usu_contraseña",
         nullable: true,
         comment: "contrasena del usuario",
-        length: 250,
+        length: 100,
     }),
     __metadata("design:type", String)
 ], Usuario.prototype, "usuContrasena", void 0);
@@ -137,18 +136,6 @@ __decorate([
     (0, typeorm_1.JoinColumn)([{ name: "rol_sis_ID_FK", referencedColumnName: "rolSisId" }]),
     __metadata("design:type", RolSistema_1.RolSistema)
 ], Usuario.prototype, "rolSisIdFk2", void 0);
-__decorate([
-    (0, typeorm_1.ManyToMany)(() => Reuniones_1.Reuniones, (reuniones) => reuniones.usuarios),
-    (0, typeorm_1.JoinTable)({
-        name: "usu_asis",
-        joinColumns: [{ name: "usu_cedula", referencedColumnName: "usuCedula" }],
-        inverseJoinColumns: [
-            { name: "reu_asistente_FK", referencedColumnName: "reuAsistentesFk" },
-        ],
-        schema: "pro_scrum",
-    }),
-    __metadata("design:type", Array)
-], Usuario.prototype, "reuniones", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => UsuProDetPar_1.UsuProDetPar, (usuProDetPar) => usuProDetPar.usuCedula2),
     __metadata("design:type", Array)

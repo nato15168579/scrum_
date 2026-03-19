@@ -3,25 +3,21 @@
  * ---------------
  * Mapeo TypeORM de la tabla `reuniones`.
  *
- * Representa reuniones asociadas a un sprint, con un tipo (detalle_parametro) y una
- * relacion many-to-many con usuarios asistentes via tabla intermedia `usu_asis`.
+ * Representa reuniones asociadas a un sprint, con un tipo (detalle_parametro).
  */
 import {
   Column,
   Entity,
   Index,
   JoinColumn,
-  ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Sprint } from "./Sprint";
 import { DetalleParametro } from "./DetalleParametro";
-import { Usuario } from "./Usuario";
 
 @Index("spr_ID_FK", ["sprIdFk"], {})
 @Index("det_par_ID_tipo_FK", ["detParIdTipoFk"], {})
-@Index("reu_asistentes_FK", ["reuAsistentesFk"], {})
 @Entity("reuniones", { schema: "pro_scrum" })
 export class Reuniones {
   @PrimaryGeneratedColumn({ type: "int", name: "reu_ID" })
@@ -39,11 +35,14 @@ export class Reuniones {
   @Column("date", { name: "reu_fecha" })
   reuFecha: string;
 
-  @Column("text", { name: "reu_resumen", nullable: true })
-  reuResumen: string | null;
+  @Column("text", { name: "reu_descripcion", nullable: true })
+  reuDescripcion: string | null;
 
-  @Column("int", { name: "reu_asistentes_FK", nullable: true })
-  reuAsistentesFk: number | null;
+  @Column("varchar", { name: "reu_lugar", nullable: true, length: 255 })
+  reuLugar: string | null;
+
+  @Column("time", { name: "reu_hora", nullable: true })
+  reuHora: string | null;
 
   @ManyToOne(() => Sprint, (sprint) => sprint.reuniones, {
     onDelete: "RESTRICT",
@@ -61,7 +60,4 @@ export class Reuniones {
     { name: "det_par_ID_tipo_FK", referencedColumnName: "detParId" },
   ])
   detParIdTipoFk2: DetalleParametro;
-
-  @ManyToMany(() => Usuario, (usuario) => usuario.reuniones)
-  usuarios: Usuario[];
 }

@@ -1,7 +1,6 @@
 import { HistoriaUsuario } from "./HistoriaUsuario";
 import { Observaciones } from "./Observaciones";
 import { DetalleParametro } from "./DetalleParametro";
-import { Sprint } from "./Sprint";
 import { UsuProDetPar } from "./UsuProDetPar";
 export declare class Proyecto {
     proId: number;
@@ -18,6 +17,5 @@ export declare class Proyecto {
     historiaUsuarios: HistoriaUsuario[];
     observaciones: Observaciones[];
     detParIdFk2: DetalleParametro;
-    sprints: Sprint[];
     usuProDetPars: UsuProDetPar[];
 }

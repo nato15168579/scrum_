@@ -44,6 +44,46 @@ export class CambiosSistemaService {
     return this.schema.tableExists(tableName);
   }
 
+  private async columnExists(tableName: string, columnName: string) {
+    return this.schema.columnExists(tableName, columnName);
+  }
+
+  private async resolveCambioObservadoConfig() {
+    const hasCamObservado = await this.columnExists("cambios_sistema", "cam_observado");
+    const hasFechaObservado = await this.columnExists(
+      "cambios_sistema",
+      "cam_fecha_observado",
+    );
+    const hasDetalleParametro = await this.tableExists("detalle_parametro");
+    const hasDetParFk = await this.columnExists("cambios_sistema", "det_par_FK");
+
+    return {
+      hasCamObservado,
+      hasFechaObservado,
+      hasDetalleParametro,
+      hasDetParFk,
+    };
+  }
+
+  private async resolveEstadoObservacionId(target: "pendiente" | "visto") {
+    const hasDetalleParametro = await this.tableExists("detalle_parametro");
+    if (!hasDetalleParametro) return null;
+
+    const [row] = await this.dataSource.query(
+      `
+        SELECT det_par_ID AS detParId
+        FROM detalle_parametro
+        WHERE par_ID_FK = 6
+          AND LOWER(TRIM(COALESCE(det_par_descripcion, ''))) = ?
+        ORDER BY det_par_ID ASC
+        LIMIT 1
+      `,
+      [target],
+    );
+
+    return row?.detParId ? Number(row.detParId) : null;
+  }
+
   async listarCambios({ estado, limit }: ListCambiosOptions) {
     const hasTable = await this.tableExists("cambios_sistema");
     if (!hasTable) {
@@ -64,13 +104,50 @@ export class CambiosSistemaService {
     const whereClauses: string[] = [];
     const params: Array<string | number> = [];
 
+    const observadoConfig = await this.resolveCambioObservadoConfig();
+
     if (filtroEstado === "pendiente") {
-      whereClauses.push("c.cam_observado = 0");
+      if (observadoConfig.hasCamObservado) {
+        whereClauses.push("c.cam_observado = 0");
+      } else if (observadoConfig.hasFechaObservado) {
+        whereClauses.push("c.cam_fecha_observado IS NULL");
+      } else if (observadoConfig.hasDetParFk) {
+        const pendienteId = observadoConfig.hasDetalleParametro
+          ? await this.resolveEstadoObservacionId("pendiente")
+          : null;
+        if (pendienteId) {
+          whereClauses.push("c.det_par_FK = ?");
+          params.push(pendienteId);
+        } else {
+          whereClauses.push("c.det_par_FK IS NULL");
+        }
+      }
     } else if (filtroEstado === "visto") {
-      whereClauses.push("c.cam_observado = 1");
+      if (observadoConfig.hasCamObservado) {
+        whereClauses.push("c.cam_observado = 1");
+      } else if (observadoConfig.hasFechaObservado) {
+        whereClauses.push("c.cam_fecha_observado IS NOT NULL");
+      } else if (observadoConfig.hasDetParFk) {
+        const vistoId = observadoConfig.hasDetalleParametro
+          ? await this.resolveEstadoObservacionId("visto")
+          : null;
+        if (vistoId) {
+          whereClauses.push("c.det_par_FK = ?");
+          params.push(vistoId);
+        } else {
+          whereClauses.push("c.det_par_FK IS NOT NULL");
+        }
+      }
     }
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+    const observadoSelect = observadoConfig.hasCamObservado
+      ? "c.cam_observado"
+      : observadoConfig.hasFechaObservado
+      ? "CASE WHEN c.cam_fecha_observado IS NULL THEN 0 ELSE 1 END"
+      : observadoConfig.hasDetParFk
+      ? "CASE WHEN c.det_par_FK IS NULL THEN 0 ELSE 1 END"
+      : "0";
 
     const rows = (await this.dataSource.query(
       `
@@ -78,7 +155,7 @@ export class CambiosSistemaService {
           c.cam_ID AS id,
           c.cam_descripcion AS descripcion,
           c.cam_fecha AS fecha,
-          c.cam_observado AS observado,
+          ${observadoSelect} AS observado,
           u.usu_cedula AS usuCedula,
           u.usu_nombres AS nombres,
           u.usu_apellidos AS apellidos,
@@ -119,15 +196,48 @@ export class CambiosSistemaService {
       throw new BadRequestException("La tabla cambios_sistema no existe.");
     }
 
+    const observadoConfig = await this.resolveCambioObservadoConfig();
+    const updates: string[] = [];
+    const params: Array<number> = [];
+
+    if (observadoConfig.hasCamObservado) {
+      updates.push("cam_observado = 1");
+    }
+
+    if (observadoConfig.hasFechaObservado) {
+      updates.push("cam_fecha_observado = CURRENT_TIMESTAMP");
+    }
+
+    if (observadoConfig.hasDetParFk && observadoConfig.hasDetalleParametro) {
+      const vistoId = await this.resolveEstadoObservacionId("visto");
+      if (vistoId) {
+        updates.push("det_par_FK = ?");
+        params.push(vistoId);
+      }
+    }
+
+    if (updates.length === 0) {
+      throw new BadRequestException(
+        "La tabla cambios_sistema no tiene columnas para marcar como observado.",
+      );
+    }
+
+    const whereParts = ["cam_ID = ?"];
+    const whereParams: Array<number> = [id];
+
+    if (observadoConfig.hasCamObservado) {
+      whereParts.push("cam_observado = 0");
+    } else if (observadoConfig.hasFechaObservado) {
+      whereParts.push("cam_fecha_observado IS NULL");
+    }
+
     const result = await this.dataSource.query(
       `
         UPDATE cambios_sistema
-        SET cam_observado = 1,
-            cam_fecha_observado = CURRENT_TIMESTAMP
-        WHERE cam_ID = ?
-          AND cam_observado = 0
+        SET ${updates.join(", ")}
+        WHERE ${whereParts.join(" AND ")}
       `,
-      [id],
+      [...params, ...whereParams],
     );
 
     // MariaDB retorna OkPacket; intentamos inferir affectedRows.

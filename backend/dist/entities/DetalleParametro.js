@@ -48,7 +48,7 @@ __decorate([
     __metadata("design:type", Number)
 ], DetalleParametro.prototype, "parIdFk", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => CriteriosAceptacion_1.CriteriosAceptacion, (criteriosAceptacion) => criteriosAceptacion.estadoFk2),
+    (0, typeorm_1.OneToMany)(() => CriteriosAceptacion_1.CriteriosAceptacion, (criteriosAceptacion) => criteriosAceptacion.detParIdFk2),
     __metadata("design:type", Array)
 ], DetalleParametro.prototype, "criteriosAceptacions", void 0);
 __decorate([
@@ -60,11 +60,11 @@ __decorate([
     __metadata("design:type", Parametro_1.Parametro)
 ], DetalleParametro.prototype, "parIdFk2", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => HistoriaUsuario_1.HistoriaUsuario, (historiaUsuario) => historiaUsuario.detParIdEstadoFk2),
+    (0, typeorm_1.OneToMany)(() => HistoriaUsuario_1.HistoriaUsuario, (historiaUsuario) => historiaUsuario.detParIdFk2),
     __metadata("design:type", Array)
 ], DetalleParametro.prototype, "historiaUsuarios", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => Observaciones_1.Observaciones, (observaciones) => observaciones.obsEstadoFk2),
+    (0, typeorm_1.OneToMany)(() => Observaciones_1.Observaciones, (observaciones) => observaciones.detParIdFk2),
     __metadata("design:type", Array)
 ], DetalleParametro.prototype, "observaciones", void 0);
 __decorate([

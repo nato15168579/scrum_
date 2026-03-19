@@ -5,7 +5,6 @@
  *
  * En el sistema, un proyecto puede tener:
  * - Historias de usuario (HU)
- * - Sprints
  * - Observaciones/sugerencias
  * - Miembros (tabla `usu_pro_det_par`)
  */
@@ -20,7 +19,6 @@ import {
 import { HistoriaUsuario } from "./HistoriaUsuario";
 import { Observaciones } from "./Observaciones";
 import { DetalleParametro } from "./DetalleParametro";
-import { Sprint } from "./Sprint";
 import { UsuProDetPar } from "./UsuProDetPar";
 
 @Index("det_par_ID_FK", ["detParIdFk"], {})
@@ -85,9 +83,6 @@ export class Proyecto {
   @ManyToOne(() => DetalleParametro, (dp) => dp.proyectos)
   @JoinColumn([{ name: "det_par_ID_FK", referencedColumnName: "detParId" }])
   detParIdFk2: DetalleParametro;
-
-  @OneToMany(() => Sprint, (s) => s.proIdFk2)
-  sprints: Sprint[];
 
   @OneToMany(() => UsuProDetPar, (u) => u.pro)
   usuProDetPars: UsuProDetPar[];

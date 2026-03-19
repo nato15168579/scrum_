@@ -11,8 +11,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Sprint = void 0;
 const typeorm_1 = require("typeorm");
+const DetalleParametro_1 = require("./DetalleParametro");
 const Reuniones_1 = require("./Reuniones");
-const Proyecto_1 = require("./Proyecto");
 let Sprint = class Sprint {
 };
 exports.Sprint = Sprint;
@@ -47,15 +47,6 @@ __decorate([
 ], Sprint.prototype, "sprFechaFin", void 0);
 __decorate([
     (0, typeorm_1.Column)("varchar", {
-        name: "spr_estado",
-        nullable: true,
-        comment: "especifique en que estado se encuentra el sprint (por hacer, en progreso, hecho)",
-        length: 50,
-    }),
-    __metadata("design:type", String)
-], Sprint.prototype, "sprEstado", void 0);
-__decorate([
-    (0, typeorm_1.Column)("varchar", {
         name: "spr_descripcion",
         nullable: true,
         comment: "descripcion del sprint",
@@ -64,24 +55,24 @@ __decorate([
     __metadata("design:type", String)
 ], Sprint.prototype, "sprDescripcion", void 0);
 __decorate([
-    (0, typeorm_1.Column)("int", { name: "pro_ID_FK", nullable: true }),
+    (0, typeorm_1.Column)("int", { name: "det_par_FK", nullable: true }),
     __metadata("design:type", Number)
-], Sprint.prototype, "proIdFk", void 0);
+], Sprint.prototype, "detParFk", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => Reuniones_1.Reuniones, (reuniones) => reuniones.sprIdFk2),
     __metadata("design:type", Array)
 ], Sprint.prototype, "reuniones", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => Proyecto_1.Proyecto, (proyecto) => proyecto.sprints, {
+    (0, typeorm_1.ManyToOne)(() => DetalleParametro_1.DetalleParametro, {
         onDelete: "RESTRICT",
         onUpdate: "RESTRICT",
     }),
-    (0, typeorm_1.JoinColumn)([{ name: "pro_ID_FK", referencedColumnName: "proId" }]),
-    __metadata("design:type", Proyecto_1.Proyecto)
-], Sprint.prototype, "proIdFk2", void 0);
+    (0, typeorm_1.JoinColumn)([{ name: "det_par_FK", referencedColumnName: "detParId" }]),
+    __metadata("design:type", DetalleParametro_1.DetalleParametro)
+], Sprint.prototype, "detParFk2", void 0);
 exports.Sprint = Sprint = __decorate([
-    (0, typeorm_1.Index)("pro_ID_FK", ["proIdFk"], {}),
     (0, typeorm_1.Index)("spr_ID", ["sprId"], {}),
+    (0, typeorm_1.Index)("det_par_FK", ["detParFk"], {}),
     (0, typeorm_1.Entity)("sprint", { schema: "pro_scrum" })
 ], Sprint);
 //# sourceMappingURL=Sprint.js.map

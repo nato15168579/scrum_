@@ -8,6 +8,9 @@ export declare class CambiosSistemaService {
     private readonly schema;
     constructor(dataSource: DataSource);
     private tableExists;
+    private columnExists;
+    private resolveCambioObservadoConfig;
+    private resolveEstadoObservacionId;
     listarCambios({ estado, limit }: ListCambiosOptions): Promise<{
         ok: boolean;
         cambios: {

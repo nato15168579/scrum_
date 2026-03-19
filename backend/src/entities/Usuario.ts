@@ -12,15 +12,12 @@ import {
   Entity,
   Index,
   JoinColumn,
-  JoinTable,
-  ManyToMany,
   ManyToOne,
   OneToMany,
 } from "typeorm";
 import { CriteriosAceptacion } from "./CriteriosAceptacion";
 import { Observaciones } from "./Observaciones";
 import { RolSistema } from "./RolSistema";
-import { Reuniones } from "./Reuniones";
 import { UsuProDetPar } from "./UsuProDetPar";
 
 export type EstadoUsuario = "Activo" | "Inactivo";
@@ -96,7 +93,7 @@ export class Usuario {
     name: "usu_contraseña",
     nullable: true,
     comment: "contrasena del usuario",
-    length: 250,
+    length: 100,
   })
   usuContrasena: string | null;
 
@@ -137,17 +134,6 @@ export class Usuario {
   })
   @JoinColumn([{ name: "rol_sis_ID_FK", referencedColumnName: "rolSisId" }])
   rolSisIdFk2: RolSistema;
-
-  @ManyToMany(() => Reuniones, (reuniones) => reuniones.usuarios)
-  @JoinTable({
-    name: "usu_asis",
-    joinColumns: [{ name: "usu_cedula", referencedColumnName: "usuCedula" }],
-    inverseJoinColumns: [
-      { name: "reu_asistente_FK", referencedColumnName: "reuAsistentesFk" },
-    ],
-    schema: "pro_scrum",
-  })
-  reuniones: Reuniones[];
 
   @OneToMany(() => UsuProDetPar, (usuProDetPar) => usuProDetPar.usuCedula2)
   usuProDetPars: UsuProDetPar[];

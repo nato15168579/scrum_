@@ -17,9 +17,13 @@ import {
 import { CriteriosAceptacion } from "./CriteriosAceptacion";
 import { DetalleParametro } from "./DetalleParametro";
 import { Proyecto } from "./Proyecto";
+import { Sprint } from "./Sprint";
+import { Usuario } from "./Usuario";
 
 @Index("pro_ID_FK", ["proIdFk"], {})
-@Index("fk_hu_estado", ["detParIdEstadoFk"], {})
+@Index("fk_hu_estado", ["detParIdFk"], {})
+@Index("usu_cedula_FK", ["usuCedulaFk"], {})
+@Index("sprint_id_FK", ["sprintIdFk"], {})
 @Entity("historia_usuario", { schema: "pro_scrum" })
 export class HistoriaUsuario {
   @Column("int", {
@@ -48,14 +52,6 @@ export class HistoriaUsuario {
   })
   hisDescripcion: string | null;
 
-  @Column("varchar", {
-    name: "his_prioridad",
-    nullable: true,
-    comment: "numero de sprint de historia de usuario",
-    length: 50,
-  })
-  hisPrioridad: string | null;
-
   @Column("int", {
     name: "his_puntaje",
     nullable: true,
@@ -63,15 +59,18 @@ export class HistoriaUsuario {
   })
   hisPuntaje: number | null;
 
-  @Column("int", { name: "his_numero_sprint", nullable: true })
-  hisNumeroSprint: number | null;
-
   @Column("int", {
-    name: "det_par_ID_estado_FK",
+    name: "det_par_ID_FK",
     nullable: true,
     comment: "Estado de la HU (To Do, Doing, Done)",
   })
-  detParIdEstadoFk: number | null;
+  detParIdFk: number | null;
+
+  @Column("bigint", { name: "usu_cedula_FK", nullable: true })
+  usuCedulaFk: number | null;
+
+  @Column("int", { name: "sprint_id_FK", nullable: true })
+  sprintIdFk: number | null;
 
   @OneToMany(
     () => CriteriosAceptacion,
@@ -85,13 +84,21 @@ export class HistoriaUsuario {
     { onDelete: "RESTRICT", onUpdate: "RESTRICT" }
   )
   @JoinColumn([
-    { name: "det_par_ID_estado_FK", referencedColumnName: "detParId" },
+    { name: "det_par_ID_FK", referencedColumnName: "detParId" },
   ])
-  detParIdEstadoFk2: DetalleParametro;
+  detParIdFk2: DetalleParametro;
+
+  @ManyToOne(() => Usuario, { onDelete: "RESTRICT", onUpdate: "RESTRICT" })
+  @JoinColumn([{ name: "usu_cedula_FK", referencedColumnName: "usuCedula" }])
+  usuCedulaFk2: Usuario;
+
+  @ManyToOne(() => Sprint, { onDelete: "RESTRICT", onUpdate: "RESTRICT" })
+  @JoinColumn([{ name: "sprint_id_FK", referencedColumnName: "sprId" }])
+  sprintIdFk2: Sprint;
 
   @ManyToOne(() => Proyecto, (proyecto) => proyecto.historiaUsuarios, {
-    onDelete: "RESTRICT",
-    onUpdate: "RESTRICT",
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
   })
   @JoinColumn([{ name: "pro_ID_FK", referencedColumnName: "proId" }])
   proIdFk2: Proyecto;

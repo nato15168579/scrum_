@@ -3,8 +3,8 @@
  * -------------------------
  * Mapeo TypeORM de la tabla `criterios_aceptacion`.
  *
- * En esta base, el criterio puede referenciar una historia (`his_ID_FK`) y el proyecto
- * (`pro_ID_his_FK`) como PK compuesta segun el script SQL.
+ * En este esquema, el criterio pertenece a un proyecto (`pro_ID_FK`) y opcionalmente
+ * referencia una historia (`his_id_FK`). La PK es compuesta (cri_ID, pro_ID_FK).
  */
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import { Usuario } from "./Usuario";
@@ -13,8 +13,8 @@ import { HistoriaUsuario } from "./HistoriaUsuario";
 
 @Index("usu_cedula_FK", ["usuCedulaFk"], {})
 @Index("cri_ID", ["criId"], {})
-@Index("estado_FK", ["estadoFk"], {})
-@Index("his_ID_FK_2", ["hisIdFk", "proIdHisFk"], {})
+@Index("estado_FK", ["detParIdFk"], {})
+@Index("fk_criterios_historia_final", ["hisIdFk", "proIdFk"], {})
 @Entity("criterios_aceptacion", { schema: "pro_scrum" })
 export class CriteriosAceptacion {
   @Column("int", {
@@ -26,31 +26,27 @@ export class CriteriosAceptacion {
 
   @Column("int", {
     primary: true,
-    name: "his_ID_FK",
-    comment: "id de la historia de usuario",
-  })
-  hisIdFk: number;
-
-  @Column("int", {
-    primary: true,
-    name: "pro_ID_his_FK",
+    name: "pro_ID_FK",
     comment: "id del proyecto",
   })
-  proIdHisFk: number;
+  proIdFk: number;
 
   @Column("bigint", {
     name: "usu_cedula_FK",
-    nullable: true,
+    nullable: false,
     comment: "cedula del usuario",
   })
-  usuCedulaFk: number | null;
+  usuCedulaFk: number;
 
   @Column("int", {
-    name: "estado_FK",
-    nullable: true,
+    name: "det_par_id_FK",
+    nullable: false,
     comment: "Estado del criterio (pendiente, en proceso, finalizado)",
   })
-  estadoFk: number | null;
+  detParIdFk: number;
+
+  @Column("int", { name: "his_id_FK", nullable: true })
+  hisIdFk: number | null;
 
   @Column("varchar", {
     name: "cri_tiempo",
@@ -80,8 +76,8 @@ export class CriteriosAceptacion {
     (detalleParametro) => detalleParametro.criteriosAceptacions,
     { onDelete: "RESTRICT", onUpdate: "RESTRICT" }
   )
-  @JoinColumn([{ name: "estado_FK", referencedColumnName: "detParId" }])
-  estadoFk2: DetalleParametro;
+  @JoinColumn([{ name: "det_par_id_FK", referencedColumnName: "detParId" }])
+  detParIdFk2: DetalleParametro;
 
   @ManyToOne(
     () => HistoriaUsuario,
@@ -89,8 +85,8 @@ export class CriteriosAceptacion {
     { onDelete: "RESTRICT", onUpdate: "RESTRICT" }
   )
   @JoinColumn([
-    { name: "his_ID_FK", referencedColumnName: "hisId" },
-    { name: "pro_ID_his_FK", referencedColumnName: "proIdFk" },
+    { name: "his_id_FK", referencedColumnName: "hisId" },
+    { name: "pro_ID_FK", referencedColumnName: "proIdFk" },
   ])
   historiaUsuario: HistoriaUsuario;
 }

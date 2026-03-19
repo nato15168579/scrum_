@@ -35,12 +35,12 @@ __decorate([
 ], Observaciones.prototype, "obsFecha", void 0);
 __decorate([
     (0, typeorm_1.Column)("int", {
-        name: "obs_estado_FK",
+        name: "det_par_id_FK",
         nullable: true,
         comment: "especifique en que estado se estado est ala observacion (por hacer, en progreso, hecho)",
     }),
     __metadata("design:type", Number)
-], Observaciones.prototype, "obsEstadoFk", void 0);
+], Observaciones.prototype, "detParIdFk", void 0);
 __decorate([
     (0, typeorm_1.Column)("varchar", {
         name: "obs_descripcion",
@@ -76,13 +76,13 @@ __decorate([
 ], Observaciones.prototype, "proIdFk2", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => DetalleParametro_1.DetalleParametro, (detalleParametro) => detalleParametro.observaciones, { onDelete: "RESTRICT", onUpdate: "RESTRICT" }),
-    (0, typeorm_1.JoinColumn)([{ name: "obs_estado_FK", referencedColumnName: "detParId" }]),
+    (0, typeorm_1.JoinColumn)([{ name: "det_par_id_FK", referencedColumnName: "detParId" }]),
     __metadata("design:type", DetalleParametro_1.DetalleParametro)
-], Observaciones.prototype, "obsEstadoFk2", void 0);
+], Observaciones.prototype, "detParIdFk2", void 0);
 exports.Observaciones = Observaciones = __decorate([
     (0, typeorm_1.Index)("usu_fk", ["usuCedulaFk"], {}),
     (0, typeorm_1.Index)("pro_ID_FK", ["proIdFk"], {}),
-    (0, typeorm_1.Index)("obs_estado_FK", ["obsEstadoFk"], {}),
+    (0, typeorm_1.Index)("obs_estado_FK", ["detParIdFk"], {}),
     (0, typeorm_1.Entity)("observaciones", { schema: "pro_scrum" })
 ], Observaciones);
 //# sourceMappingURL=Observaciones.js.map

@@ -28,35 +28,31 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)("int", {
         primary: true,
-        name: "his_ID_FK",
-        comment: "id de la historia de usuario",
-    }),
-    __metadata("design:type", Number)
-], CriteriosAceptacion.prototype, "hisIdFk", void 0);
-__decorate([
-    (0, typeorm_1.Column)("int", {
-        primary: true,
-        name: "pro_ID_his_FK",
+        name: "pro_ID_FK",
         comment: "id del proyecto",
     }),
     __metadata("design:type", Number)
-], CriteriosAceptacion.prototype, "proIdHisFk", void 0);
+], CriteriosAceptacion.prototype, "proIdFk", void 0);
 __decorate([
     (0, typeorm_1.Column)("bigint", {
         name: "usu_cedula_FK",
-        nullable: true,
+        nullable: false,
         comment: "cedula del usuario",
     }),
     __metadata("design:type", Number)
 ], CriteriosAceptacion.prototype, "usuCedulaFk", void 0);
 __decorate([
     (0, typeorm_1.Column)("int", {
-        name: "estado_FK",
-        nullable: true,
+        name: "det_par_id_FK",
+        nullable: false,
         comment: "Estado del criterio (pendiente, en proceso, finalizado)",
     }),
     __metadata("design:type", Number)
-], CriteriosAceptacion.prototype, "estadoFk", void 0);
+], CriteriosAceptacion.prototype, "detParIdFk", void 0);
+__decorate([
+    (0, typeorm_1.Column)("int", { name: "his_id_FK", nullable: true }),
+    __metadata("design:type", Number)
+], CriteriosAceptacion.prototype, "hisIdFk", void 0);
 __decorate([
     (0, typeorm_1.Column)("varchar", {
         name: "cri_tiempo",
@@ -85,22 +81,22 @@ __decorate([
 ], CriteriosAceptacion.prototype, "usuCedulaFk2", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => DetalleParametro_1.DetalleParametro, (detalleParametro) => detalleParametro.criteriosAceptacions, { onDelete: "RESTRICT", onUpdate: "RESTRICT" }),
-    (0, typeorm_1.JoinColumn)([{ name: "estado_FK", referencedColumnName: "detParId" }]),
+    (0, typeorm_1.JoinColumn)([{ name: "det_par_id_FK", referencedColumnName: "detParId" }]),
     __metadata("design:type", DetalleParametro_1.DetalleParametro)
-], CriteriosAceptacion.prototype, "estadoFk2", void 0);
+], CriteriosAceptacion.prototype, "detParIdFk2", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => HistoriaUsuario_1.HistoriaUsuario, (historiaUsuario) => historiaUsuario.criteriosAceptacions, { onDelete: "RESTRICT", onUpdate: "RESTRICT" }),
     (0, typeorm_1.JoinColumn)([
-        { name: "his_ID_FK", referencedColumnName: "hisId" },
-        { name: "pro_ID_his_FK", referencedColumnName: "proIdFk" },
+        { name: "his_id_FK", referencedColumnName: "hisId" },
+        { name: "pro_ID_FK", referencedColumnName: "proIdFk" },
     ]),
     __metadata("design:type", HistoriaUsuario_1.HistoriaUsuario)
 ], CriteriosAceptacion.prototype, "historiaUsuario", void 0);
 exports.CriteriosAceptacion = CriteriosAceptacion = __decorate([
     (0, typeorm_1.Index)("usu_cedula_FK", ["usuCedulaFk"], {}),
     (0, typeorm_1.Index)("cri_ID", ["criId"], {}),
-    (0, typeorm_1.Index)("estado_FK", ["estadoFk"], {}),
-    (0, typeorm_1.Index)("his_ID_FK_2", ["hisIdFk", "proIdHisFk"], {}),
+    (0, typeorm_1.Index)("estado_FK", ["detParIdFk"], {}),
+    (0, typeorm_1.Index)("fk_criterios_historia_final", ["hisIdFk", "proIdFk"], {}),
     (0, typeorm_1.Entity)("criterios_aceptacion", { schema: "pro_scrum" })
 ], CriteriosAceptacion);
 //# sourceMappingURL=CriteriosAceptacion.js.map
