@@ -1,3 +1,5 @@
+//hola
+
 # ⚡ GUÍA RÁPIDA: COMANDOS DE INICIO
 
 ## 🚀 INICIO EN 3 PASOS
