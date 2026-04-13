@@ -1,70 +1,62 @@
 <h1 align="center">🚀 SCRUM Project</h1>
 
 <p align="center">
-  <b>Gestión de proyectos ágil basada en la metodología SCRUM</b><br>
-  Organización eficiente • Trabajo en equipo • Entregas continuas
+  <b>Agile project management system based on SCRUM methodology</b><br>
+  Efficiency • Team collaboration • Continuous delivery
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Active-success?style=for-the-badge">
-  <img src="https://img.shields.io/badge/Methodology-SCRUM-blue?style=for-the-badge">
-  <img src="https://img.shields.io/badge/Frontend-HTML%20%7C%20CSS%20%7C%20JS-orange?style=for-the-badge">
+  <img src="https://img.shields.io/badge/Architecture-Fullstack-blue?style=for-the-badge">
+  <img src="https://img.shields.io/badge/Methodology-SCRUM-orange?style=for-the-badge">
 </p>
 
 ---
 
-## 📌 Descripción
+## 📌 Overview
 
-Este proyecto está diseñado para implementar la metodología **SCRUM**, permitiendo gestionar tareas, organizar equipos y mejorar la productividad mediante ciclos iterativos (*sprints*).
+This project is a **fullstack application** designed to manage projects using the **SCRUM framework**.  
+It enables teams to organize tasks, track progress, and deliver value through iterative development cycles (*sprints*).
 
-Se enfoca en la claridad, la eficiencia y la entrega continua de valor en cada fase del desarrollo.
-
----
-
-## 🧠 ¿Qué es SCRUM?
-
-SCRUM es un framework ágil que divide el trabajo en ciclos cortos llamados *sprints*, permitiendo adaptarse rápidamente a cambios y mejorar continuamente el producto.
+Built with a modern tech stack, it focuses on **scalability, maintainability, and real-world development practices**.
 
 ---
 
-## ⚙️ Funcionalidades
+## ✨ Key Features
 
-- 📋 Gestión de tareas (Product Backlog)
-- ⏱️ Organización por Sprints
-- 👥 Colaboración en equipo
-- 📈 Seguimiento del progreso
-- 🔄 Retroalimentación constante
+- 📋 Task management with **Product Backlog**
+- ⏱️ Sprint planning and tracking
+- 👥 Team collaboration workflows
+- 📊 Data visualization and progress tracking
+- 🔄 Continuous feedback and iteration cycles
+- 📂 Excel data import support
+- 🔐 Secure authentication handling
 
-## 🏗️ Metodología SCRUM
+---
+
+## 🧠 SCRUM Methodology
 
 ### 🔹 Roles
-- 🧑‍💻 Developer
-- 📌 Product Owner
-- 🧭 Scrum Master
+- 👨‍💻 Developer  
+- 📌 Product Owner  
+- 🧭 Scrum Master  
 
-### 🔹 Artefactos
-- 📋 Product Backlog
-- 📌 Sprint Backlog
-- 📦 Incremento
+### 🔹 Artifacts
+- 📋 Product Backlog  
+- 📌 Sprint Backlog  
+- 📦 Increment  
 
-### 🔹 Eventos
-- 🗓️ Sprint
-- 📢 Daily Scrum
-- 🔍 Sprint Review
-- 🔄 Sprint Retrospective
+### 🔹 Events
+- 🗓️ Sprint  
+- 📢 Daily Scrum  
+- 🔍 Sprint Review  
+- 🔄 Sprint Retrospective  
 
 ---
 
-## 🚀 Instalación
+## 🛠️ Tech Stack
 
-```bash
-git clone https://github.com/nato15168579/scrum_.git
-cd scrum_
-```
-
-## 🛠️ Tecnologías & Stack
-
-### 🎯 Lenguajes
+### 🎯 Languages
 
 <p align="center">
 
@@ -119,18 +111,25 @@ cd scrum_
 
 ---
 
-### 🧠 Enfoque Técnico
+## 🧠 Technical Approach
 
-Este proyecto implementa una arquitectura **Fullstack moderna**, combinando un frontend dinámico basado en componentes con un backend estructurado y escalable.
+This project follows a **modern fullstack architecture**, combining a reactive frontend with a scalable backend.
 
-- ⚛️ **Frontend (React + Vite)** → Interfaces rápidas, modulares y reactivas  
-- 🧩 **Backend (NestJS)** → Arquitectura robusta basada en controladores y servicios  
-- 🗄️ **Base de datos (MySQL + TypeORM)** → Persistencia estructurada y escalable  
-- 🔒 **Seguridad** → Manejo de contraseñas con bcrypt y configuración segura con dotenv  
-- 📊 **Visualización & datos** → Gráficas, consumo de APIs y manejo de archivos Excel  
+- ⚛️ **Frontend (React + Vite)** → Fast, modular and component-based UI  
+- 🧩 **Backend (NestJS)** → Structured architecture using controllers & services  
+- 🗄️ **Database (MySQL + TypeORM)** → Reliable and scalable data persistence  
+- 🔐 **Security** → Password hashing and environment-based configuration  
+- 📊 **Data Handling** → Charts, API consumption and Excel processing  
 
 ---
 
-<p align="center">
-  🚀 <i>Arquitectura escalable, tipado fuerte y desarrollo moderno.</i>
-</p>
+## 🚀 Getting Started
+
+```bash
+# Clone repository
+git clone https://github.com/nato15168579/scrum_.git
+
+# Enter project
+cd scrum_
+```
+<p align="center"> ⚡ <i>Built with discipline, strong typing and scalable architecture.</i> </p> 
