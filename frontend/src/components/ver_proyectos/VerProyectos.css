@@ -1,236 +1,31 @@
 /* src/components/VerProyectos.css */
 
-/* --- Contenedor Principal --- */
-.vp-container {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    padding-bottom: 30px;
-}
-
-/* --- Encabezado: Título y Buscador --- */
-.vp-header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.vp-table-title {
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: #1a1a1a;
-    margin: 0;
-}
-
-/* Buscador Estilo "Píldora" */
-.vp-search-box {
-    display: flex;
-    align-items: center;
-    background-color: #f3f4f6;
-    border-radius: 30px; /* Bordes muy redondos */
-    padding: 8px 20px;
-    width: 380px;
-    border: 1px solid #e5e7eb;
-    transition: all 0.2s ease;
-}
-
-.vp-search-box:focus-within {
-    background-color: white;
-    border-color: #39A900;
-    box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.1);
-}
-
-.vp-search-box input {
-    border: none;
-    background: transparent;
-    flex: 1;
-    padding: 5px 10px;
-    outline: none;
-    font-size: 0.95rem;
-    color: #333;
-}
-
-.filter-icon-box {
-    border-left: 1px solid #d1d5db;
-    padding-left: 12px;
-    margin-left: 5px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    color: #6b7280;
-}
-
-.filter-icon-box:hover {
-    color: #39A900;
-}
-
-/* --- Tarjeta de la Tabla --- */
-.vp-table-card {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
-    overflow: hidden; 
-    border: 1px solid #f0f0f0;
-}
-
-.vp-table {
-    width: 100%;
-    border-collapse: collapse; 
-}
-
-/* Encabezados de Tabla */
-.vp-table thead th {
-    text-align: left;
-    color: #6b7280; 
-    font-weight: 600;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 20px 25px;
-    background-color: #f9fafb; 
-    border-bottom: 1px solid #e5e7eb;
-}
-
-/* Filas y Celdas */
-.vp-table tbody tr {
-    transition: background-color 0.1s;
-    border-bottom: 1px solid #f3f4f6;
-}
-
-.vp-table tbody tr:last-child {
-    border-bottom: none;
-}
-
-.vp-table tbody tr:hover {
-    background-color: #f9fafb;
-}
-
-.vp-table td {
-    padding: 20px 25px;
-    vertical-align: middle;
-    color: #1f2937; 
-    font-size: 0.95rem;
-}
-
-/* Estilos específicos de celdas */
-.vp-name-cell {
-    font-weight: 700;
-    color: #111827;
-}
-
-.vp-desc-cell {
-    color: #6b7280;
-    font-size: 0.9rem;
-    max-width: 250px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* --- BADGES DE ESTADO (COLORES DEFINIDOS) --- */
-.status-badge {
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    display: inline-block;
-    min-width: 100px;
-    text-align: center;
-}
-
-/* 1. HECHO (Verde) */
-.badge-hecho {
-    background-color: #dcfce7; /* Verde menta */
-    color: #166534;           /* Texto verde fuerte */
-    border: 1px solid #86efac;
-}
-
-/* 2. EN PROGRESO (Azul) */
-.badge-progreso {
-    background-color: #e0f2fe; /* Azul cielo */
-    color: #0369a1;           /* Texto azul océano */
-    border: 1px solid #7dd3fc;
-}
-
-/* 3. POR HACER (Rojo/Rosa) */
-.badge-por-hacer {
-    background-color: #fee2e2; /* Rojo pálido */
-    color: #991b1b;           /* Texto rojo oscuro */
-    border: 1px solid #fca5a5;
-}
-
-/* Default */
-.badge-default {
-    background-color: #f3f4f6;
-    color: #374151;
-    border: 1px solid #d1d5db;
-}
-
-/* --- Botón de Acción "Ver más" --- */
 .vp-btn-ver-mas {
     background-color: #39A900; /* Verde SENA */
-    color: white;
+    color: white !important;   /* Forzamos el blanco del icono */
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
     border: none;
-    padding: 8px 24px;
-    border-radius: 20px;
-    font-weight: 700;
-    cursor: pointer;
-    font-size: 0.85rem;
-    box-shadow: 0 2px 4px rgba(57, 169, 0, 0.2);
-    transition: all 0.2s ease;
-}
-
-.vp-btn-ver-mas:hover {
-    background-color: #2e8b00;
-    box-shadow: 0 4px 8px rgba(57, 169, 0, 0.3);
-    transform: translateY(-1px);
-}
-
-.vp-btn-ver-mas:active {
-    transform: translateY(0);
-}
-
-/* --- Footer: Paginación --- */
-.vp-pagination-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.page-btn {
-    background: white;
-    border: 1px solid #e5e7eb;
-    color: #374151;
-    min-width: 36px;
-    height: 36px;
-    border-radius: 8px;
+    
+    /* Centrado absoluto */
     display: flex;
     align-items: center;
     justify-content: center;
+    
     cursor: pointer;
-    font-weight: 600;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    margin: 0 auto;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-.page-btn:hover:not(:disabled) {
-    border-color: #39A900;
-    color: #39A900;
+.vp-btn-ver-mas:hover {
+    background-color: #2b7a00;
+    transform: scale(1.1);
 }
 
-.page-btn.active {
-    background-color: #39A900;
-    color: white;
-    border-color: #39A900;
-}
-
-.page-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background-color: #f9fafb;
+/* Esto asegura que el SVG de Lucide sea visible */
+.vp-btn-ver-mas svg {
+    display: block;
+    flex-shrink: 0;
 }

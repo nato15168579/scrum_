@@ -243,6 +243,7 @@ export declare class ListaService {
             telefono: string;
             email: string;
             fechaInscripcion: string;
+            estado: EstadoUsuario;
             fichasCargo: any;
             fichasDetalle: any;
         };

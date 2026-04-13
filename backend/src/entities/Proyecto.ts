@@ -53,7 +53,11 @@ export class Proyecto {
   })
   proObjetivosEspecificos: string | null;
 
-  @Column("varchar", { name: "pro_descripcion", nullable: true, length: 200 })
+  @Column("varchar", {
+    name: "pro_descripcion",
+    nullable: true,
+    length: 200,
+  })
   proDescription: string | null;
 
   @Column("date", { name: "pro_fecha_inicio", nullable: true })
@@ -62,7 +66,11 @@ export class Proyecto {
   @Column("date", { name: "pro_fecha_fin", nullable: true })
   proFechaFin: string | null;
 
-  @Column("varchar", { name: "pro_justificacion", nullable: true, length: 500 })
+  @Column("varchar", {
+    name: "pro_justificacion",
+    nullable: true,
+    length: 500,
+  })
   proJustificacion: string | null;
 
   @Column("int", { name: "det_par_ID_FK", nullable: true })

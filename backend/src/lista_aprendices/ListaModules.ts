@@ -15,5 +15,6 @@ import { Usuario } from '../entities/Usuario';
   imports: [TypeOrmModule.forFeature([Usuario])],
   controllers: [ListaController],
   providers: [ListaService],
+  exports: [ListaService],
 })
 export class ListaModule {}

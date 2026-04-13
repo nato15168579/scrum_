@@ -1,0 +1,151 @@
+/* frontend/src/components/HistoriasUsuario.css */
+
+/* --- Contenedor Principal (Tarjeta Blanca) --- */
+.historias-container {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    margin-top: 20px;
+    border: 1px solid #f0f0f0;
+}
+
+/* --- Encabezado de la Sección --- */
+.header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    border-bottom: 1px solid #f5f5f5;
+    padding-bottom: 15px;
+}
+
+.header-actions h2 {
+    color: #111;
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+/* --- Tabla (Estilo Verde SENA) --- */
+.table-green-header {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+.table-green-header thead th {
+    background-color: #39A900; /* Verde SENA */
+    color: white;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.85rem;
+}
+
+/* Bordes redondeados en la cabecera */
+.table-green-header th:first-child { border-top-left-radius: 10px; }
+.table-green-header th:last-child { border-top-right-radius: 10px; }
+
+.table-green-header td {
+    padding: 15px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #333;
+    vertical-align: middle;
+}
+
+.table-green-header tbody tr:hover {
+    background-color: #f1f8e9; /* Verde muy suave al pasar el mouse */
+}
+
+/* --- Badges (Etiquetas de Estado y Prioridad) --- */
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: inline-block;
+    min-width: 90px;
+    text-align: center;
+}
+
+/* Colores de Estado */
+.status-pendiente { 
+    background-color: #ffebee; 
+    color: #c62828; 
+    border: 1px solid #ffcdd2; 
+}
+.status-proceso { 
+    background-color: #e3f2fd; 
+    color: #1565c0; 
+    border: 1px solid #bbdefb; 
+}
+.status-terminado { 
+    background-color: #dcfce7; 
+    color: #166534; 
+    border: 1px solid #86efac; 
+}
+
+/* Estilos de Prioridad (Texto) */
+.priority-alta { color: #d32f2f; font-weight: 800; }
+.priority-media { color: #f57c00; font-weight: 800; }
+.priority-baja { color: #388e3c; font-weight: 800; }
+
+
+/* --- Paginación (Igual a ListaAprendices) --- */
+.pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 20px;
+    border-top: 1px solid #f5f5f5;
+    margin-top: 10px;
+}
+
+.pagination-info {
+    font-size: 0.9rem;
+    color: #777;
+    font-weight: 600;
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-page {
+    background: #fff;
+    color: #39A900;
+    border: 1px solid #e0e0e0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-page:hover:not(:disabled) {
+    background-color: #f3f4f6;
+    border-color: #39A900;
+}
+
+.btn-page:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    background-color: #f9f9f9;
+    color: #aaa;
+}
+
+.btn-page.active-page {
+    background-color: #39A900;
+    color: white;
+    border-color: #39A900;
+}

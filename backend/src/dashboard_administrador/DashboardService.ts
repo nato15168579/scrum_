@@ -19,6 +19,18 @@ interface EstadoRow {
   estado?: number | string | null;
 }
 
+interface UsuarioRolEstadoRow {
+  rolId?: number | string | null;
+  estado?: string | null;
+}
+
+export interface UsuarioRolEstadoChartRow {
+  rol: string;
+  activos: number;
+  inactivos: number;
+  total: number;
+}
+
 @Injectable()
 export class DashboardService {
   private readonly logger = new Logger(DashboardService.name);
@@ -126,6 +138,66 @@ export class DashboardService {
     return { total, porHacer, enProgreso, hecho };
   }
 
+  // Entrega una foto actual del sistema por rol y estado para que el dashboard
+  // pueda pintar graficas sin repetir consultas ni asumir estructuras fijas.
+  private async getUsuariosPorRolEstado(): Promise<UsuarioRolEstadoChartRow[]> {
+    if (!(await this.tableExists("usuario"))) {
+      return [
+        { rol: "Aprendices", activos: 0, inactivos: 0, total: 0 },
+        { rol: "Instructores", activos: 0, inactivos: 0, total: 0 },
+        { rol: "Administradores", activos: 0, inactivos: 0, total: 0 },
+      ];
+    }
+
+    const tableRef = this.wrapIdentifier("usuario");
+    const roleRef = this.wrapIdentifier("rol_sis_ID_FK");
+    const hasEstadoColumn = await this.columnExists("usuario", "usu_estado");
+    const estadoRef = hasEstadoColumn
+      ? `COALESCE(NULLIF(TRIM(${this.wrapIdentifier("usu_estado")}), ''), 'Activo')`
+      : `'Activo'`;
+
+    const rows = (await this.dataSource.query(
+      `
+      SELECT
+        ${roleRef} AS rolId,
+        ${estadoRef} AS estado
+      FROM ${tableRef}
+      WHERE ${roleRef} IN (1, 2, 3)
+    `,
+    )) as UsuarioRolEstadoRow[];
+
+    const summaryByRole = new Map<number, UsuarioRolEstadoChartRow>([
+      [1, { rol: "Aprendices", activos: 0, inactivos: 0, total: 0 }],
+      [2, { rol: "Instructores", activos: 0, inactivos: 0, total: 0 }],
+      [3, { rol: "Administradores", activos: 0, inactivos: 0, total: 0 }],
+    ]);
+
+    for (const row of rows) {
+      const roleId = Number(row.rolId);
+      const target = summaryByRole.get(roleId);
+
+      if (!target) {
+        continue;
+      }
+
+      const estadoNormalizado =
+        String(row.estado || "Activo").trim().toLowerCase() === "inactivo"
+          ? "Inactivo"
+          : "Activo";
+
+      target.total += 1;
+
+      if (estadoNormalizado === "Inactivo") {
+        target.inactivos += 1;
+        continue;
+      }
+
+      target.activos += 1;
+    }
+
+    return Array.from(summaryByRole.values());
+  }
+
   async obtenerDatosDashboard(cedulaInput: string | number) {
     try {
       const cedula = Number(cedulaInput);
@@ -184,6 +256,21 @@ export class DashboardService {
         this.logger.error("Error al calcular proyectos:", error.message);
       }
 
+      let usuariosPorRolEstado: UsuarioRolEstadoChartRow[] = [
+        { rol: "Aprendices", activos: 0, inactivos: 0, total: 0 },
+        { rol: "Instructores", activos: 0, inactivos: 0, total: 0 },
+        { rol: "Administradores", activos: 0, inactivos: 0, total: 0 },
+      ];
+      try {
+        usuariosPorRolEstado = await this.getUsuariosPorRolEstado();
+      } catch (e) {
+        const error = e instanceof Error ? e : new Error(String(e));
+        this.logger.error(
+          "Error al calcular resumen de usuarios por rol:",
+          error.message,
+        );
+      }
+
       // El payload final mezcla datos de perfil y metricas generales para que el
       // frontend admin pueda construir el panel sin pedir mas endpoints.
       return {
@@ -203,6 +290,7 @@ export class DashboardService {
           enProgreso: proyectosStats.enProgreso,
           hecho: proyectosStats.hecho,
         },
+        usuariosPorRolEstado,
       };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));

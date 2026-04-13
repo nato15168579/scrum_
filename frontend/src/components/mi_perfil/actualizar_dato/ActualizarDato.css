@@ -1,0 +1,95 @@
+/* Hereda .profile-dashboard-layout y .profile-details-container de MiPerfil */
+
+.update-content-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    margin-top: -20px; /* Para que suba un poco hacia el header */
+}
+
+.update-card-full {
+    width: 100%;
+    max-width: 800px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08) !important;
+}
+
+.update-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 10px 0 25px 0;
+}
+
+.data-cell label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.data-cell input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #1e293b;
+    transition: all 0.2s;
+}
+
+.data-cell input:focus {
+    outline: none;
+    border-color: #39A900;
+    box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.1);
+}
+
+.input-locked {
+    background-color: #f8fafc;
+    color: #94a3b8 !important;
+    cursor: not-allowed;
+    border-color: #f1f5f9 !important;
+}
+
+.update-actions-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    padding-top: 20px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.btn-action-save {
+    background: #39A900;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.btn-action-cancel {
+    background: #f1f5f9;
+    color: #64748b;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.readonly-grid {
+    background: #fcfcfc;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px dashed #e2e8f0;
+}

@@ -309,6 +309,11 @@ body, html {
 }
 
 /* --- 5. RESUMEN GLOBAL (GRÃFICA) --- */
+.summary-section {
+    display: grid;
+    gap: 24px;
+}
+
 .summary-card-full {
     background: white;
     padding: 30px;
@@ -607,6 +612,50 @@ body, html {
     height: 320px;
 }
 
+.role-status-card-header {
+    display: block;
+}
+
+.role-status-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.role-status-pill {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0;
+}
+
+.role-status-pill-label {
+    font-size: 0.78rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-weight: 700;
+}
+
+.role-status-pill-value {
+    font-size: 1.6rem;
+    line-height: 1;
+    color: #1f2937;
+}
+
+.role-status-pill-meta {
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.role-status-chart-wrapper {
+    height: 340px;
+}
+
 .empty-chart-state {
     min-height: 220px;
     display: flex;
@@ -647,6 +696,10 @@ body, html {
 
     .students-chart-wrapper {
         height: 280px;
+    }
+
+    .role-status-summary {
+        grid-template-columns: 1fr;
     }
 }
 

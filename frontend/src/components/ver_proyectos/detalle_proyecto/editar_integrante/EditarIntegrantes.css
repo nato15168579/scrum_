@@ -1,0 +1,197 @@
+/* --- VARIABLES --- */
+:root {
+    --sena-green: #39A900;
+    --sena-dark: #2f2f2f;
+    --bg-light: #f4f7f6;
+    --white: #ffffff;
+    --error-red: #ef4444;
+    --confirm-blue: #3b82f6;
+    --border-gray: #e0e0e0;
+}
+
+/* --- CONTENEDOR DE LA VISTA --- */
+.editar-container {
+    background-color: var(--white);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* --- BUSCADOR Y LUPA (SOLUCIÓN AL DESFASE) --- */
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-wrapper svg {
+    position: absolute;
+    left: 15px;
+    z-index: 10;
+    pointer-events: none; /* Evita que la lupa bloquee el click en el input */
+}
+
+.search-input {
+    padding: 10px 15px 10px 42px !important; /* El padding-left 42px deja espacio para la lupa */
+    border: 1px solid var(--border-gray);
+    border-radius: 25px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    outline: none;
+    width: 280px;
+}
+
+.search-input:focus {
+    border-color: var(--sena-green);
+    box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.1);
+}
+
+/* --- TABLA VERDE SENA --- */
+.table-green-header {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 10px;
+}
+
+.table-green-header thead tr {
+    background-color: var(--sena-green);
+}
+
+.table-green-header th {
+    color: var(--white);
+    padding: 15px;
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.table-green-header td {
+    padding: 14px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.9rem;
+    color: #333;
+    transition: background 0.2s;
+}
+
+/* Fila seleccionada */
+.table-green-header tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+/* --- BOTONES (CORRECCIÓN DE ALINEACIÓN) --- */
+.footer-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 25px;
+    width: 100%;
+}
+
+.btn-success, .btn-danger, .btn-disabled, .btn-guardar-azul {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 42px; /* Altura uniforme para todos los botones */
+    padding: 0 20px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap; /* Evita que el texto se rompa en 2 líneas */
+    transition: all 0.2s;
+}
+
+.btn-success {
+    background-color: var(--sena-green);
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #2d8500;
+}
+
+.btn-danger {
+    background-color: var(--error-red);
+    color: white;
+}
+
+.btn-disabled {
+    background-color: #f3f4f6;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.btn-guardar-azul {
+    background-color: var(--confirm-blue);
+    color: white;
+}
+
+/* --- MODALES Y ALERTAS --- */
+.modal-overlay-large, .modal-alert-overlay {
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content-large {
+    animation: slideIn 0.3s ease-out;
+}
+
+.modal-alert-content {
+    animation: scaleIn 0.2s ease-out;
+}
+
+/* --- BADGES Y SELECTS --- */
+.badge-rol {
+    display: inline-block;
+    background: #e8f5e9;
+    color: #2e7d32;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    border: 1px solid #c8e6c9;
+}
+
+select {
+    cursor: pointer;
+}
+
+select:disabled {
+    background-color: #f9f9f9;
+    color: #aaa;
+    cursor: not-allowed;
+}
+
+/* --- ANIMACIONES --- */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* --- SCROLLBAR PARA EL MODAL --- */
+.modal-body-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-body-scroll::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.modal-body-scroll::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}

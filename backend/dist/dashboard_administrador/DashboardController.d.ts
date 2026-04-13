@@ -9,6 +9,7 @@ export declare class DashboardController {
         description?: undefined;
         stats?: undefined;
         proyectosData?: undefined;
+        usuariosPorRolEstado?: undefined;
     } | {
         instructor: string;
         correo: string;
@@ -23,6 +24,7 @@ export declare class DashboardController {
             enProgreso: number;
             hecho: number;
         };
+        usuariosPorRolEstado: import("./DashboardService").UsuarioRolEstadoChartRow[];
         error?: undefined;
     }>;
 }

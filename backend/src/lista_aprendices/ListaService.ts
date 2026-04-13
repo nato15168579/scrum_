@@ -1934,6 +1934,7 @@ export class ListaService {
         u.usu_telefono AS telefono,
         u.usu_correo AS email,
         u.fecha_registro AS fechaInscripcion,
+        u.usu_estado AS estado,
         CAST(f.fic_numero AS CHAR) AS ficha,
         ${fichaNombreSelect} AS fichaNombre,
         f.fic_programa AS programa,
@@ -1964,6 +1965,7 @@ export class ListaService {
           telefono: row.telefono || '',
           email: row.email || '',
           fechaInscripcion: this.formatDateToIso(row.fechaInscripcion),
+          estado: this.normalizeEstado(row.estado),
         });
       }
 
@@ -2453,6 +2455,7 @@ export class ListaService {
     const especializacion = this.sanitizeText(
       payload.especializacion ?? instructor.usuEspecializacion,
     );
+    const estado = this.sanitizeText(payload.estado ?? instructor.usuEstado);
     const shouldUpdateFichas = Array.isArray(payload.fichas);
     const fichasSeleccionadas = shouldUpdateFichas
       ? Array.from(
@@ -2478,6 +2481,10 @@ export class ListaService {
 
     if (!especializacion) {
       throw new BadRequestException('La especializacion es obligatoria.');
+    }
+
+    if (!ESTADOS_USUARIO.includes(estado as EstadoUsuario)) {
+      throw new BadRequestException('El estado debe ser Activo o Inactivo.');
     }
 
     if (sexo && !SEXOS_USUARIO.includes(sexo as SexoUsuario)) {
@@ -2516,6 +2523,7 @@ export class ListaService {
       instructor.usuEspecializacion,
       especializacion,
     );
+    this.pushCambioSistemaIfDifferent(cambios, 'Estado', instructor.usuEstado, estado);
 
     if (shouldUpdateFichas && fichasAntes) {
       this.pushCambioSistemaListIfDifferent(
@@ -2541,6 +2549,7 @@ export class ListaService {
       instructor.usuTelefono = telefono || null;
       instructor.usuSexo = sexo ? (sexo as SexoUsuario) : null;
       instructor.usuEspecializacion = especializacion;
+      instructor.usuEstado = estado as EstadoUsuario;
 
       await queryRunner.manager.save(Usuario, instructor);
 
@@ -2592,6 +2601,7 @@ export class ListaService {
         telefono: instructor.usuTelefono || '',
         email: instructor.usuCorreo || '',
         fechaInscripcion: this.formatDateToIso(instructor.fechaRegistro),
+        estado: instructor.usuEstado || 'Activo',
         fichasCargo: fichasDetalle.map((item) => item.ficha),
         fichasDetalle,
       },

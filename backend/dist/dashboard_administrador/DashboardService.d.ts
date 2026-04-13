@@ -1,5 +1,11 @@
 import { DataSource, Repository } from "typeorm";
 import { Usuario } from "../entities/Usuario";
+export interface UsuarioRolEstadoChartRow {
+    rol: string;
+    activos: number;
+    inactivos: number;
+    total: number;
+}
 export declare class DashboardService {
     private readonly usuarioRepository;
     private dataSource;
@@ -12,6 +18,7 @@ export declare class DashboardService {
     private resolveFichaTable;
     private resolveReunionUsuarioTable;
     private getProyectoStats;
+    private getUsuariosPorRolEstado;
     obtenerDatosDashboard(cedulaInput: string | number): Promise<{
         error: string;
         instructor?: undefined;
@@ -19,6 +26,7 @@ export declare class DashboardService {
         description?: undefined;
         stats?: undefined;
         proyectosData?: undefined;
+        usuariosPorRolEstado?: undefined;
     } | {
         instructor: string;
         correo: string;
@@ -33,6 +41,7 @@ export declare class DashboardService {
             enProgreso: number;
             hecho: number;
         };
+        usuariosPorRolEstado: UsuarioRolEstadoChartRow[];
         error?: undefined;
     }>;
 }

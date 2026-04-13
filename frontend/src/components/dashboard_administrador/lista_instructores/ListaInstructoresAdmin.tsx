@@ -43,6 +43,8 @@ interface FichaDetalle {
   fechaCreacion?: string | null;
 }
 
+type EstadoInstructor = "Activo" | "Inactivo";
+
 interface Instructor {
   documento: string;
   tipoDocumento: string;
@@ -55,6 +57,7 @@ interface Instructor {
   telefono: string;
   email: string;
   fechaInscripcion?: string | null;
+  estado: EstadoInstructor;
 }
 
 interface FichaDisponible {
@@ -80,6 +83,7 @@ interface EditInstructorForm {
   email: string;
   telefono: string;
   fechaInscripcion: string;
+  estado: EstadoInstructor;
   fichasSeleccionadas: string[];
 }
 
@@ -101,6 +105,7 @@ type FilterKey =
   | "apellido"
   | "telefono"
   | "email"
+  | "estado"
   | "fechaRegistro"
   | "fichasCargo";
 
@@ -123,6 +128,9 @@ const formatFechaRegistro = (value?: string | null) => {
     year: "numeric",
   });
 };
+
+const normalizeEstado = (estado?: string | null): EstadoInstructor =>
+  normalizeText(estado) === "Inactivo" ? "Inactivo" : "Activo";
 
 const normalizeFichasCargo = (value: unknown): string[] => {
   if (Array.isArray(value)) {
@@ -263,6 +271,7 @@ const getInstructorDetailFields = (instructor: Instructor) => [
   { label: "Sexo", value: instructor.sexo || "Sin sexo" },
   { label: "Email", value: instructor.email || "Sin email" },
   { label: "Telefono", value: instructor.telefono || "Sin telefono" },
+  { label: "Estado", value: instructor.estado || "Activo" },
   {
     label: "Fecha de registro",
     value: formatFechaRegistro(instructor.fechaInscripcion),
@@ -282,6 +291,7 @@ const getInstructorDeleteFields = (instructor: Instructor) => [
     value: instructor.especializacion || "Sin especializacion",
   },
   { label: "Email", value: instructor.email || "Sin email" },
+  { label: "Estado", value: instructor.estado || "Activo" },
 ];
 
 const FILTER_OPTIONS: { key: FilterKey; label: string; placeholder: string }[] = [
@@ -304,6 +314,7 @@ const FILTER_OPTIONS: { key: FilterKey; label: string; placeholder: string }[] =
   { key: "apellido", label: "Apellido", placeholder: "Buscar por apellido" },
   { key: "telefono", label: "Telefono", placeholder: "Buscar por telefono" },
   { key: "email", label: "Email", placeholder: "Buscar por email" },
+  { key: "estado", label: "Estado", placeholder: "Buscar Activo/Inactivo" },
   {
     key: "fechaRegistro",
     label: "Fecha de registro",
@@ -417,6 +428,7 @@ const ListaInstructoresAdmin = () => {
           telefono: normalizeText(item?.telefono),
           email: normalizeText(item?.email),
           fechaInscripcion: item?.fechaInscripcion || null,
+          estado: normalizeEstado(item?.estado),
         }));
         const validFichas = (Array.isArray(fichasData) ? fichasData : []).map(
           (item) => ({
@@ -456,6 +468,7 @@ const ListaInstructoresAdmin = () => {
       apellido: (item) => item.apellido.toLowerCase(),
       telefono: (item) => item.telefono.toLowerCase(),
       email: (item) => item.email.toLowerCase(),
+      estado: (item) => item.estado.toLowerCase(),
       fechaRegistro: (item) =>
         formatFechaRegistro(item.fechaInscripcion).toLowerCase(),
       fichasCargo: (item) => buildFichaSearchValue(item),
@@ -547,6 +560,7 @@ const ListaInstructoresAdmin = () => {
       email: instructor.email || "",
       telefono: instructor.telefono || "",
       fechaInscripcion: formatFechaRegistro(instructor.fechaInscripcion),
+      estado: instructor.estado || "Activo",
       fichasSeleccionadas: getInstructorFichas(instructor).map(
         (item) => item.ficha,
       ),
@@ -620,6 +634,7 @@ const ListaInstructoresAdmin = () => {
         telefono: editForm.telefono,
         sexo: editForm.sexo,
         especializacion: editForm.especializacion,
+        estado: editForm.estado,
         fichas: editForm.fichasSeleccionadas,
       };
       const endpointBase = `${API_URL}/instructores/${editingInstructor.documento}`;
@@ -685,6 +700,7 @@ const ListaInstructoresAdmin = () => {
                   item.tipoDocumento,
                 fechaInscripcion:
                   updatedInstructor?.fechaInscripcion || item.fechaInscripcion,
+                estado: normalizeEstado(updatedInstructor?.estado) || editForm.estado,
                 fichasCargo: normalizeFichasCargo(updatedInstructor?.fichasCargo),
                 fichasDetalle: normalizeFichasDetalle(
                   updatedInstructor?.fichasDetalle,
@@ -902,6 +918,7 @@ const ListaInstructoresAdmin = () => {
                   <th>Apellido</th>
                   <th>Especializacion</th>
                   <th>Email</th>
+                  <th>Estado</th>
                   <th>Fichas a cargo</th>
                   <th>Acciones</th>
                 </tr>
@@ -924,6 +941,13 @@ const ListaInstructoresAdmin = () => {
                         <td>{row.apellido || "Sin apellido"}</td>
                         <td>{row.especializacion || "Sin especializacion"}</td>
                         <td>{row.email || "Sin email"}</td>
+                        <td>
+                          <span
+                            className={`status-badge ${row.estado === "Activo" ? "status-active" : "status-inactive"}`}
+                          >
+                            {row.estado}
+                          </span>
+                        </td>
                         <td>
                           <button
                             type="button"
@@ -973,7 +997,7 @@ const ListaInstructoresAdmin = () => {
                 ) : (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       style={{
                         textAlign: "center",
                         padding: "30px",
@@ -1293,6 +1317,19 @@ const ListaInstructoresAdmin = () => {
                         value={editForm.fechaInscripcion}
                         disabled
                       />
+                    </label>
+
+                    <label className="edit-form-field">
+                      <span>Estado</span>
+                      <select
+                        value={editForm.estado}
+                        onChange={(e) =>
+                          handleEditFieldChange("estado", e.target.value)
+                        }
+                      >
+                        <option value="Activo">Activo</option>
+                        <option value="Inactivo">Inactivo</option>
+                      </select>
                     </label>
                   </div>
                 </div>

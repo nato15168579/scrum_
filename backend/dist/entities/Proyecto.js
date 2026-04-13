@@ -53,7 +53,11 @@ __decorate([
     __metadata("design:type", String)
 ], Proyecto.prototype, "proObjetivosEspecificos", void 0);
 __decorate([
-    (0, typeorm_1.Column)("varchar", { name: "pro_descripcion", nullable: true, length: 200 }),
+    (0, typeorm_1.Column)("varchar", {
+        name: "pro_descripcion",
+        nullable: true,
+        length: 200,
+    }),
     __metadata("design:type", String)
 ], Proyecto.prototype, "proDescription", void 0);
 __decorate([
@@ -65,7 +69,11 @@ __decorate([
     __metadata("design:type", String)
 ], Proyecto.prototype, "proFechaFin", void 0);
 __decorate([
-    (0, typeorm_1.Column)("varchar", { name: "pro_justificacion", nullable: true, length: 500 }),
+    (0, typeorm_1.Column)("varchar", {
+        name: "pro_justificacion",
+        nullable: true,
+        length: 500,
+    }),
     __metadata("design:type", String)
 ], Proyecto.prototype, "proJustificacion", void 0);
 __decorate([

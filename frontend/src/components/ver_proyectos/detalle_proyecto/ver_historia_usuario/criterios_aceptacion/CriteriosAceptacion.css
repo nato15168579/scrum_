@@ -1,0 +1,109 @@
+/* frontend/src/components/CriteriosAceptacion.css */
+
+/* Contenedor Principal */
+.criterios-container {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    margin-top: 20px;
+    border: 1px solid #f0f0f0;
+}
+
+/* Título de la sección */
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #000;
+    margin-bottom: 25px;
+}
+
+/* Tabla Estilo Verde (Consistente con el resto del proyecto) */
+.table-green-header {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+.table-green-header thead th {
+    background-color: #39A900; /* Verde SENA */
+    color: white;
+    padding: 15px;
+    text-align: left;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+/* Bordes redondeados cabecera */
+.table-green-header th:first-child { border-top-left-radius: 10px; }
+.table-green-header th:last-child { border-top-right-radius: 10px; }
+
+.table-green-header td {
+    padding: 15px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #333;
+    vertical-align: middle;
+}
+
+/* Hover en filas */
+.table-green-header tbody tr:hover {
+    background-color: #f1f8e9;
+}
+
+/* Estilos específicos de columnas */
+.col-id { font-weight: bold; color: #333; }
+.col-historia { font-weight: bold; color: #555; text-align: center; }
+.col-tiempo { text-align: center; font-weight: 600; }
+.col-responsable { text-transform: capitalize; color: #555; }
+
+/* Estilo para el estado (Texto simple como en la imagen) */
+.text-estado {
+    color: #555;
+    text-transform: lowercase;
+}
+
+/* --- Paginación (Reutilizada de tus otros componentes) --- */
+.pagination-controls {
+    display: flex;
+    justify-content: flex-end; /* Alineado a la derecha como en la imagen */
+    align-items: center;
+    padding-top: 20px;
+    border-top: 1px solid #f5f5f5;
+    margin-top: 10px;
+    gap: 10px;
+}
+
+.btn-page {
+    background: #fff;
+    color: #333;
+    border: 1px solid #e0e0e0;
+    width: 35px;
+    height: 35px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-page:hover:not(:disabled) {
+    background-color: #f3f4f6;
+    border-color: #39A900;
+    color: #39A900;
+}
+
+.btn-page.active-page {
+    background-color: #39A900;
+    color: white;
+    border-color: #39A900;
+}
+
+.btn-page:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f9f9f9;
+}

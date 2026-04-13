@@ -1331,6 +1331,7 @@ let ListaService = class ListaService {
         u.usu_telefono AS telefono,
         u.usu_correo AS email,
         u.fecha_registro AS fechaInscripcion,
+        u.usu_estado AS estado,
         CAST(f.fic_numero AS CHAR) AS ficha,
         ${fichaNombreSelect} AS fichaNombre,
         f.fic_programa AS programa,
@@ -1358,6 +1359,7 @@ let ListaService = class ListaService {
                     telefono: row.telefono || '',
                     email: row.email || '',
                     fechaInscripcion: this.formatDateToIso(row.fechaInscripcion),
+                    estado: this.normalizeEstado(row.estado),
                 });
             }
             const instructor = instructoresMap.get(documento);
@@ -1687,7 +1689,7 @@ let ListaService = class ListaService {
         }
     }
     async updateInstructor(cedula, payload, actorCedula) {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g;
         await this.ensureUsuarioColumns();
         await this.ensureFichaSchema();
         const documento = Number(cedula);
@@ -1710,6 +1712,7 @@ let ListaService = class ListaService {
         const telefono = this.sanitizeText((_d = payload.telefono) !== null && _d !== void 0 ? _d : instructor.usuTelefono);
         const sexo = this.sanitizeText((_e = payload.sexo) !== null && _e !== void 0 ? _e : instructor.usuSexo);
         const especializacion = this.sanitizeText((_f = payload.especializacion) !== null && _f !== void 0 ? _f : instructor.usuEspecializacion);
+        const estado = this.sanitizeText((_g = payload.estado) !== null && _g !== void 0 ? _g : instructor.usuEstado);
         const shouldUpdateFichas = Array.isArray(payload.fichas);
         const fichasSeleccionadas = shouldUpdateFichas
             ? Array.from(new Set((payload.fichas || [])
@@ -1728,6 +1731,9 @@ let ListaService = class ListaService {
         if (!especializacion) {
             throw new common_1.BadRequestException('La especializacion es obligatoria.');
         }
+        if (!ESTADOS_USUARIO.includes(estado)) {
+            throw new common_1.BadRequestException('El estado debe ser Activo o Inactivo.');
+        }
         if (sexo && !SEXOS_USUARIO.includes(sexo)) {
             throw new common_1.BadRequestException('El sexo debe ser Hombre o Mujer.');
         }
@@ -1745,6 +1751,7 @@ let ListaService = class ListaService {
         this.pushCambioSistemaIfDifferent(cambios, 'Telefono', instructor.usuTelefono, telefono);
         this.pushCambioSistemaIfDifferent(cambios, 'Sexo', instructor.usuSexo, sexo);
         this.pushCambioSistemaIfDifferent(cambios, 'Especializacion', instructor.usuEspecializacion, especializacion);
+        this.pushCambioSistemaIfDifferent(cambios, 'Estado', instructor.usuEstado, estado);
         if (shouldUpdateFichas && fichasAntes) {
             this.pushCambioSistemaListIfDifferent(cambios, 'Fichas', fichasAntes, fichasSeleccionadas);
         }
@@ -1761,6 +1768,7 @@ let ListaService = class ListaService {
             instructor.usuTelefono = telefono || null;
             instructor.usuSexo = sexo ? sexo : null;
             instructor.usuEspecializacion = especializacion;
+            instructor.usuEstado = estado;
             await queryRunner.manager.save(Usuario_1.Usuario, instructor);
             if (shouldUpdateFichas) {
                 await queryRunner.query('DELETE FROM usuario_ficha WHERE usu_cedula_FK = ?', [documento]);
@@ -1792,6 +1800,7 @@ let ListaService = class ListaService {
                 telefono: instructor.usuTelefono || '',
                 email: instructor.usuCorreo || '',
                 fechaInscripcion: this.formatDateToIso(instructor.fechaRegistro),
+                estado: instructor.usuEstado || 'Activo',
                 fichasCargo: fichasDetalle.map((item) => item.ficha),
                 fichasDetalle,
             },

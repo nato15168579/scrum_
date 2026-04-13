@@ -19,6 +19,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
   ArrowLeft,
   Eye,
   Filter,
@@ -67,6 +76,16 @@ interface FichaItem {
   programa: string;
   estado: string;
   fechaCreacion: string | null;
+}
+
+interface AprendizProgramaItem {
+  documento: string;
+  programa: string;
+}
+
+interface ProgramaAprendizChartRow {
+  programa: string;
+  aprendices: number;
 }
 
 interface ProyectoApi {
@@ -447,6 +466,7 @@ const VerProyectosAdmin = () => {
 
   const [fichas, setFichas] = useState<FichaItem[]>([]);
   const [proyectos, setProyectos] = useState<ProyectoItem[]>([]);
+  const [aprendices, setAprendices] = useState<AprendizProgramaItem[]>([]);
 
   const [selectedPrograma, setSelectedPrograma] = useState<string | null>(null);
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
@@ -536,15 +556,22 @@ const VerProyectosAdmin = () => {
       setLoading(true);
 
       try {
-        const [fichasRes, proyectosRes, dashboardRes] = await Promise.all([
-          fetch(`${API_URL}/fichas`),
-          fetch(`${API_URL}/verpro`),
-          fetch(`${API_URL}/dashboard?cedula=${cedula}`),
-        ]);
+        const [fichasRes, proyectosRes, dashboardRes, aprendicesRes] =
+          await Promise.all([
+            fetch(`${API_URL}/fichas`),
+            fetch(`${API_URL}/verpro`),
+            fetch(`${API_URL}/dashboard?cedula=${cedula}`),
+            fetch(`${API_URL}/aprendices?cedula=${cedula}`),
+          ]);
 
         const fichasData = fichasRes.ok ? await fichasRes.json() : [];
         const proyectosData = proyectosRes.ok ? await proyectosRes.json() : [];
-        const dashboardData = dashboardRes.ok ? await dashboardRes.json() : null;
+        const dashboardData = dashboardRes.ok
+          ? await dashboardRes.json()
+          : null;
+        const aprendicesData = aprendicesRes.ok
+          ? await aprendicesRes.json()
+          : [];
 
         const validFichas = Array.isArray(fichasData) ? fichasData : [];
         const parsedFichas: FichaItem[] = validFichas.map((item) => ({
@@ -592,8 +619,19 @@ const VerProyectosAdmin = () => {
           },
         );
 
+        const validAprendices = Array.isArray(aprendicesData)
+          ? aprendicesData
+          : [];
+        const parsedAprendices: AprendizProgramaItem[] = validAprendices.map(
+          (item) => ({
+            documento: normalizeText(item?.documento),
+            programa: normalizeText(item?.programa) || "Sin programa",
+          }),
+        );
+
         setFichas(parsedFichas);
         setProyectos(parsedProyectos);
+        setAprendices(parsedAprendices);
         setAdminName(resolveUserName(dashboardData?.instructor, "Usuario"));
       } catch (error) {
         console.error("Error cargando datos de admin proyectos:", error);
@@ -663,6 +701,77 @@ const VerProyectosAdmin = () => {
   }, [fichasForNavigation]);
 
   const term = searchTerm.toLowerCase().trim();
+
+  const programasAprendicesChartData = useMemo(() => {
+    const rowsByProgram = new Map<string, ProgramaAprendizChartRow>();
+
+    const ensureProgramRow = (programaRaw: unknown) => {
+      const programa = normalizeText(programaRaw);
+      const comparablePrograma = normalizeComparableText(programa);
+
+      if (!programa || comparablePrograma === "sin programa") {
+        return null;
+      }
+
+      const existing = rowsByProgram.get(comparablePrograma);
+
+      if (existing) {
+        if (programa.length > existing.programa.length) {
+          existing.programa = programa;
+        }
+
+        return comparablePrograma;
+      }
+
+      rowsByProgram.set(comparablePrograma, {
+        programa,
+        aprendices: 0,
+      });
+
+      return comparablePrograma;
+    };
+
+    fichas.forEach((ficha) => {
+      ensureProgramRow(ficha.programa);
+    });
+
+    aprendices.forEach((aprendiz) => {
+      const comparablePrograma = ensureProgramRow(aprendiz.programa);
+      if (!comparablePrograma) return;
+
+      const current = rowsByProgram.get(comparablePrograma);
+      if (!current) return;
+
+      current.aprendices += 1;
+    });
+
+    const rows = Array.from(rowsByProgram.values()).sort((a, b) => {
+      if (b.aprendices !== a.aprendices) {
+        return b.aprendices - a.aprendices;
+      }
+
+      return a.programa.localeCompare(b.programa, "es");
+    });
+
+    if (!term) return rows;
+
+    return rows.filter((row) =>
+      [row.programa, row.aprendices].join(" ").toLowerCase().includes(term),
+    );
+  }, [aprendices, fichas, term]);
+
+  const programasAprendicesChartSummary = useMemo(() => {
+    const totalAprendices = programasAprendicesChartData.reduce(
+      (accumulator, row) => accumulator + row.aprendices,
+      0,
+    );
+
+    return {
+      totalProgramas: programasAprendicesChartData.length,
+      totalAprendices,
+      programaLider: programasAprendicesChartData[0] || null,
+    };
+  }, [programasAprendicesChartData]);
 
   const filteredProgramas = useMemo(() => {
     if (!term) return programas;
@@ -2077,90 +2186,220 @@ const VerProyectosAdmin = () => {
           ) : null}
 
           {view === "programas" ? (
-            <div className="vp-table-card">
-              <table className="vp-table">
-                <thead>
-                  <tr>
-                    <th>Programa</th>
-                    <th>Areas</th>
-                    <th>Fichas</th>
-                    <th style={{ textAlign: "center" }}>Accion</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProgramas.length > 0 ? (
-                    filteredProgramas.map((programa) => {
-                      const totalAreas = areasForPrograma[programa]
-                        ? areasForPrograma[programa].size
-                        : 0;
-                      const totalFichas = fichasForNavigation.filter(
-                        (f) => f.programa === programa,
-                      ).length;
-
-                      return (
-                        <tr key={programa}>
-                          <td className="vp-name-cell">{programa}</td>
-                          <td>{totalAreas}</td>
-                          <td>{totalFichas}</td>
-                          <td className="vp-actions-cell">
-                            <div className="vp-table-actions">
-                              <button
-                                type="button"
-                                className="vp-action-button action-view"
-                                onClick={() => {
-                                  setSelectedPrograma(programa);
-                                  setSelectedArea(null);
-                                  setSelectedFichaNumero(null);
-                                  setView("areas");
-                                }}
-                                aria-label={`Ver areas del programa ${programa}`}
-                                title="Ver areas"
-                              >
-                                <Eye size={18} />
-                              </button>
-                              <button
-                                type="button"
-                                className="vp-action-button action-edit"
-                                onClick={() =>
-                                  setEditProgramaModal({
-                                    programaActual: programa,
-                                    programaNuevo: programa,
-                                  })
-                                }
-                                aria-label={`Editar programa ${programa}`}
-                                title="Editar programa"
-                              >
-                                <Pencil size={18} />
-                              </button>
-                              <button
-                                type="button"
-                                className="vp-action-button action-delete"
-                                onClick={() =>
-                                  setDeleteDialog({
-                                    kind: "programa",
-                                    label: programa,
-                                  })
-                                }
-                                aria-label={`Eliminar programa ${programa}`}
-                                title="Eliminar programa"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
+            <>
+              <div className="vp-table-card">
+                <table className="vp-table">
+                  <thead>
                     <tr>
-                      <td colSpan={4} className="vp-empty-row">
-                        No se encontraron programas con este filtro.
-                      </td>
+                      <th>Programa</th>
+                      <th>Areas</th>
+                      <th>Fichas</th>
+                      <th style={{ textAlign: "center" }}>Accion</th>
                     </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProgramas.length > 0 ? (
+                      filteredProgramas.map((programa) => {
+                        const totalAreas = areasForPrograma[programa]
+                          ? areasForPrograma[programa].size
+                          : 0;
+                        const totalFichas = fichasForNavigation.filter(
+                          (f) => f.programa === programa,
+                        ).length;
+
+                        return (
+                          <tr key={programa}>
+                            <td className="vp-name-cell">{programa}</td>
+                            <td>{totalAreas}</td>
+                            <td>{totalFichas}</td>
+                            <td className="vp-actions-cell">
+                              <div className="vp-table-actions">
+                                <button
+                                  type="button"
+                                  className="vp-action-button action-view"
+                                  onClick={() => {
+                                    setSelectedPrograma(programa);
+                                    setSelectedArea(null);
+                                    setSelectedFichaNumero(null);
+                                    setView("areas");
+                                  }}
+                                  aria-label={`Ver areas del programa ${programa}`}
+                                  title="Ver areas"
+                                >
+                                  <Eye size={18} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="vp-action-button action-edit"
+                                  onClick={() =>
+                                    setEditProgramaModal({
+                                      programaActual: programa,
+                                      programaNuevo: programa,
+                                    })
+                                  }
+                                  aria-label={`Editar programa ${programa}`}
+                                  title="Editar programa"
+                                >
+                                  <Pencil size={18} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="vp-action-button action-delete"
+                                  onClick={() =>
+                                    setDeleteDialog({
+                                      kind: "programa",
+                                      label: programa,
+                                    })
+                                  }
+                                  aria-label={`Eliminar programa ${programa}`}
+                                  title="Eliminar programa"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="vp-empty-row">
+                          No se encontraron programas con este filtro.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <section className="vp-program-chart-card">
+                <div className="vp-program-chart-header">
+                  <div className="vp-program-chart-copy">
+                    <h2 className="vp-program-chart-title">
+                      Aprendices por programa
+                    </h2>
+                    <p className="vp-program-chart-description">
+                      Esta grafica agrupa los aprendices registrados en el
+                      sistema segun el programa al que pertenecen.
+                    </p>
+                  </div>
+
+                  <div className="vp-program-metric-tabs">
+                    <article className="vp-program-metric-card">
+                      <span className="vp-program-metric-label">
+                        Programas
+                      </span>
+                      <strong className="vp-program-metric-value">
+                        {programasAprendicesChartSummary.totalProgramas.toLocaleString()}
+                      </strong>
+                      <span className="vp-program-metric-meta">
+                        Con fichas o aprendices asociados
+                      </span>
+                    </article>
+
+                    <article className="vp-program-metric-card">
+                      <span className="vp-program-metric-label">
+                        Aprendices
+                      </span>
+                      <strong className="vp-program-metric-value">
+                        {programasAprendicesChartSummary.totalAprendices.toLocaleString()}
+                      </strong>
+                      <span className="vp-program-metric-meta">
+                        Registrados en el sistema
+                      </span>
+                    </article>
+
+                    <article className="vp-program-metric-card">
+                      <span className="vp-program-metric-label">
+                        Programa lider
+                      </span>
+                      <strong className="vp-program-metric-value is-compact">
+                        {programasAprendicesChartSummary.programaLider
+                          ? programasAprendicesChartSummary.programaLider.programa
+                          : "Sin registros"}
+                      </strong>
+                      <span className="vp-program-metric-meta">
+                        {programasAprendicesChartSummary.programaLider
+                          ? `${programasAprendicesChartSummary.programaLider.aprendices.toLocaleString()} aprendices`
+                          : "Aun sin datos"}
+                      </span>
+                    </article>
+                  </div>
+                </div>
+
+                <div className="vp-program-chart-content">
+                  {programasAprendicesChartData.length > 0 ? (
+                    <div className="vp-program-chart-viewport">
+                      <div className="vp-program-chart-shell">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={programasAprendicesChartData}
+                            margin={{
+                              top: 8,
+                              right: 18,
+                              bottom: 8,
+                              left: 0,
+                            }}
+                          >
+                            <CartesianGrid
+                              vertical={false}
+                              strokeDasharray="3 3"
+                            />
+                            <XAxis
+                              dataKey="programa"
+                              tickLine={false}
+                              axisLine={false}
+                              interval={0}
+                              tick={{ fontSize: 12 }}
+                              angle={programasAprendicesChartData.length > 5 ? -20 : 0}
+                              textAnchor={
+                                programasAprendicesChartData.length > 5
+                                  ? "end"
+                                  : "middle"
+                              }
+                              height={programasAprendicesChartData.length > 5 ? 56 : 30}
+                            />
+                            <YAxis
+                              allowDecimals={false}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <Tooltip
+                              formatter={(value: number | string) =>
+                                [
+                                  `${Number(value).toLocaleString()} aprendices`,
+                                  "Cantidad",
+                                ] as [string, string]
+                              }
+                              labelFormatter={(label: unknown) =>
+                                `Programa: ${String(label)}`
+                              }
+                            />
+                            <Bar
+                              dataKey="aprendices"
+                              name="Aprendices"
+                              fill="#39A900"
+                              radius={[6, 6, 0, 0]}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="vp-program-chart-empty">
+                      {term
+                        ? "No se encontraron programas con ese filtro."
+                        : "Aun no hay programas o aprendices con programa asociado para mostrar esta estadistica."}
+                    </div>
                   )}
-                </tbody>
-              </table>
-            </div>
+                </div>
+
+                <p className="vp-program-chart-footer">
+                  Cada barra representa la cantidad total de aprendices
+                  pertenecientes a un programa en el sistema.
+                </p>
+              </section>
+            </>
           ) : null}
 
           {view === "areas" ? (

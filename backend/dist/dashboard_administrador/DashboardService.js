@@ -92,6 +92,50 @@ let DashboardService = DashboardService_1 = class DashboardService {
             .length;
         return { total, porHacer, enProgreso, hecho };
     }
+    async getUsuariosPorRolEstado() {
+        if (!(await this.tableExists("usuario"))) {
+            return [
+                { rol: "Aprendices", activos: 0, inactivos: 0, total: 0 },
+                { rol: "Instructores", activos: 0, inactivos: 0, total: 0 },
+                { rol: "Administradores", activos: 0, inactivos: 0, total: 0 },
+            ];
+        }
+        const tableRef = this.wrapIdentifier("usuario");
+        const roleRef = this.wrapIdentifier("rol_sis_ID_FK");
+        const hasEstadoColumn = await this.columnExists("usuario", "usu_estado");
+        const estadoRef = hasEstadoColumn
+            ? `COALESCE(NULLIF(TRIM(${this.wrapIdentifier("usu_estado")}), ''), 'Activo')`
+            : `'Activo'`;
+        const rows = (await this.dataSource.query(`
+      SELECT
+        ${roleRef} AS rolId,
+        ${estadoRef} AS estado
+      FROM ${tableRef}
+      WHERE ${roleRef} IN (1, 2, 3)
+    `));
+        const summaryByRole = new Map([
+            [1, { rol: "Aprendices", activos: 0, inactivos: 0, total: 0 }],
+            [2, { rol: "Instructores", activos: 0, inactivos: 0, total: 0 }],
+            [3, { rol: "Administradores", activos: 0, inactivos: 0, total: 0 }],
+        ]);
+        for (const row of rows) {
+            const roleId = Number(row.rolId);
+            const target = summaryByRole.get(roleId);
+            if (!target) {
+                continue;
+            }
+            const estadoNormalizado = String(row.estado || "Activo").trim().toLowerCase() === "inactivo"
+                ? "Inactivo"
+                : "Activo";
+            target.total += 1;
+            if (estadoNormalizado === "Inactivo") {
+                target.inactivos += 1;
+                continue;
+            }
+            target.activos += 1;
+        }
+        return Array.from(summaryByRole.values());
+    }
     async obtenerDatosDashboard(cedulaInput) {
         var _a;
         try {
@@ -138,6 +182,18 @@ let DashboardService = DashboardService_1 = class DashboardService {
                 const error = e instanceof Error ? e : new Error(String(e));
                 this.logger.error("Error al calcular proyectos:", error.message);
             }
+            let usuariosPorRolEstado = [
+                { rol: "Aprendices", activos: 0, inactivos: 0, total: 0 },
+                { rol: "Instructores", activos: 0, inactivos: 0, total: 0 },
+                { rol: "Administradores", activos: 0, inactivos: 0, total: 0 },
+            ];
+            try {
+                usuariosPorRolEstado = await this.getUsuariosPorRolEstado();
+            }
+            catch (e) {
+                const error = e instanceof Error ? e : new Error(String(e));
+                this.logger.error("Error al calcular resumen de usuarios por rol:", error.message);
+            }
             return {
                 instructor: `${usuario.usuNombres || ""} ${usuario.usuApellidos || ""}`.trim(),
                 correo: usuario.usuCorreo || "Sin correo",
@@ -153,6 +209,7 @@ let DashboardService = DashboardService_1 = class DashboardService {
                     enProgreso: proyectosStats.enProgreso,
                     hecho: proyectosStats.hecho,
                 },
+                usuariosPorRolEstado,
             };
         }
         catch (error) {

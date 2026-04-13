@@ -1,0 +1,354 @@
+.aprendiz-container {
+    padding: 30px;
+    display: flex;
+    justify-content: center;
+}
+
+.aprendiz-card-form {
+    background: white;
+    width: 100%;
+    max-width: 850px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    overflow: hidden;
+}
+
+.aprendiz-card-header {
+    background: linear-gradient(135deg, #39a900, #2d8500);
+    color: white;
+    padding: 20px 24px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.aprendiz-card-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.aprendiz-card-heading h3 {
+    margin: 0 0 6px;
+    font-size: 1.3rem;
+}
+
+.aprendiz-card-heading p {
+    margin: 0;
+    max-width: 520px;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.aprendiz-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.aprendiz-file-input {
+    display: none;
+}
+
+.btn-importar {
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.14);
+    color: white;
+    padding: 11px 16px;
+    border-radius: 10px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.btn-importar:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.22);
+    transform: translateY(-1px);
+}
+
+.btn-importar:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.grid-form {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.input-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.input-field label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #444;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.input-field input,
+.input-field select {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: border 0.3s, box-shadow 0.3s;
+    background: white;
+}
+
+.input-field input:focus,
+.input-field select:focus {
+    border-color: #39A900;
+    box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.12);
+    outline: none;
+}
+
+.input-field input[readonly] {
+    background: #f6f8fb;
+    color: #64748b;
+}
+
+.form-hint {
+    grid-column: span 2;
+    margin: -4px 0 0;
+    padding: 14px 16px;
+    color: #475569;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    line-height: 1.45;
+}
+
+.alert-box {
+    grid-column: span 2;
+    padding: 15px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+}
+
+.alert-box.success { background: #e8f5e9; color: #2e7d32; }
+.alert-box.error { background: #ffebee; color: #c62828; }
+
+.form-footer {
+    grid-column: span 2;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.btn-registrar {
+    background: #39A900;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-registrar:hover { background: #2d8500; }
+.btn-registrar:disabled { background: #ccc; cursor: not-allowed; }
+
+.aprendiz-import-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.52);
+    backdrop-filter: blur(5px);
+}
+
+.aprendiz-import-modal-card {
+    width: min(100%, 430px);
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    padding: 30px 28px;
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 28px 60px rgba(15, 23, 42, 0.24);
+    text-align: center;
+}
+
+.aprendiz-import-modal-card h2 {
+    margin: 0 0 10px;
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #111827;
+}
+
+.aprendiz-import-modal-card p {
+    margin: 0;
+    line-height: 1.6;
+    color: #4b5563;
+}
+
+.aprendiz-imported-list-card {
+    width: min(100%, 1120px);
+    text-align: left;
+}
+
+.aprendiz-imported-table-wrapper {
+    margin-top: 24px;
+    max-width: 100%;
+    max-height: min(48vh, 420px);
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+}
+
+.aprendiz-imported-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.aprendiz-imported-table thead tr {
+    background: #39a900;
+    color: white;
+}
+
+.aprendiz-imported-table th,
+.aprendiz-imported-table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.92rem;
+}
+
+.aprendiz-imported-table th {
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.aprendiz-imported-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.aprendiz-user-type-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 92px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #166534;
+    background: #dcfce7;
+}
+
+.aprendiz-modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.aprendiz-modal-button {
+    min-width: 130px;
+    padding: 12px 18px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: white;
+    background: #39a900;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.aprendiz-modal-button:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+}
+
+@media (max-width: 920px) {
+    .aprendiz-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .aprendiz-header-actions {
+        width: 100%;
+    }
+
+    .btn-importar {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 720px) {
+    .aprendiz-container {
+        padding: 16px;
+    }
+
+    .grid-form {
+        grid-template-columns: 1fr;
+        padding: 20px;
+    }
+
+    .form-hint,
+    .alert-box,
+    .form-footer {
+        grid-column: span 1;
+    }
+
+    .form-footer {
+        justify-content: stretch;
+    }
+
+    .btn-registrar {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .aprendiz-import-modal-overlay {
+        align-items: flex-start;
+        padding: 14px;
+    }
+
+    .aprendiz-import-modal-card {
+        width: 100%;
+        max-height: calc(100vh - 28px);
+        padding: 22px 18px;
+        border-radius: 20px;
+    }
+
+    .aprendiz-imported-table th,
+    .aprendiz-imported-table td {
+        padding: 12px;
+        font-size: 0.86rem;
+        white-space: nowrap;
+    }
+
+    .aprendiz-modal-button {
+        width: 100%;
+    }
+}

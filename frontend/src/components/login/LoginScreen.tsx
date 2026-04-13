@@ -101,8 +101,8 @@ const LoginScreen = () => {
         );
         navigate("/dashboard-instructor");
       } else if (roleNum === 1) {
-        console.log("🎯 Rol es Aprendiz - Redirigiendo a /student-dashboard");
-        navigate("/student-dashboard");
+        console.log("🎯 Rol es Aprendiz - Redirigiendo a /dashboard-aprendiz");
+        navigate("/dashboard-aprendiz");
       } else {
         console.log(
           "🎯 Rol no identificado, redirigiendo a /dashboard para resolver por contexto",
@@ -155,7 +155,7 @@ const LoginScreen = () => {
           </div>
 
           <div className="forgot-password">
-            <Link to="/recuperar">¿Olvidaste tu contraseña?</Link>
+            <Link to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
           </div>
 
           {error && <p className="error-message">{error}</p>}

@@ -1,23 +1,14 @@
-/**
- * VerProyectos (Instructor)
- * ------------------------
- * Vista del instructor para listar proyectos y navegar al detalle.
- *
- * Nota:
- * - Existe una variante admin en `dashboard_administrador/proyectos_admin/VerProyectos.tsx`.
- * - Esta pantalla mantiene paginacion local y layout del dashboard instructor.
- */
 import { useState, useEffect, useRef } from 'react';
 import { 
     Home, Users, Plus, MapPin, Eye, List, 
-    ChevronDown, LogOut, Filter, ChevronLeft, ChevronRight, AlertTriangle, HelpCircle 
+    ChevronDown, LogOut, Filter, ChevronLeft, ChevronRight, 
+    AlertTriangle, HelpCircle, User 
 } from 'lucide-react'; 
 import { useNavigate, useLocation } from 'react-router-dom';
 import senaLogo from '../../assets/sena.png'; 
 import '../dashboard_instructor/Dashboard.css'; 
 import './VerProyectos.css'; 
 import { API_URL } from '../../config/Api';
-import { resolveUserName } from '../../session/session';
 
 // --- INTERFACES ---
 interface Proyecto {
@@ -27,16 +18,7 @@ interface Proyecto {
     fechaInicio: string;
     fechaFin: string;
     status: string; 
-}
-
-interface ProyectoApi {
-    detParIdFk?: number;
-    proId?: number;
-    proNombre?: string;
-    proDescription?: string;
-    proObjetivoGeneral?: string;
-    proFechaInicio?: string;
-    proFechaFin?: string;
+    detParIdFk: number;
 }
 
 const ITEMS_PER_PAGE = 8;
@@ -50,9 +32,7 @@ const VerProyectos = () => {
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     
-    const [instructorName, setInstructorName] = useState(() =>
-        resolveUserName(undefined, 'Usuario'),
-    );
+    const [instructorName, setInstructorName] = useState('Instructor'); 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -66,6 +46,17 @@ const VerProyectos = () => {
         { name: 'Registrar Aprendiz', icon: List, path: '/registrar-aprendiz' },
     ];
 
+    // Cierra el menú al hacer clic fuera
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     const confirmLogout = () => {
         localStorage.clear(); 
         navigate('/');
@@ -76,32 +67,26 @@ const VerProyectos = () => {
         const cedula = localStorage.getItem('userCedula');
         if (!cedula) { navigate('/'); return; }
 
+        setLoading(true);
+
+        // Carga de Proyectos
         fetch(`${API_URL}/verpro`)
             .then(res => res.ok ? res.json() : [])
             .then(data => {
                 const validData = Array.isArray(data) ? data : [];
-                const formatted = (validData as ProyectoApi[]).map((item) => {
-                    
-                    // LÓGICA DE ESTADOS SEGÚN TU SOLICITUD:
-                    // 1 = POR HACER, 2 = EN PROGRESO, 3 = HECHO
+                const formatted = validData.map((item: any) => {
                     let estadoTexto = "POR HACER";
-                    const idEstado = item.detParIdFk; 
-
-                    if (idEstado === 1) {
-                        estadoTexto = "POR HACER";
-                    } else if (idEstado === 2) {
-                        estadoTexto = "EN PROGRESO";
-                    } else if (idEstado === 3) {
-                        estadoTexto = "HECHO";
-                    }
+                    if (item.detParIdFk === 2) estadoTexto = "EN PROGRESO";
+                    else if (item.detParIdFk === 3) estadoTexto = "HECHO";
 
                     return {
-                        id: item.proId ?? 0, 
+                        id: item.proId,
                         nombre: item.proNombre || 'Sin nombre',
                         descripcion: item.proDescription || item.proObjetivoGeneral || 'Sin descripción',
                         fechaInicio: item.proFechaInicio ? new Date(item.proFechaInicio).toLocaleDateString('es-ES') : '--/--/--',
                         fechaFin: item.proFechaFin ? new Date(item.proFechaFin).toLocaleDateString('es-ES') : '--/--/--',
-                        status: estadoTexto
+                        status: estadoTexto,
+                        detParIdFk: item.detParIdFk
                     };
                 });
                 setProyectos(formatted);
@@ -109,13 +94,15 @@ const VerProyectos = () => {
             .catch(err => console.error("Error proyectos:", err))
             .finally(() => setLoading(false));
 
+        // Carga de Info del Instructor
         fetch(`${API_URL}/dashboard?cedula=${cedula}`)
             .then(res => res.json())
-            .then(data => setInstructorName(resolveUserName(data?.instructor, 'Usuario')))
-            .catch(() => setInstructorName(resolveUserName(undefined, 'Usuario')));
+            .then(data => {
+                if (data?.instructor) setInstructorName(data.instructor);
+            })
+            .catch(() => setInstructorName("Instructor SENA"));
     }, [navigate]);
 
-    // --- LÓGICA DE FILTRADO Y PAGINACIÓN ---
     const filteredProjects = proyectos.filter(p => {
         const term = searchTerm.toLowerCase();
         return (
@@ -132,7 +119,6 @@ const VerProyectos = () => {
         let className = 'badge-por-hacer'; 
         if (status === 'HECHO') className = 'badge-hecho';
         else if (status === 'EN PROGRESO') className = 'badge-progreso';
-        
         return <span className={`status-badge ${className}`}>{status}</span>;
     };
 
@@ -155,10 +141,9 @@ const VerProyectos = () => {
                         ))}
                     </ul>
                 </nav>
-                {/* AYUDA Y SOPORTE AL FINAL */}
                 <div className="settings-footer" style={{marginTop: 'auto', padding: '10px 0'}}>
                     <p className="menu-title">SETTINGS</p>
-                    <div className="support-item" onClick={() => navigate('/soporte')} style={{display: 'flex', alignItems: 'center', padding: '10px', cursor: 'pointer', fontSize: '0.9rem', color: '#555'}}>
+                    <div className="support-item" onClick={() => navigate('/ayuda-soporte')}>
                         <HelpCircle size={18} style={{ marginRight: '10px', color: '#39A900' }} />
                         <span>Ayuda y Soporte</span>
                     </div>
@@ -167,14 +152,17 @@ const VerProyectos = () => {
 
             <main className="content">
                 <nav className="nav-top">
-                    <div className="title-section"><h1>Ver proyectos</h1></div>
+                    <div className="title-section">
+                        <h1>Ver proyectos</h1>
+                    </div>
                     <div className="profile-menu" ref={menuRef} onClick={() => setIsMenuOpen(!isMenuOpen)}>
                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(instructorName)}&background=39A900&color=fff`} className="profile-img" alt="Avatar"/>
                         <span className="profile-name">{instructorName}</span>
                         <ChevronDown size={18} />
                         {isMenuOpen && (
                             <ul className="dropdown-profile">
-                                <li className="logout" onClick={() => setShowLogoutModal(true)}>
+                                <li onClick={() => navigate('/mi-perfil')}><User size={16} style={{marginRight: '8px'}}/> Mi Perfil</li>
+                                <li className="logout" onClick={(e) => { e.stopPropagation(); setShowLogoutModal(true); }}>
                                     <LogOut size={16} style={{marginRight: '8px'}}/> Cerrar Sesión
                                 </li>
                             </ul>
@@ -192,7 +180,7 @@ const VerProyectos = () => {
                                 value={searchTerm}
                                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                             />
-                            <Filter size={16} color="#555"/>
+                            <Filter size={18} color="#888"/>
                         </div>
                     </div>
 
@@ -212,16 +200,20 @@ const VerProyectos = () => {
                             <tbody>
                                 {displayData.map((p) => (
                                     <tr key={p.id}>
-                                        <td><strong>{p.id}</strong></td>
+                                        <td><strong>#{p.id}</strong></td>
                                         <td className="vp-name-cell">{p.nombre}</td>
-                                        <td className="vp-desc-cell">{p.descripcion.substring(0, 35)}...</td>
+                                        <td className="vp-desc-cell">
+                                            {p.descripcion.length > 40 ? p.descripcion.substring(0, 40) + "..." : p.descripcion}
+                                        </td>
                                         <td>{p.fechaInicio}</td>
                                         <td>{p.fechaFin}</td>
                                         <td>{renderStatusBadge(p.status)}</td>
                                         <td style={{textAlign: 'center'}}>
-                                            <button className="vp-btn-ver-mas" onClick={() => navigate(`/detalle-proyecto/${p.id}`)}>
-                                                ver más
-                                            </button>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <button className="vp-btn-ver-mas" onClick={() => navigate(`/detalle-proyecto/${p.id}`)}>
+                                                    <Eye size={18} /> 
+                                                 </button>
+                                            </td>
                                         </td>
                                     </tr>
                                 ))}
@@ -229,15 +221,14 @@ const VerProyectos = () => {
                         </table>
                     </div>
 
-                    {/* PAGINACIÓN RESTAURADA */}
                     {totalPages > 1 && (
                         <div className="vp-pagination-footer">
                             <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="page-btn">
-                                <ChevronLeft size={16}/>
+                                <ChevronLeft size={20}/>
                             </button>
                             <span className="page-info">{currentPage} / {totalPages}</span>
                             <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="page-btn">
-                                <ChevronRight size={16}/>
+                                <ChevronRight size={20}/>
                             </button>
                         </div>
                     )}
@@ -247,11 +238,14 @@ const VerProyectos = () => {
             {showLogoutModal && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <AlertTriangle size={45} color="#E74C3C" />
+                        <div className="warning-icon-container" style={{backgroundColor: '#ef4444', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '15px', margin: '0 auto 15px auto'}}>
+                            <AlertTriangle size={30} color="white" />
+                        </div>
                         <h2 className="modal-title">¿Cerrar sesión?</h2>
-                        <div className="modal-buttons">
-                            <button className="btn-confirm-logout" onClick={confirmLogout}>Sí, salir</button>
-                            <button className="btn-cancel-logout" onClick={() => setShowLogoutModal(false)}>Cancelar</button>
+                        <p style={{color: '#666', marginBottom: '20px'}}>Perderás el acceso hasta que ingreses de nuevo.</p>
+                        <div className="modal-buttons" style={{display: 'flex', gap: '10px'}}>
+                            <button className="btn-confirm-logout" style={{backgroundColor: '#ef4444', flex: 1}} onClick={confirmLogout}>Salir</button>
+                            <button className="btn-cancel-logout" style={{flex: 1}} onClick={() => setShowLogoutModal(false)}>Cancelar</button>
                         </div>
                     </div>
                 </div>

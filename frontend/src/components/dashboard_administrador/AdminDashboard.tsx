@@ -12,9 +12,12 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -71,6 +74,7 @@ interface DashboardData {
   correo: string;
   description: string;
   stats: Stat[];
+  usuariosPorRolEstado?: UsuarioRolEstadoChartRow[];
 }
 
 type PeriodKey = "dia" | "semana" | "mes" | "anio";
@@ -93,11 +97,18 @@ interface ChartRow {
   order: number;
 }
 
+interface UsuarioRolEstadoChartRow {
+  rol: string;
+  activos: number;
+  inactivos: number;
+  total: number;
+}
+
 const PERIOD_OPTIONS: PeriodOption[] = [
   { key: "dia", label: "Por dia", color: "#39A900" },
-  { key: "semana", label: "Por semana", color: "#0EA5E9" },
-  { key: "mes", label: "Por mes", color: "#F59E0B" },
-  { key: "anio", label: "Por año", color: "#EF4444" },
+  { key: "semana", label: "Por semana", color: "#39A900" },
+  { key: "mes", label: "Por mes", color: "#39A900" },
+  { key: "anio", label: "Por año", color: "#39A900" },
 ];
 
 const REGISTRO_OPTIONS: RegistroOption[] = [
@@ -111,6 +122,12 @@ const CHART_LIMIT: Record<PeriodKey, number> = {
   mes: 12,
   anio: 8,
 };
+
+const DEFAULT_USUARIOS_POR_ROL_ESTADO: UsuarioRolEstadoChartRow[] = [
+  { rol: "Aprendices", activos: 0, inactivos: 0, total: 0 },
+  { rol: "Instructores", activos: 0, inactivos: 0, total: 0 },
+  { rol: "Administradores", activos: 0, inactivos: 0, total: 0 },
+];
 
 // Helpers base para generar llaves temporales consistentes en el grafico.
 const twoDigits = (value: number) => String(value).padStart(2, "0");
@@ -401,10 +418,57 @@ const AdminDashboard = () => {
     [fechasInscripcionInstructores],
   );
 
+  const usuariosPorRolEstado = useMemo(() => {
+    const payloadRows = dashboardData?.usuariosPorRolEstado;
+
+    if (Array.isArray(payloadRows) && payloadRows.length > 0) {
+      return DEFAULT_USUARIOS_POR_ROL_ESTADO.map((defaultRow) => {
+        const currentRow = payloadRows.find((row) => row.rol === defaultRow.rol);
+
+        return {
+          rol: defaultRow.rol,
+          activos: Number(currentRow?.activos || 0),
+          inactivos: Number(currentRow?.inactivos || 0),
+          total: Number(currentRow?.total || 0),
+        };
+      });
+    }
+
+    return [
+      {
+        rol: "Aprendices",
+        activos: aprendices.length,
+        inactivos: 0,
+        total: aprendices.length,
+      },
+      {
+        rol: "Instructores",
+        activos: instructores.length,
+        inactivos: 0,
+        total: instructores.length,
+      },
+      { rol: "Administradores", activos: 0, inactivos: 0, total: 0 },
+    ];
+  }, [dashboardData, aprendices.length, instructores.length]);
+
+  const totalesUsuariosEstado = useMemo(
+    () =>
+      usuariosPorRolEstado.reduce(
+        (acc, row) => ({
+          total: acc.total + row.total,
+          activos: acc.activos + row.activos,
+          inactivos: acc.inactivos + row.inactivos,
+        }),
+        { total: 0, activos: 0, inactivos: 0 },
+      ),
+    [usuariosPorRolEstado],
+  );
+
   if (isLoading || !dashboardData)
     return <div className="loading-screen">Cargando...</div>;
 
   const activePeriodOption =
+  
     PERIOD_OPTIONS.find((period) => period.key === activePeriod) ||
     PERIOD_OPTIONS[0];
 
@@ -584,6 +648,128 @@ const AdminDashboard = () => {
                       para graficar por dia, semana, mes o año.
                     </div>
                   )}
+                </div>
+              </div>
+
+              <div
+                className="summary-card-full students-chart-card role-status-card"
+                data-component="Card"
+              >
+                <div
+                  className="card-header students-card-header role-status-card-header"
+                  data-component="CardHeader"
+                >
+                  <div className="students-card-copy">
+                    <h3 className="card-title students-card-title">
+                      Usuarios activos e inactivos por rol
+                    </h3>
+                    <p className="card-description students-card-description">
+                      Total usuarios: {totalesUsuariosEstado.total.toLocaleString()}{" "}
+                      | activos: {totalesUsuariosEstado.activos.toLocaleString()}{" "}
+                      | inactivos:{" "}
+                      {totalesUsuariosEstado.inactivos.toLocaleString()}
+                    </p>
+
+                    <div className="role-status-summary">
+                      {usuariosPorRolEstado.map((row) => (
+                        <article key={row.rol} className="role-status-pill">
+                          <span className="role-status-pill-label">
+                            {row.rol}
+                          </span>
+                          <strong className="role-status-pill-value">
+                            {row.total.toLocaleString()}
+                          </strong>
+                          <span className="role-status-pill-meta">
+                            {row.activos.toLocaleString()} activos /{" "}
+                            {row.inactivos.toLocaleString()} inactivos
+                          </span>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="card-content students-card-content"
+                  data-component="CardContent"
+                >
+                  <div className="students-chart-wrapper role-status-chart-wrapper">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={usuariosPorRolEstado}
+                        margin={{
+                          top: 10,
+                          right: 12,
+                          left: 0,
+                          bottom: 8,
+                        }}
+                      >
+                        <defs>
+                          <linearGradient
+                            id="fillUsuariosActivos"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop offset="5%" stopColor="#39A900" stopOpacity={0.8} />
+                            <stop offset="95%" stopColor="#39A900" stopOpacity={0.12} />
+                          </linearGradient>
+                          <linearGradient
+                            id="fillUsuariosInactivos"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop offset="5%" stopColor="#fd0000" stopOpacity={0.8} />
+                            <stop offset="95%" stopColor="#fd0000" stopOpacity={0.12} />
+                          </linearGradient>
+                        </defs>
+
+                        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="rol"
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={10}
+                        />
+                        <YAxis
+                          allowDecimals={false}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <Tooltip
+                          formatter={(value: number | string, name: string | number) =>
+                            [
+                              `${Number(value).toLocaleString()} usuarios`,
+                              String(name),
+                            ] as [string, string]
+                          }
+                          labelFormatter={(label: unknown) => `Rol: ${label}`}
+                        />
+                        <Legend />
+                        <Area
+                          type="monotone"
+                          dataKey="inactivos"
+                          name="Inactivos"
+                          fill="url(#fillUsuariosInactivos)"
+                          stroke="#ff0000"
+                          stackId="usuarios"
+                          activeDot={{ r: 5 }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="activos"
+                          name="Activos"
+                          fill="url(#fillUsuariosActivos)"
+                          stroke="#39A900"
+                          stackId="usuarios"
+                          activeDot={{ r: 5 }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
             </section>

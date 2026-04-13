@@ -54,6 +54,7 @@ export interface UpdateInstructorDto {
     sexo?: string;
     especializacion?: string;
     fichas?: Array<string | number>;
+    estado?: string;
 }
 export interface FichaDetalle {
     ficha: string;
@@ -128,6 +129,7 @@ export interface InstructorResponse {
     telefono: string;
     email: string;
     fechaInscripcion: string | null;
+    estado: EstadoUsuario;
 }
 export interface QueryExecutor {
     query: (query: string, parameters?: readonly unknown[]) => Promise<Array<Record<string, unknown>>>;

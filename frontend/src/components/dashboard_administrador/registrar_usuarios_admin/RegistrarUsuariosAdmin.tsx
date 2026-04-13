@@ -1425,12 +1425,13 @@ const RegistrarUsuariosAdmin = () => {
   }
 
   return (
-    <div className="dashboard-page">
+    <div className="dashboard-page register-users-layout">
       <div className="container-dashboard">
         <AdminSidebar currentPath={location.pathname} onNavigate={navigate} />
 
-      <main className="content">
-        <nav className="nav-top">
+      <main className="content register-users-main">
+        <div className="register-users-shell">
+        <nav className="nav-top register-users-topbar">
           <div className="title-section">
             <h1>Registrar usuarios</h1>
           </div>
@@ -1819,6 +1820,7 @@ const RegistrarUsuariosAdmin = () => {
           )}
         </section>
         </section>
+        </div>
       </main>
       </div>
 

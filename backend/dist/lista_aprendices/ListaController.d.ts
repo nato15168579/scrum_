@@ -49,6 +49,7 @@ export declare class ListaController {
             telefono: string;
             email: string;
             fechaInscripcion: string;
+            estado: import("../entities/Usuario").EstadoUsuario;
             fichasCargo: any;
             fichasDetalle: any;
         };
@@ -66,6 +67,7 @@ export declare class ListaController {
             telefono: string;
             email: string;
             fechaInscripcion: string;
+            estado: import("../entities/Usuario").EstadoUsuario;
             fichasCargo: any;
             fichasDetalle: any;
         };
@@ -83,6 +85,7 @@ export declare class ListaController {
             telefono: string;
             email: string;
             fechaInscripcion: string;
+            estado: import("../entities/Usuario").EstadoUsuario;
             fichasCargo: any;
             fichasDetalle: any;
         };

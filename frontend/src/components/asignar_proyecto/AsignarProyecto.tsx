@@ -1,43 +1,22 @@
-/**
- * AsignarProyecto
- * --------------
- * Pantalla del flujo instructor para listar proyectos y navegar al "ver mas"
- * de cada proyecto dentro del modulo de asignacion.
- *
- * Data:
- * - GET /proyectos (lista basica de proyectos)
- * - GET /dashboard?cedula=... (nombre del usuario para avatar/menu)
- */
 import { useState, useEffect, useRef } from 'react';
 import { 
     Home, Users, Plus, MapPin, Eye, List, 
     ChevronDown, LogOut, Search, UserPlus, 
-    HelpCircle, AlertTriangle, ChevronLeft, ChevronRight 
+    HelpCircle, AlertTriangle, ChevronLeft, ChevronRight, User 
 } from 'lucide-react'; 
 import { useNavigate, useLocation } from 'react-router-dom';
 import senaLogo from '../../assets/sena.png'; 
 import '../dashboard_instructor/Dashboard.css'; 
 import './AsignarProyecto.css'; 
 import { API_URL } from '../../config/Api';
-import { resolveUserName } from '../../session/session';
-
-interface ProyectoAsignado {
-    pro_ID: number;
-    pro_nombre: string;
-    pro_fecha_inicio?: string | null;
-}
 
 const AsignarProyecto = () => {
     const navigate = useNavigate();
     const location = useLocation();
     
-    const [proyectos, setProyectos] = useState<ProyectoAsignado[]>([]);
-    const [instructorName, setInstructorName] = useState(() =>
-        resolveUserName(undefined, 'Usuario'),
-    ); 
+    const [proyectos, setProyectos] = useState<any[]>([]); 
+    const [instructorName, setInstructorName] = useState('Instructor'); 
     const [searchTerm, setSearchTerm] = useState('');
-
-    // Estado para Paginación
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6; 
 
@@ -45,22 +24,50 @@ const AsignarProyecto = () => {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
+    // --- CARGA DE DATOS ---
     useEffect(() => {
         const cedula = localStorage.getItem('userCedula');
         if (!cedula) { navigate('/'); return; }
 
-        fetch(`${API_URL}/proyectos?cedula=${cedula}`)
-            .then(res => res.json())
-            .then(data => setProyectos(Array.isArray(data) ? data : []));
+        // Consumimos el endpoint del controlador /asignacion/proyectos
+        fetch(`${API_URL}/asignacion/proyectos`)
+            .then(res => {
+                if (!res.ok) throw new Error('Error al obtener proyectos');
+                return res.json();
+            })
+            .then(data => {
+                // Ahora los datos vienen con proId y proNombre (alias del backend)
+                setProyectos(Array.isArray(data) ? data : []);
+            })
+            .catch(err => {
+                console.error("Error API Proyectos:", err);
+                setProyectos([]); 
+            });
 
         fetch(`${API_URL}/dashboard?cedula=${cedula}`)
             .then(res => res.json())
-            .then(data => setInstructorName(resolveUserName(data?.instructor, 'Usuario')))
-            .catch(() => setInstructorName(resolveUserName(undefined, 'Usuario')));
+            .then(data => setInstructorName(data?.instructor || "Instructor SENA"))
+            .catch(() => setInstructorName("Instructor SENA"));
     }, [navigate]);
 
-    const filtered = proyectos.filter((p) => 
-        p.pro_nombre.toLowerCase().includes(searchTerm.toLowerCase())
+    // --- LÓGICA DE CIERRE DE MENÚ ---
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleMiPerfil = () => { navigate('/mi-perfil'); setIsMenuOpen(false); };
+    const handleSoporte = () => { navigate('/ayuda-soporte'); };
+    const confirmLogout = () => { localStorage.clear(); navigate('/'); };
+
+    // --- FILTRADO Y PAGINACIÓN (CORREGIDO A proNombre) ---
+    const filtered = proyectos.filter((p: any) => 
+        p.proNombre?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const totalPages = Math.ceil(filtered.length / itemsPerPage);
@@ -96,7 +103,7 @@ const AsignarProyecto = () => {
                 </nav>
                 <div className="settings-footer" style={{marginTop: 'auto', padding: '10px 0'}}>
                     <p className="menu-title">SETTINGS</p>
-                    <div className="support-item" style={{display: 'flex', alignItems: 'center', padding: '10px', cursor: 'pointer', fontSize: '0.9rem', color: '#555'}}>
+                    <div className="support-item" onClick={handleSoporte} style={{display: 'flex', alignItems: 'center', padding: '10px', cursor: 'pointer', fontSize: '0.9rem', color: '#555'}}>
                         <HelpCircle size={18} style={{ marginRight: '10px', color: '#39A900' }} />
                         <span>Ayuda y Soporte</span>
                     </div>
@@ -106,12 +113,15 @@ const AsignarProyecto = () => {
             <main className="content">
                 <nav className="nav-top">
                     <div className="title-section"><h1>Asignar Proyectos</h1></div>
-                    <div className="profile-menu" ref={menuRef} onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                        <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(instructorName)}&background=39A900&color=fff`} className="profile-img" alt="Avatar"/>
-                        <span className="profile-name">{instructorName}</span>
-                        <ChevronDown size={18} />
+                    <div className="profile-menu" ref={menuRef}>
+                        <div className="profile-trigger" onClick={() => setIsMenuOpen(!isMenuOpen)} style={{display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '10px'}}>
+                            <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(instructorName)}&background=39A900&color=fff`} className="profile-img" alt="Avatar"/>
+                            <span className="profile-name">{instructorName}</span>
+                            <ChevronDown size={18} />
+                        </div>
                         {isMenuOpen && (
                             <ul className="dropdown-profile">
+                                <li onClick={handleMiPerfil}><User size={16} style={{marginRight: '8px'}}/> Mi Perfil</li>
                                 <li className="logout" onClick={() => setShowLogoutModal(true)}>
                                     <LogOut size={16} style={{marginRight: '8px'}}/> Cerrar Sesión
                                 </li>
@@ -139,53 +149,50 @@ const AsignarProyecto = () => {
                             <thead>
                                 <tr>
                                     <th>Nombre del Proyecto</th>
-                                    <th>Fecha Inicio</th>
+                                    <th>Fecha de Creación</th>
                                     <th style={{textAlign: 'center'}}>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {currentItems.map((p) => (
-                                    <tr key={p.pro_ID}>
-                                        <td>{p.pro_nombre}</td>
-                                        <td>{p.pro_fecha_inicio ? new Date(p.pro_fecha_inicio).toLocaleDateString() : 'N/A'}</td>
-                                        <td>
-                                            <div className="actions-cell">
-                                                <button className="btn-ver-mas" onClick={() => navigate(`/asignar-proyectos-vermas/${p.pro_ID}`)}>
-                                                    <Eye size={14} /> ver mas
-                                                </button>
-                                                {/* Botón Asignar con el color azul oscuro original */}
-                                                <button 
-                                                    className="btn-asignar-row" 
-                                                    style={{ backgroundColor: '#00324D', color: 'white' }}
-                                                    onClick={() => console.log("Asignar", p.pro_ID)}
-                                                >
-                                                    <UserPlus size={14} /> asignar
-                                                </button>
-                                            </div>
+                                {currentItems.length > 0 ? (
+                                    currentItems.map((p: any) => (
+                                        <tr key={p.proId}> {/* llave corregida: proId */}
+                                            <td>{p.proNombre}</td> {/* nombre corregido: proNombre */}
+                                            <td>{p.proFechaCreacion ? new Date(p.proFechaCreacion).toLocaleDateString() : 'Sin fecha'}</td>
+                                            <td>
+                                                <div className="actions-cell">
+                                                    <button className="btn-ver-mas" onClick={() => navigate(`/detalle-proyecto/${p.proId}`)}>
+                                                        <Eye size={14} /> 
+                                                    </button>
+                                                    <button 
+                                                        className="btn-asignar-row" 
+                                                        style={{ backgroundColor: '#00324D', color: 'white' }}
+                                                        onClick={() => navigate(`/asignar-integrantes/${p.proId}`)}
+                                                    >
+                                                        <UserPlus size={14} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={3} style={{textAlign: 'center', padding: '20px', color: '#777'}}>
+                                            No se encontraron proyectos disponibles.
                                         </td>
                                     </tr>
-                                ))}
+                                )}
                             </tbody>
                         </table>
                     </div>
 
                     <div className="assign-footer">
                         <div className="pagination-wrapper">
-                            <button 
-                                className="page-btn" 
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                disabled={currentPage === 1}
-                            >
+                            <button className="page-btn" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                                 <ChevronLeft size={16}/>
                             </button>
-                            <span style={{fontWeight: '600', fontSize: '0.9rem', color: '#333'}}>
-                                Página {currentPage} de {totalPages || 1}
-                            </span>
-                            <button 
-                                className="page-btn" 
-                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                disabled={currentPage === totalPages || totalPages === 0}
-                            >
+                            <span style={{fontWeight: '600', fontSize: '0.9rem'}}>Página {currentPage} de {totalPages || 1}</span>
+                            <button className="page-btn" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}>
                                 <ChevronRight size={16}/>
                             </button>
                         </div>
@@ -193,13 +200,14 @@ const AsignarProyecto = () => {
                 </div>
             </main>
 
+            {/* MODAL CERRAR SESIÓN */}
             {showLogoutModal && (
                 <div className="modal-overlay">
                     <div className="modal-content">
                         <div className="warning-icon-container" style={{backgroundColor: '#e67e22'}}><AlertTriangle size={45} color="white" /></div>
                         <h2 className="modal-title">¿Estás seguro?</h2>
                         <div className="modal-buttons">
-                            <button className="btn-confirm-logout" onClick={() => { localStorage.clear(); navigate('/'); }}>Si, Cerrar</button>
+                            <button className="btn-confirm-logout" onClick={confirmLogout}>Si, Cerrar</button>
                             <button className="btn-cancel-logout" onClick={() => setShowLogoutModal(false)}>Cancelar</button>
                         </div>
                     </div>

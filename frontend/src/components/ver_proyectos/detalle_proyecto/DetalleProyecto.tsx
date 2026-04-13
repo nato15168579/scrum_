@@ -1,35 +1,23 @@
-/**
- * DetalleProyecto (Instructor)
- * ---------------------------
- * Vista de detalle para un proyecto, usada desde el flujo de "Ver Proyectos" (instructor).
- *
- * Nota:
- * - Esta pantalla usa `axios` y un API_BASE_URL hardcodeado. A futuro conviene
- *   centralizar la config y usar `API_URL` para evitar desalineacion de entornos.
- */
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { 
-    Home, Users, Plus, MapPin, Eye, List, FileText, 
-    User, ChevronDown, LogOut, ChevronLeft 
+    Home, Users, Plus, MapPin, Eye, List, 
+    ChevronDown, LogOut, ChevronLeft, AlertTriangle, User, HelpCircle 
 } from 'lucide-react'; 
-import senaLogo from '../assets/sena.png'; 
+import senaLogo from '../../../assets/sena.png'; 
 import './DetalleProyecto.css'; 
-import { resolveUserName } from '../../../session/session';
+import { API_URL } from '../../../config/Api';
 
-// ==========================================================
-// INTERFACES
-// ==========================================================
+// --- INTERFACES ---
 interface ProyectoData {
-  id: number;
-  nombre: string;
-  objetivo: string;
-  descripcion: string;
-  fechaInicio: string;
-  estado: string;
-  fechaAsignacion?: string; 
-  fechaFin?: string;
+    id: number;
+    nombre: string;
+    objetivo: string;
+    descripcion: string;
+    fechaInicio: string;
+    fechaFin: string;
+    estadoId: number; 
 }
 
 interface Miembro {
@@ -37,289 +25,209 @@ interface Miembro {
     rol: string;
 }
 
-const API_BASE_URL = 'http://localhost:5000/dashboard'; 
+const DetalleProyecto: React.FC = () => {
+    const { id } = useParams<{ id: string }>(); 
+    const navigate = useNavigate();
+    const location = useLocation();
+    const menuRef = useRef<HTMLDivElement>(null);
 
-// ==========================================================
-// COMPONENTE SIDEBAR (Barra Lateral)
-// ==========================================================
-const Sidebar = ({ navigate }: { navigate: (path: string) => void }) => {
+    const [proyecto, setProyecto] = useState<ProyectoData | null>(null);
+    const [miembros, setMiembros] = useState<Miembro[]>([]); 
+    const [cargando, setCargando] = useState(true);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [instructorName, setInstructorName] = useState('Instructor'); 
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+
     const menuItems = [
         { name: 'Inicio', icon: Home, path: '/dashboard' },
         { name: 'Lista de Aprendices', icon: Users, path: '/lista-aprendices' },
         { name: 'Crear Proyecto', icon: Plus, path: '/crear-proyecto' },
         { name: 'Asignar Proyectos', icon: MapPin, path: '/asignar-proyectos' },
-        { name: 'Ver Proyectos', icon: Eye, active: true, path: '/ver-proyectos' },
+        { name: 'Ver Proyectos', icon: Eye, path: '/ver-proyectos' },
         { name: 'Registrar Aprendiz', icon: List, path: '/registrar-aprendiz' },
     ];
-    const settingsItems = [{ name: 'Ayuda / Soporte', icon: FileText, path: '/ayuda' }];
-    
-    return (
-        <aside className="side-card">
-            <div className="brand-block">
-                <img src={senaLogo} alt="Logo SENA" className="logo-lg" />
-                <h2>Gestión de proyectos</h2>
-            </div>
-            <nav className="menu">
-                <p className="menu-title">MENU</p>
-                <ul>
-                    {menuItems.map(item => {
-                        const Icon = item.icon;
-                        return (
-                            <li 
-                                key={item.name} 
-                                className={item.path === '/ver-proyectos' ? 'active' : ''} 
-                                onClick={() => item.path && navigate(item.path)}
-                            >
-                                <Icon size={18} style={{marginRight: '10px'}}/> {item.name}
-                            </li>
-                        );
-                    })}
-                </ul>
-            </nav>
-            <div className="settings">
-                <p className="menu-title">SETTINGS</p>
-                <ul>
-                    {settingsItems.map(item => {
-                        const Icon = item.icon;
-                        return (
-                            <li key={item.name} onClick={() => item.path && navigate(item.path)}>
-                                <Icon size={18} style={{marginRight: '10px'}}/> {item.name}
-                            </li>
-                        );
-                    })}
-                </ul>
-            </div>
-        </aside>
-    );
-}
 
-// ==========================================================
-// COMPONENTE PRINCIPAL (DetalleProyecto)
-// ==========================================================
-const DetalleProyecto: React.FC = () => {
-  const { id } = useParams<{ id: string }>(); 
-  const navigate = useNavigate();
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const [proyecto, setProyecto] = useState<ProyectoData | null>(null);
-  const [miembros, setMiembros] = useState<Miembro[]>([]); 
-  const [cargando, setCargando] = useState(true);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [instructorName, setInstructorName] = useState(() =>
-    resolveUserName(undefined, 'Usuario'),
-  ); 
-
-  // --- 1. CARGAR NOMBRE INSTRUCTOR ---
-  const cargarNombreInstructor = async (cedula: string, token: string) => {
-    try {
-        const response = await axios.get(`${API_BASE_URL}/stats?cedula=${cedula}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        setInstructorName(resolveUserName(response.data.instructor, 'Usuario'));
-    } catch (error) {
-        console.error("Error cargando nombre de instructor:", error);
-        setInstructorName(resolveUserName(undefined, 'Usuario'));
-    }
-  };
-  
-  // --- 2. CARGAR DETALLES DEL PROYECTO ---
-  const cargarDetallesProyecto = async (projectId: number) => {
-    try {
-        const [proyectoResponse, miembrosResponse] = await Promise.all([
-            axios.get<ProyectoData>(`${API_BASE_URL}/detalle-proyecto/${projectId}`),
-            axios.get<Miembro[]>(`${API_BASE_URL}/integrantes/${projectId}`)
-        ]);
-        
-        const dataConFechas: ProyectoData = {
-            ...proyectoResponse.data,
-            fechaAsignacion: '11/Feb/2025', 
-            fechaFin: '15/Dic/2027',
-        };
-
-        setProyecto(dataConFechas);
-        setMiembros(miembrosResponse.data);
-        
-    } catch (error) {
-        console.error('Error cargando los detalles del proyecto:', error);
-        setProyecto(null);
-        setMiembros([]);
-    }
-  };
-
-  useEffect(() => {
-    const token = localStorage.getItem('userToken');
-    const cedula = localStorage.getItem('userCedula');
-
-    if (!token || !cedula) {
-        navigate('/');
-        return;
-    }
-    
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    cargarNombreInstructor(cedula, token);
-    
-    if (id) {
-        cargarDetallesProyecto(Number(id)).then(() => setCargando(false));
-    } else {
-        setCargando(false);
-    }
-    
-  }, [id, navigate]);
-
-  // --- MANEJO DE BOTONES DE ACCIÓN (NAVEGACIÓN) ---
-  const handleAccion = (accion: string) => {
-    if (accion === 'editar-integrantes') {
-        navigate(`/proyecto/${id}/editar-integrantes`);
-    } else if (accion === 'historia-usuario') {
-        navigate(`/proyecto/${id}/historias-usuario`);
-    } else if (accion === 'criterios-aceptacion') {
-        navigate(`/proyecto/${id}/criterios-aceptacion`);
-    } else if (accion === 'ver-reuniones') {
-        navigate(`/proyecto/${id}/ver-reuniones`);
-    } else if (accion === 'crear-sugerencias') {
-        navigate(`/proyecto/${id}/crear-sugerencias`);
-    } else {
-        alert(`Acción: ${accion} (Se debe implementar la navegación o modal correspondiente)`);
-    }
-  };
-
-  const handleLogout = () => {
-    if (window.confirm("¿Estás seguro de cerrar sesión?")) {
+    // Cierre de sesión
+    const confirmLogout = () => {
         localStorage.clear();
         navigate('/');
-    }
-  };
-  
-  // 🟢 FUNCIÓN RETROCEDER
-  const handleGoBack = () => {
-    navigate(-1); 
-  };
+    };
 
+    useEffect(() => {
+        const cedula = localStorage.getItem('userCedula');
+        if (!cedula) {
+            navigate('/'); 
+            return;
+        }
 
-  // --- RENDERIZADO CONDICIONAL (Loading / Error) ---
-  if (cargando) {
-    return (
-        <div className="dashboard-page">
-            <Sidebar navigate={navigate} />
-            <div className="main-content-area loading-overlay">Cargando proyecto...</div>
-        </div>
-    );
-  }
-  
-  if (!proyecto) {
-    return (
-        <div className="dashboard-page">
-            <Sidebar navigate={navigate} />
-            <div className="main-content-area error-msg">
-                <h1>Error</h1>
-                <p>No se pudo encontrar o cargar el proyecto con ID {id}.</p>
-            </div>
-        </div>
-    );
-  }
+        const fetchData = async () => {
+            setCargando(true);
+            try {
+                // Info del Instructor
+                const profileRes = await axios.get(`${API_URL}/dashboard?cedula=${cedula}`);
+                if (profileRes.data?.instructor) setInstructorName(profileRes.data.instructor);
 
-  // --- RENDERIZADO PRINCIPAL ---
-  return (
-    <div className="dashboard-page">
-      
-      <Sidebar navigate={navigate} />
+                // Info del Proyecto e Integrantes
+                const [proRes, miembrosRes] = await Promise.all([
+                    axios.get(`${API_URL}/verpro/${id}`),
+                    axios.get(`${API_URL}/integrantes/${id}`).catch(() => ({ data: [] }))
+                ]);
 
-      <div className="main-content-area">
-        
-        {/* Navbar Superior */}
-        <nav className="nav-top">
-            <div className="title-section detail-title-container">
-                <button className="btn-back" onClick={handleGoBack}>
-                    <ChevronLeft size={20} />
-                </button>
-                <h1>Lista de proyectos / <span className="current-page">Ver Más</span></h1>
-            </div>
-
-            <div className="profile-menu" ref={menuRef} onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(instructorName)}&background=random&color=fff`} className="profile-img" alt="Avatar"/>
-                <span className="profile-name">{instructorName}</span>
-                <ChevronDown size={18} style={{color: '#999'}}/>
+                const p = proRes.data;
+                if (p) {
+                    setProyecto({
+                        id: p.proId || Number(id),
+                        nombre: p.proNombre || 'Sin nombre',
+                        objetivo: p.proObjetivoGeneral || 'Sin objetivo definido',
+                        descripcion: p.proDescripcion || p.proJustificacion || 'Sin descripción.',
+                        fechaInicio: p.proFechaInicio ? new Date(p.proFechaInicio).toLocaleDateString('es-ES') : '--/--/--',
+                        fechaFin: p.proFechaFin ? new Date(p.proFechaFin).toLocaleDateString('es-ES') : '--/--/--',
+                        estadoId: p.detParIdFk || 1
+                    });
+                }
                 
-                {isMenuOpen && (
-                    <ul className="dropdown-profile">
-                        <li><User size={16} style={{marginRight: '8px'}}/> Mi Perfil</li>
-                        <li className="logout" onClick={handleLogout}>
-                            <LogOut size={16} style={{marginRight: '8px'}}/> Cerrar Sesión
-                        </li>
-                    </ul>
-                )}
-            </div>
-        </nav>
-        
-        {/* Botones de Acción */}
-        <div className="action-buttons-container">
-          <button onClick={() => handleAccion('editar-integrantes')} className="btn-action primary">Editar integrantes</button>
-          
-          <button onClick={() => handleAccion('historia-usuario')} className="btn-action primary">Historia de usuario</button>
-          
-          <button onClick={() => handleAccion('criterios-aceptacion')} className="btn-action primary">Criterios de aceptación</button>
-          
-          <button onClick={() => handleAccion('ver-reuniones')} className="btn-action primary">Ver reuniones</button>
-          
-          <button onClick={() => handleAccion('crear-sugerencias')} className="btn-action primary">Crear sugerencias</button>
-        </div>
+                if (Array.isArray(miembrosRes.data)) {
+                    const mps = miembrosRes.data.map((m: any) => ({
+                        nombre: `${m.perNombre || m.nombre || ''} ${m.perApellido || m.apellido || ''}`.trim() || 'Desconocido',
+                        rol: m.detParDescripcion || m.rol || 'Integrante'
+                    }));
+                    setMiembros(mps);
+                }
 
-        {/* Info Grid (Tarjetas) */}
-        <div className="info-grid">
-          
-          {/* Tarjeta 1: Información */}
-          <div className="card-info">
-            <h3>Información del Proyecto</h3>
-            <div className="info-detail-row">
-              <label>Nombre</label>
-              <span>{proyecto.nombre}</span>
-            </div>
-            <div className="info-detail-row">
-              <label>Fecha de asignación</label>
-              <span>{proyecto.fechaAsignacion}</span>
-            </div>
-            <div className="info-detail-row">
-              <label>Fecha fin</label>
-              <span>{proyecto.fechaFin}</span>
-            </div>
-            <div className="info-detail-row">
-              <label>Estado</label>
-              <span className="status-active">{proyecto.estado}</span>
-            </div>
-          </div>
-          
-          {/* Tarjeta 2: Miembros */}
-          <div className="card-info">
-            <h3>Miembros del Proyecto</h3>
-            {miembros.length > 0 ? (
-                miembros.map((miembro, index) => (
-                    <div key={index} className="info-detail-row">
-                        <label>{miembro.nombre}</label>
-                        <span>{miembro.rol}</span>
+            } catch (error) {
+                console.error('Error en fetchData:', error);
+            } finally {
+                setCargando(false);
+            }
+        };
+
+        if (id) fetchData();
+    }, [id, navigate]);
+
+    const getEstadoTexto = (id: number) => {
+        const estados: Record<number, {texto: string, clase: string}> = {
+            1: { texto: "POR HACER", clase: "badge-por-hacer" },
+            2: { texto: "EN PROGRESO", clase: "badge-progreso" },
+            3: { texto: "HECHO", clase: "badge-hecho" }
+        };
+        return estados[id] || { texto: "PENDIENTE", clase: "badge-por-hacer" };
+    };
+
+    if (cargando) return <div className="loading-screen">Cargando detalles...</div>;
+    if (!proyecto) return <div className="error-msg">Proyecto no encontrado.</div>;
+
+    const estado = getEstadoTexto(proyecto.estadoId);
+
+    return (
+        <div className="dashboard-page">
+            {/* --- SIDEBAR --- */}
+            <aside className="side-card">
+                <div className="brand-block">
+                    <img src={senaLogo} alt="Logo SENA" className="logo-lg" />
+                    <h2>Gestión de proyectos</h2>
+                </div>
+                <nav className="menu">
+                    <p className="menu-title">MENÚ</p>
+                    <ul>
+                        {menuItems.map(item => (
+                            <li key={item.name} className={location.pathname === item.path ? 'active' : ''} onClick={() => navigate(item.path)}>
+                                <item.icon size={18} style={{marginRight: '10px'}}/> {item.name}
+                            </li>
+                        ))}
+                    </ul>
+                </nav>
+                <div className="settings-footer" style={{marginTop: 'auto', padding: '10px 0'}}>
+                    <p className="menu-title">SETTINGS</p>
+                    <div className="support-item" onClick={() => navigate('/ayuda-soporte')} style={{display: 'flex', alignItems: 'center', padding: '10px', cursor: 'pointer', fontSize: '0.9rem', color: '#555'}}>
+                        <HelpCircle size={18} style={{ marginRight: '10px', color: '#39A900' }} />
+                        <span>Ayuda y Soporte</span>
                     </div>
-                ))
-            ) : (
-                 <div className="info-detail-row">
-                    <span style={{textAlign: 'center', width: '100%', color: '#999'}}>No hay integrantes asignados.</span>
+                </div>
+            </aside>
+
+            {/* --- CONTENIDO PRINCIPAL --- */}
+            <main className="content">
+                <nav className="nav-top">
+                    <div className="title-section" style={{display: 'flex', alignItems: 'center'}}>
+                        <button className="btn-back-arrow" onClick={() => navigate('/ver-proyectos')} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#39A900', marginRight: '15px'}}>
+                            <ChevronLeft size={28} />
+                        </button>
+                        <h1>Ver Proyectos / <span style={{color: '#39A900'}}>Detalle</span></h1>
+                    </div>
+
+                    <div className="profile-menu" ref={menuRef} onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                        <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(instructorName)}&background=39A900&color=fff`} className="profile-img" alt="Avatar" />
+                        <span className="profile-name">{instructorName}</span>
+                        <ChevronDown size={18} />
+                        {isMenuOpen && (
+                            <ul className="dropdown-profile">
+                                <li onClick={() => navigate('/mi-perfil')}><User size={16} style={{marginRight: '8px'}}/> Mi Perfil</li>
+                                <li className="logout" onClick={(e) => { e.stopPropagation(); setShowLogoutModal(true); }}>
+                                    <LogOut size={16} style={{marginRight: '8px'}}/> Cerrar Sesión
+                                </li>
+                            </ul>
+                        )}
+                    </div>
+                </nav>
+
+                <div className="vp-container">
+                    {/* Botonera de Acciones */}
+                    <div className="action-buttons-container" style={{display: 'flex', gap: '10px', marginBottom: '25px', flexWrap: 'wrap'}}>
+                        <button onClick={() => navigate(`/editar-integrante/${id}`)} className="btn-action primary">Editar integrantes</button>
+                        <button onClick={() => navigate(`/ver-historia-usuario/${id}`)} className="btn-action primary">Historias</button>
+                        <button onClick={() => navigate(`/proyecto/${id}/reuniones`)} className="btn-action primary">Reuniones</button>
+                        <button onClick={() => navigate(`/sugerencia/${id}`)} className="btn-action primary">Observación</button>
+                    </div>
+
+                    {/* Grid de Información */}
+                    <div className="info-grid-layout" style={{display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px'}}>
+                        <div className="left-column">
+                            <div className="card-info" style={{marginBottom: '20px'}}>
+                                <h3 style={{color: '#39A900'}}>Información General</h3>
+                                <div className="info-detail-row"><label>Proyecto:</label><strong>{proyecto.nombre}</strong></div>
+                                <div className="info-detail-row"><label>Estado:</label> <span className={`status-badge ${estado.clase}`}>{estado.texto}</span></div>
+                            </div>
+                            <div className="card-info">
+                                <h3 style={{color: '#39A900'}}>Objetivo</h3>
+                                <p>{proyecto.objetivo}</p>
+                                <hr style={{margin: '15px 0', opacity: 0.2}} />
+                                <h3 style={{color: '#39A900'}}>Descripción</h3>
+                                <p>{proyecto.descripcion}</p>
+                            </div>
+                        </div>
+
+                        <div className="right-column">
+                            <div className="card-info">
+                                <h3 style={{color: '#39A900'}}>Equipo del Proyecto</h3>
+                                {miembros.length > 0 ? (
+                                    miembros.map((m, i) => (
+                                        <div key={i} className="member-item" style={{display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #eee'}}>
+                                            <span style={{fontWeight: 500}}>{m.nombre}</span>
+                                            <span className="role-tag" style={{fontSize: '0.7rem', background: '#39A90022', color: '#39A900', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase'}}>{m.rol}</span>
+                                        </div>
+                                    ))
+                                ) : <p style={{color: '#777', fontStyle: 'italic'}}>No hay integrantes asignados.</p>}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            {/* --- MODAL DE LOGOUT --- */}
+            {showLogoutModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <AlertTriangle size={45} color="#E74C3C" style={{marginBottom: '15px'}} />
+                        <h2 className="modal-title">¿Cerrar sesión?</h2>
+                        <div className="modal-buttons">
+                            <button className="btn-confirm-logout" onClick={confirmLogout}>Sí, salir</button>
+                            <button className="btn-cancel-logout" onClick={() => setShowLogoutModal(false)}>Cancelar</button>
+                        </div>
+                    </div>
                 </div>
             )}
-          </div>
         </div>
-
-        {/* Objetivo General */}
-        <div className="objetivo-general-section">
-          <h2>Objetivo General</h2>
-          <p className="description-text">
-            {proyecto.objetivo}
-          </p>
-          <p className="description-text detailed-description">
-              {proyecto.descripcion}
-          </p>
-        </div>
-
-      </div>
-    </div>
-  );
+    );
 };
 
 export default DetalleProyecto;

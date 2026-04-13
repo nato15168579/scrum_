@@ -13,6 +13,7 @@ exports.Reuniones = void 0;
 const typeorm_1 = require("typeorm");
 const Sprint_1 = require("./Sprint");
 const DetalleParametro_1 = require("./DetalleParametro");
+const Usuario_1 = require("./Usuario");
 let Reuniones = class Reuniones {
 };
 exports.Reuniones = Reuniones;
@@ -32,6 +33,14 @@ __decorate([
     __metadata("design:type", Number)
 ], Reuniones.prototype, "detParIdTipoFk", void 0);
 __decorate([
+    (0, typeorm_1.Column)("int", {
+        name: "det_par_ID_estado_FK",
+        nullable: true,
+        comment: "Estado de la reunión",
+    }),
+    __metadata("design:type", Number)
+], Reuniones.prototype, "detParIdEstadoFk", void 0);
+__decorate([
     (0, typeorm_1.Column)("date", { name: "reu_fecha" }),
     __metadata("design:type", String)
 ], Reuniones.prototype, "reuFecha", void 0);
@@ -48,6 +57,22 @@ __decorate([
     __metadata("design:type", String)
 ], Reuniones.prototype, "reuHora", void 0);
 __decorate([
+    (0, typeorm_1.Column)("text", { name: "reu_resumen", nullable: true }),
+    __metadata("design:type", String)
+], Reuniones.prototype, "reuResumen", void 0);
+__decorate([
+    (0, typeorm_1.Column)("text", { name: "reu_informe", nullable: true }),
+    __metadata("design:type", String)
+], Reuniones.prototype, "reuInforme", void 0);
+__decorate([
+    (0, typeorm_1.Column)("bigint", {
+        name: "reu_cedula_FK",
+        nullable: true,
+        comment: "Responsable que creó la reunión",
+    }),
+    __metadata("design:type", Number)
+], Reuniones.prototype, "reuResponsableFk", void 0);
+__decorate([
     (0, typeorm_1.ManyToOne)(() => Sprint_1.Sprint, (sprint) => sprint.reuniones, {
         onDelete: "RESTRICT",
         onUpdate: "RESTRICT",
@@ -62,9 +87,31 @@ __decorate([
     ]),
     __metadata("design:type", DetalleParametro_1.DetalleParametro)
 ], Reuniones.prototype, "detParIdTipoFk2", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => DetalleParametro_1.DetalleParametro, {
+        nullable: true,
+        onDelete: "RESTRICT",
+        onUpdate: "RESTRICT",
+    }),
+    (0, typeorm_1.JoinColumn)([
+        { name: "det_par_ID_estado_FK", referencedColumnName: "detParId" },
+    ]),
+    __metadata("design:type", DetalleParametro_1.DetalleParametro)
+], Reuniones.prototype, "detParIdEstadoFk2", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => Usuario_1.Usuario, {
+        nullable: true,
+        onDelete: "RESTRICT",
+        onUpdate: "RESTRICT",
+    }),
+    (0, typeorm_1.JoinColumn)([{ name: "reu_cedula_FK", referencedColumnName: "usuCedula" }]),
+    __metadata("design:type", Usuario_1.Usuario)
+], Reuniones.prototype, "reuResponsableFk2", void 0);
 exports.Reuniones = Reuniones = __decorate([
     (0, typeorm_1.Index)("spr_ID_FK", ["sprIdFk"], {}),
     (0, typeorm_1.Index)("det_par_ID_tipo_FK", ["detParIdTipoFk"], {}),
+    (0, typeorm_1.Index)("det_par_ID_estado_FK", ["detParIdEstadoFk"], {}),
+    (0, typeorm_1.Index)("reu_cedula_FK", ["reuResponsableFk"], {}),
     (0, typeorm_1.Entity)("reuniones", { schema: "pro_scrum" })
 ], Reuniones);
 //# sourceMappingURL=Reuniones.js.map
