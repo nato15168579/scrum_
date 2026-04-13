@@ -8,12 +8,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
+  ArrowLeft,
   HelpCircle,
   CheckCircle2,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import "../../dashboard_instructor/Dashboard.css";
+import "../AdminDashboard.css";
 import "../../crear_proyecto/CrearProyecto.css";
+import "./CrearProyectoAdmin.css";
 import { API_URL } from "../../../config/Api";
 import { resolveUserName } from "../../../session/session";
 import AdminLogoutModal from "../modals/AdminLogoutModal";
@@ -71,6 +73,15 @@ const CrearProyectoAdmin = () => {
   const [selectedPrograma, setSelectedPrograma] = useState("");
   const [selectedArea, setSelectedArea] = useState("");
   const [selectedFicha, setSelectedFicha] = useState("");
+
+  const handleGoBack = () => {
+    if (location.key !== "default" && window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/ver-proyectos");
+  };
 
   useClickOutside(menuRef, () => setIsMenuOpen(false));
 
@@ -230,8 +241,18 @@ const CrearProyectoAdmin = () => {
 
       <main className="content">
         <nav className="nav-top">
-          <div className="title-section">
-            <h1>Crear Proyecto</h1>
+          <div className="admin-project-header">
+            <button
+              type="button"
+              className="admin-project-back-button"
+              onClick={handleGoBack}
+            >
+              <ArrowLeft size={18} />
+              Volver
+            </button>
+            <div className="title-section">
+              <h1>Crear Proyecto</h1>
+            </div>
           </div>
 
           <AdminProfileMenu
@@ -471,17 +492,16 @@ const CrearProyectoAdmin = () => {
       {showSuccessModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <div
-              className="warning-icon-container"
-              style={{ backgroundColor: "#39A900" }}
-            >
-              <CheckCircle2 size={45} color="white" />
+            <div className="admin-project-feedback-icon success">
+              <CheckCircle2 size={45} />
             </div>
-            <h2 className="modal-title">Proyecto registrado</h2>
+            <h2 className="modal-title">Proyecto guardado exitosamente</h2>
+            <p className="admin-project-feedback-message">
+              El proyecto se registro correctamente en el sistema.
+            </p>
             <button
-              className="btn-confirm-logout"
+              className="btn-confirm-logout admin-project-feedback-button success"
               onClick={() => setShowSuccessModal(false)}
-              style={{ width: "100%" }}
             >
               Continuar
             </button>
@@ -492,20 +512,14 @@ const CrearProyectoAdmin = () => {
       {errorModal.show && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <div
-              className="warning-icon-container"
-              style={{ backgroundColor: "#E74C3C" }}
-            >
-              <AlertTriangle size={45} color="white" />
+            <div className="admin-project-feedback-icon error">
+              <AlertTriangle size={45} />
             </div>
             <h2 className="modal-title">{errorModal.title}</h2>
-            <p style={{ textAlign: "center", color: "#666" }}>
-              {errorModal.message}
-            </p>
+            <p className="admin-project-feedback-message">{errorModal.message}</p>
             <button
-              className="btn-confirm-logout"
+              className="btn-confirm-logout admin-project-feedback-button error"
               onClick={() => setErrorModal({ show: false, title: "", message: "" })}
-              style={{ width: "100%" }}
             >
               Entendido
             </button>
