@@ -90,12 +90,35 @@
 
 .minimal-select-wrapper {
   position: relative;
-  width: 44px;
-  min-width: 44px;
+  min-width: 148px;
   height: 42px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #d7e0ea;
   border-radius: 999px;
-  background: #fff;
+  background: linear-gradient(180deg, #ffffff 0%, #f3f7fd 100%);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.minimal-select-wrapper:hover,
+.minimal-select-wrapper:focus-within {
+  border-color: #39a900;
+  box-shadow: 0 12px 28px rgba(57, 169, 0, 0.14);
+  transform: translateY(-1px);
+}
+
+.minimal-select-label {
+  position: absolute;
+  left: 16px;
+  right: 38px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #1f2a3d;
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
 }
 
 .minimal-filter-select {
@@ -109,15 +132,21 @@
   background: transparent;
   cursor: pointer;
   color: transparent;
+  padding: 0 40px 0 16px;
+}
+
+.minimal-filter-select option {
+  background: #ffffff;
+  color: #1f2937;
 }
 
 .minimal-select-icon {
   position: absolute;
   top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  right: 14px;
+  transform: translateY(-50%);
   pointer-events: none;
-  color: #6b7280;
+  color: #5b6b80;
 }
 
 .custom-table {
@@ -368,9 +397,31 @@
   padding: 28px;
 }
 
+.delete-instructor-overlay {
+  inset: 0;
+  padding: 20px;
+}
+
 .delete-instructor-modal {
-  max-width: 1080px;
+  width: min(1120px, calc(100vw - 40px));
+  max-width: 1120px;
+  max-height: calc(100vh - 40px);
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.delete-instructor-modal .instructor-modal-layout {
+  flex: 1;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.delete-instructor-modal .modal-buttons {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
 }
 
 .warning-icon-container {
@@ -823,7 +874,13 @@
   }
 
   .delete-instructor-modal {
-    max-width: calc(100vw - 20px);
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .delete-instructor-overlay {
+    padding: 12px;
   }
 
   .instructor-modal-layout {

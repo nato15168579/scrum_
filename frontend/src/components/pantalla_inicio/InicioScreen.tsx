@@ -27,7 +27,7 @@ const InicioScreen: React.FC = () => {
           </div>
 
           <div className="inicio-brand__text">
-            <h1>Gestión de proyectos</h1>
+            <h1>Gestión de proyectos Scrum</h1>
             <p>Plataforma SENA - ADSO 2998937</p>
           </div>
         </div>

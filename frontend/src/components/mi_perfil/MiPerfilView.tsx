@@ -35,6 +35,7 @@ interface PerfilUsuario {
 const MiPerfilView = () => {
     const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -46,11 +47,31 @@ const MiPerfilView = () => {
             }
 
             try {
+                setError('');
                 const response = await fetch(`${API_URL}/mi-perfil/${cedula}`);
-                const data = await response.json();
-                setPerfil(data);
+                const data = await response.json().catch(() => null);
+
+                if (!response.ok || !data || Array.isArray(data)) {
+                    const backendMessage =
+                        data &&
+                        typeof data === 'object' &&
+                        'message' in data &&
+                        typeof data.message === 'string'
+                            ? data.message
+                            : 'No fue posible cargar tu perfil.';
+
+                    throw new Error(backendMessage);
+                }
+
+                setPerfil(data as PerfilUsuario);
             } catch (error) {
                 console.error('Error cargando perfil:', error);
+                setPerfil(null);
+                setError(
+                    error instanceof Error
+                        ? error.message
+                        : 'No fue posible cargar tu perfil.',
+                );
             } finally {
                 setLoading(false);
             }
@@ -61,6 +82,38 @@ const MiPerfilView = () => {
 
     if (loading) {
         return <div className="loading-screen">Cargando perfil...</div>;
+    }
+
+    if (error || !perfil) {
+        return (
+            <div className="profile-dashboard-layout">
+                <header className="profile-header-actions">
+                    <button onClick={() => navigate(-1)} className="back-circle-btn">
+                        <ArrowLeft size={20} />
+                    </button>
+                    <div className="header-text">
+                        <h1>Mi Perfil</h1>
+                        <p>Configuracion y datos de cuenta</p>
+                    </div>
+                </header>
+
+                <section className="profile-error-state">
+                    <h2>No fue posible cargar tu perfil</h2>
+                    <p>
+                        {error ||
+                            'No encontramos informacion disponible para esta cuenta en este momento.'}
+                    </p>
+                    <div className="profile-error-actions">
+                        <button
+                            className="btn-action-edit"
+                            onClick={() => navigate(-1)}
+                        >
+                            Volver
+                        </button>
+                    </div>
+                </section>
+            </div>
+        );
     }
 
     const estadoUsuario = perfil?.usuEstado || 'Activo';

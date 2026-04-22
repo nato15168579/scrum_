@@ -510,7 +510,7 @@ const AdminDashboard = () => {
         <main className="content">
           <nav className="nav-top">
             <div className="title-section">
-              <h1>Panel Admin</h1>
+              <h1>Dashboard Administrador</h1>
             </div>
             <AdminProfileMenu
               displayName={dashboardData.instructor}

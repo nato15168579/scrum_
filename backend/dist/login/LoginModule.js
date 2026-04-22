@@ -11,17 +11,22 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const LoginController_1 = require("./LoginController");
 const LoginService_1 = require("./LoginService");
+const PasswordRecoveryService_1 = require("./PasswordRecoveryService");
+const PasswordRecoveryEmailService_1 = require("./PasswordRecoveryEmailService");
 const Usuario_1 = require("../entities/Usuario");
+const PasswordRecoveryCode_1 = require("../entities/PasswordRecoveryCode");
 let LoginModule = class LoginModule {
 };
 exports.LoginModule = LoginModule;
 exports.LoginModule = LoginModule = __decorate([
     (0, common_1.Module)({
-        imports: [
-            typeorm_1.TypeOrmModule.forFeature([Usuario_1.Usuario])
-        ],
+        imports: [typeorm_1.TypeOrmModule.forFeature([Usuario_1.Usuario, PasswordRecoveryCode_1.PasswordRecoveryCode])],
         controllers: [LoginController_1.LoginController],
-        providers: [LoginService_1.LoginService],
+        providers: [
+            LoginService_1.LoginService,
+            PasswordRecoveryService_1.PasswordRecoveryService,
+            PasswordRecoveryEmailService_1.PasswordRecoveryEmailService,
+        ],
     })
 ], LoginModule);
 //# sourceMappingURL=LoginModule.js.map

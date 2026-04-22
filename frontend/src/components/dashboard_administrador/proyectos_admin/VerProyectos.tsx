@@ -954,7 +954,10 @@ const VerProyectosAdmin = () => {
 
     if (view === "todas_fichas" || view === "todos_proyectos") {
       setView("programas");
+      return;
     }
+
+    navigate("/dashboard-administrador");
   };
 
   const loadProyectoDetalle = async (id: number) => {
@@ -2038,8 +2041,24 @@ const VerProyectosAdmin = () => {
     return <div className="loading-screen">Cargando proyectos...</div>;
   }
 
+  const isAnyModalOpen =
+    Boolean(detailSubview) ||
+    Boolean(viewingDetailItem) ||
+    Boolean(editingDetailItem) ||
+    Boolean(detailDeleteDialog) ||
+    showLogoutModal ||
+    Boolean(deleteDialog) ||
+    Boolean(editProgramaModal) ||
+    Boolean(editAreaModal) ||
+    Boolean(editProjectContentModal) ||
+    Boolean(editFichaModal) ||
+    isAprendicesEditorOpen ||
+    Boolean(viewingProjectAprendiz) ||
+    Boolean(editingProjectAprendizRole) ||
+    isConfirmingAprendizChanges;
+
   return (
-    <div className="dashboard-page">
+    <div className={`dashboard-page${isAnyModalOpen ? " vp-shell-blurred" : ""}`}>
       <AdminSidebar currentPath={location.pathname} onNavigate={navigate} />
 
       <main className="content">
@@ -2076,16 +2095,12 @@ const VerProyectosAdmin = () => {
 
         <div className="vp-container">
           <div className="vp-header-row">
-            <div className="vp-title-wrap">
-              {view !== "programas" ? (
-                <button type="button" className="vp-btn-back" onClick={goBack}>
-                  <ArrowLeft size={16} />
-                  Volver
-                </button>
-              ) : null}
-            </div>
+            <div className="vp-header-actions vp-header-actions-main">
+              <button type="button" className="vp-btn-back" onClick={goBack}>
+                <ArrowLeft size={16} />
+                Volver
+              </button>
 
-            <div className="vp-header-actions">
               {view === "programas" ? (
                 <>
                   <button
@@ -2116,6 +2131,8 @@ const VerProyectosAdmin = () => {
                   </button>
                 </>
               ) : null}
+
+              <div className="vp-header-actions-spacer" />
 
               <button
                 type="button"
@@ -2187,7 +2204,7 @@ const VerProyectosAdmin = () => {
 
           {view === "programas" ? (
             <>
-              <div className="vp-table-card">
+              <div className="vp-table-card vp-filter-list-card">
                 <table className="vp-table">
                   <thead>
                     <tr>
@@ -2403,7 +2420,7 @@ const VerProyectosAdmin = () => {
           ) : null}
 
           {view === "areas" ? (
-            <div className="vp-table-card">
+            <div className="vp-table-card vp-filter-list-card">
               <table className="vp-table">
                 <thead>
                   <tr>
@@ -2479,7 +2496,7 @@ const VerProyectosAdmin = () => {
           ) : null}
 
           {view === "fichas" ? (
-            <div className="vp-table-card">
+            <div className="vp-table-card vp-filter-list-card">
               <table className="vp-table">
                 <thead>
                   <tr>
@@ -2557,7 +2574,7 @@ const VerProyectosAdmin = () => {
           ) : null}
 
           {view === "todas_fichas" ? (
-            <div className="vp-table-card">
+            <div className="vp-table-card vp-filter-list-card">
               <table className="vp-table">
                 <thead>
                   <tr>
@@ -2644,7 +2661,7 @@ const VerProyectosAdmin = () => {
           ) : null}
 
           {view === "proyectos" ? (
-            <div className="vp-table-card">
+            <div className="vp-table-card vp-filter-list-card">
               <table className="vp-table">
                 <thead>
                   <tr>
@@ -2721,7 +2738,7 @@ const VerProyectosAdmin = () => {
           ) : null}
 
           {view === "todos_proyectos" ? (
-            <div className="vp-table-card">
+            <div className="vp-table-card vp-filter-list-card">
               <table className="vp-table">
                 <thead>
                   <tr>
@@ -2784,7 +2801,7 @@ const VerProyectosAdmin = () => {
               ) : detalle ? (
                 <>
                   <div className="vp-detail-grid">
-                    <div className="vp-detail-card">
+                    <div className="vp-detail-card vp-detail-card-project">
                       <h3>Datos del proyecto</h3>
                       <div className="vp-detail-meta">
                         <div>
@@ -2837,7 +2854,7 @@ const VerProyectosAdmin = () => {
                         <h3>Aprendices</h3>
                         <button
                           type="button"
-                          className="vp-btn-secondary"
+                          className="vp-btn-secondary vp-btn-aprendices-edit"
                           onClick={() => void openAprendicesEditor()}
                         >
                           Editar aprendices
@@ -3402,7 +3419,7 @@ const VerProyectosAdmin = () => {
 
             <div className="modal-buttons">
               <button
-                className="btn-confirm-logout"
+                className="btn-confirm-logout vp-btn-save-detail-item"
                 onClick={() => void saveDetailItem()}
                 disabled={savingDetailItem}
               >
@@ -3974,7 +3991,7 @@ const VerProyectosAdmin = () => {
                                   </button>
                                   <button
                                     type="button"
-                                    className="vp-action-button action-edit"
+                                    className="vp-action-button action-edit action-project-aprendiz-edit"
                                     onClick={() =>
                                       setEditingProjectAprendizRole({
                                         cedula: normalizeText(aprendiz.cedula),
@@ -4035,7 +4052,7 @@ const VerProyectosAdmin = () => {
 
             <div className="modal-buttons">
               <button
-                className="btn-confirm-logout"
+                className="btn-confirm-logout vp-btn-save-aprendices"
                 onClick={() => {
                   if (!hasPendingAprendizChanges) {
                     setTimedAlert({
@@ -4168,7 +4185,7 @@ const VerProyectosAdmin = () => {
             </div>
             <div className="modal-buttons">
               <button
-                className="btn-confirm-logout"
+                className="btn-confirm-logout vp-btn-save-aprendices"
                 onClick={() => void saveAprendizProyectoRole()}
                 disabled={
                   isSavingProjectAprendiz || !editingProjectAprendizRole.detParId

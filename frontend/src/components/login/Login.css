@@ -1,6 +1,6 @@
 /* src/components/LoginScreen.css */
 
-/* Fondo general de la página */
+/* Fondo general de la pÃ¡gina */
 body {
     margin: 0;
     padding: 0;
@@ -33,13 +33,13 @@ input::-webkit-inner-spin-button {
     text-align: center;
 }
 
-/* Header del Login (Logo y Títulos) */
+/* Header del Login (Logo y TÃ­tulos) */
 .login-header {
     margin-bottom: 30px;
 }
 
 .sena-logo {
-    width: 70px; /* Tamaño del logo SENA */
+    width: 70px; /* TamaÃ±o del logo SENA */
     height: auto;
     margin-bottom: 15px;
 }
@@ -86,7 +86,45 @@ input::-webkit-inner-spin-button {
     border-color: #39A900; /* Verde SENA al enfocar */
 }
 
-/* Enlace de "Olvidaste contraseña" */
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-control {
+    padding-right: 48px;
+}
+
+.password-toggle-button {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    color: #6b7280;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.password-toggle-button:hover {
+    color: #39A900;
+    background-color: rgba(57, 169, 0, 0.08);
+}
+
+.password-toggle-button:focus-visible {
+    outline: 2px solid rgba(57, 169, 0, 0.22);
+    outline-offset: 2px;
+}
+
+/* Enlace de "Olvidaste contraseÃ±a" */
 .forgot-password {
     text-align: right;
     margin-bottom: 25px;
@@ -103,7 +141,7 @@ input::-webkit-inner-spin-button {
     text-decoration: underline;
 }
 
-/* Botón de Ingresar */
+/* BotÃ³n de Ingresar */
 .btn-login {
     width: 100%;
     padding: 14px;
@@ -118,7 +156,7 @@ input::-webkit-inner-spin-button {
 }
 
 .btn-login:hover {
-    background-color: #2e8b00; /* Verde más oscuro al pasar el mouse */
+    background-color: #2e8b00; /* Verde mÃ¡s oscuro al pasar el mouse */
 }
 
 /* Mensajes de error */

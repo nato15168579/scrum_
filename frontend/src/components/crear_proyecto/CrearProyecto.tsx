@@ -32,7 +32,11 @@ const CrearProyecto = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [errorModal, setErrorModal] = useState({ show: false, title: "", message: "" });
+  const [errorModal, setErrorModal] = useState({
+    show: false,
+    title: "",
+    message: "",
+  });
   
   const [fichas, setFichas] = useState<FichaOption[]>([]);
   const [selectedPrograma, setSelectedPrograma] = useState("");
@@ -271,6 +275,26 @@ const CrearProyecto = () => {
             <h2 className="modal-title">¡Éxito!</h2>
             <p style={{ textAlign: "center", marginBottom: "20px", color: "#666" }}>Proyecto registrado correctamente.</p>
             <button className="btn-confirm-logout" onClick={() => setShowSuccessModal(false)} style={{ width: "100%" }}>Continuar</button>
+          </div>
+        </div>
+      )}
+      {errorModal.show && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="warning-icon-container" style={{ backgroundColor: "#ef4444" }}>
+              <AlertTriangle size={45} color="white" />
+            </div>
+            <h2 className="modal-title">{errorModal.title || "Error"}</h2>
+            <p style={{ textAlign: "center", marginBottom: "20px", color: "#666" }}>
+              {errorModal.message || "No fue posible completar la operacion."}
+            </p>
+            <button
+              className="btn-confirm-logout"
+              onClick={() => setErrorModal({ show: false, title: "", message: "" })}
+              style={{ width: "100%", backgroundColor: "#ef4444" }}
+            >
+              Entendido
+            </button>
           </div>
         </div>
       )}

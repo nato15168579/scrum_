@@ -17,29 +17,33 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const Usuario_1 = require("../../entities/Usuario");
-const bcrypt = require("bcrypt");
+const PasswordSecurity_1 = require("../../login/PasswordSecurity");
 let CambiarContrasenaService = class CambiarContrasenaService {
     constructor(usuarioRepository) {
         this.usuarioRepository = usuarioRepository;
     }
     async actualizarPassword(cedula, passActual, passNueva) {
         const usuario = await this.usuarioRepository.findOne({
-            where: { usuCedula: cedula }
+            where: { usuCedula: cedula },
         });
         if (!usuario) {
             throw new common_1.NotFoundException('Usuario no encontrado');
         }
-        const hashEnBD = usuario.usuContrasena || "";
-        const coinciden = await bcrypt.compare(passActual, hashEnBD);
+        const coinciden = await (0, PasswordSecurity_1.compareWithStoredPassword)(passActual, usuario.usuContrasena);
         if (!coinciden) {
-            console.log('--- ERROR: La clave no coincide con el hash ---');
-            throw new common_1.UnauthorizedException('La contraseña actual es incorrecta');
+            throw new common_1.UnauthorizedException('La contrasena actual es incorrecta');
         }
-        const salt = await bcrypt.genSalt(10);
-        const nuevaHashed = await bcrypt.hash(passNueva, salt);
-        usuario.usuContrasena = nuevaHashed;
+        const passwordValidation = (0, PasswordSecurity_1.validatePasswordPolicy)(passNueva);
+        if (!passwordValidation.isValid) {
+            throw new common_1.BadRequestException(passwordValidation.errors.join(' '));
+        }
+        const esLaMismaPassword = await (0, PasswordSecurity_1.compareWithStoredPassword)(passNueva, usuario.usuContrasena);
+        if (esLaMismaPassword) {
+            throw new common_1.BadRequestException('La nueva contrasena debe ser diferente a la actual');
+        }
+        usuario.usuContrasena = await (0, PasswordSecurity_1.hashPassword)(passNueva);
         await this.usuarioRepository.save(usuario);
-        return { message: 'Contraseña actualizada con éxito' };
+        return { message: 'Contrasena actualizada con exito' };
     }
 };
 exports.CambiarContrasenaService = CambiarContrasenaService;

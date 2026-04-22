@@ -17,7 +17,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const Usuario_1 = require("../entities/Usuario");
-const bcrypt = require("bcrypt");
+const PasswordSecurity_1 = require("./PasswordSecurity");
 let LoginService = class LoginService {
     constructor(usuarioRepo) {
         this.usuarioRepo = usuarioRepo;
@@ -41,16 +41,10 @@ let LoginService = class LoginService {
             rolSisIdFk: usuario.rolSisIdFk,
         });
         const passwordGuardada = usuario.usuContrasena || '';
-        let esValida = false;
-        if (passwordGuardada.startsWith('$2')) {
-            esValida = await bcrypt.compare(pass, passwordGuardada);
-        }
-        else {
-            esValida = pass === passwordGuardada;
-            if (esValida) {
-                usuario.usuContrasena = await bcrypt.hash(pass, 10);
-                await this.usuarioRepo.save(usuario);
-            }
+        const esValida = await (0, PasswordSecurity_1.compareWithStoredPassword)(pass, passwordGuardada);
+        if (esValida && !passwordGuardada.startsWith('$2')) {
+            usuario.usuContrasena = await (0, PasswordSecurity_1.hashPassword)(pass);
+            await this.usuarioRepo.save(usuario);
         }
         if (!esValida) {
             console.error('[LoginService] Contrasena incorrecta para cedula:', cedula);
@@ -71,7 +65,7 @@ let LoginService = class LoginService {
         let contador = 0;
         for (const u of usuarios) {
             if (u.usuContrasena && !u.usuContrasena.startsWith('$2b$')) {
-                u.usuContrasena = await bcrypt.hash(u.usuContrasena, 10);
+                u.usuContrasena = await (0, PasswordSecurity_1.hashPassword)(u.usuContrasena);
                 await this.usuarioRepo.save(u);
                 contador++;
             }

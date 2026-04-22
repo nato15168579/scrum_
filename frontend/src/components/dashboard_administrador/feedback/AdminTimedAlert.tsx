@@ -13,8 +13,10 @@
  */
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, X } from "lucide-react";
+import { AlertTriangle, Check, X } from "lucide-react";
 import "./AdminTimedAlert.css";
+
+type AlertVariant = "success" | "error";
 
 interface AdminTimedAlertProps {
   title: string;
@@ -22,10 +24,29 @@ interface AdminTimedAlertProps {
   durationMs?: number;
   onClose: () => void;
   zIndex?: number;
+  variant?: AlertVariant;
 }
 
 const DEFAULT_DURATION_MS = 5000;
 const TICK_MS = 50;
+
+const inferAlertVariant = (title: string): AlertVariant => {
+  const normalized = title
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+  if (
+    /(^error\b|no se pudo|no fue posible|inval|requerid|duplicad|fall|denegad|no existe|sin permisos|bloquead)/.test(
+      normalized,
+    )
+  ) {
+    return "error";
+  }
+
+  return "success";
+};
 
 const AdminTimedAlert = ({
   title,
@@ -33,10 +54,15 @@ const AdminTimedAlert = ({
   durationMs = DEFAULT_DURATION_MS,
   onClose,
   zIndex,
+  variant,
 }: AdminTimedAlertProps) => {
   const [progress, setProgress] = useState(1);
   const onCloseRef = useRef(onClose);
   const isClosingRef = useRef(false);
+  const resolvedVariant = useMemo(
+    () => variant ?? inferAlertVariant(title),
+    [title, variant],
+  );
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -82,7 +108,7 @@ const AdminTimedAlert = ({
   return (
     <div className="modal-overlay" style={overlayStyle}>
       <div
-        className="modal-content admin-timed-alert"
+        className={`modal-content admin-timed-alert ${resolvedVariant === "error" ? "is-error" : "is-success"}`}
         role="status"
         aria-live="polite"
       >
@@ -97,7 +123,11 @@ const AdminTimedAlert = ({
 
         <div className="admin-timed-alert-icon-shell" aria-hidden="true">
           <div className="admin-timed-alert-icon-bg">
-            <Check size={44} color="white" />
+            {resolvedVariant === "error" ? (
+              <AlertTriangle size={44} color="white" />
+            ) : (
+              <Check size={44} color="white" />
+            )}
           </div>
           <svg className="admin-timed-alert-progress" viewBox="0 0 44 44">
             <circle

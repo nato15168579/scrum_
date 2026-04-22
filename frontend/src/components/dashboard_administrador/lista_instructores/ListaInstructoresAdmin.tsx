@@ -889,6 +889,9 @@ const ListaInstructoresAdmin = () => {
                   </div>
 
                   <div className="minimal-select-wrapper">
+                    <span className="minimal-select-label">
+                      {activeFilterOption.label}
+                    </span>
                     <select
                       className="minimal-filter-select"
                       value={activeFilter}
@@ -1418,9 +1421,12 @@ const ListaInstructoresAdmin = () => {
       )}
 
       {instructorToDelete && (
-        <div className="modal-overlay" onClick={closeDeleteModal}>
+        <div
+          className="modal-overlay delete-instructor-overlay"
+          onClick={closeDeleteModal}
+        >
           <div
-            className="modal-content delete-instructor-modal"
+            className="detail-modal-content delete-instructor-modal"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="instructor-modal-layout">

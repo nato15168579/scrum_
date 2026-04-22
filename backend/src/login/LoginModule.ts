@@ -1,26 +1,24 @@
 /**
  * LoginModule
  * -----------
- * Modulo NestJS para login.
- *
- * Registra:
- * - LoginController (endpoint HTTP)
- * - LoginService (validacion de credenciales)
- *
- * Dependencias:
- * - Repositorio TypeORM de `Usuario`.
+ * Modulo NestJS para login y recuperacion de contrasena.
  */
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoginController } from './LoginController';
 import { LoginService } from './LoginService';
-import { Usuario } from '../entities/Usuario'; 
+import { PasswordRecoveryService } from './PasswordRecoveryService';
+import { PasswordRecoveryEmailService } from './PasswordRecoveryEmailService';
+import { Usuario } from '../entities/Usuario';
+import { PasswordRecoveryCode } from '../entities/PasswordRecoveryCode';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Usuario])
-  ],
+  imports: [TypeOrmModule.forFeature([Usuario, PasswordRecoveryCode])],
   controllers: [LoginController],
-  providers: [LoginService],
+  providers: [
+    LoginService,
+    PasswordRecoveryService,
+    PasswordRecoveryEmailService,
+  ],
 })
 export class LoginModule {}

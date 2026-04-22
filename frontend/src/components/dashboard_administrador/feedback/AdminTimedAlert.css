@@ -52,10 +52,8 @@ Convenciones:
   width: 72px;
   height: 72px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #22c55e, #16a34a);
   display: grid;
   place-items: center;
-  box-shadow: 0 12px 24px rgba(22, 163, 74, 0.22);
 }
 
 .admin-timed-alert-progress {
@@ -72,9 +70,26 @@ Convenciones:
 
 .admin-timed-alert-progress-fg {
   fill: none;
-  stroke: #16a34a;
   stroke-width: 4.5;
   stroke-linecap: round;
+}
+
+.admin-timed-alert.is-success .admin-timed-alert-icon-bg {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 12px 24px rgba(22, 163, 74, 0.22);
+}
+
+.admin-timed-alert.is-success .admin-timed-alert-progress-fg {
+  stroke: #16a34a;
+}
+
+.admin-timed-alert.is-error .admin-timed-alert-icon-bg {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 12px 24px rgba(220, 38, 38, 0.24);
+}
+
+.admin-timed-alert.is-error .admin-timed-alert-progress-fg {
+  stroke: #dc2626;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -82,7 +97,3 @@ Convenciones:
     transition: none;
   }
 }
-/* AdminTimedAlert.css
- * Estilos del componente `AdminTimedAlert` (feedback temporal).
- * Debe ser visible encima de modales cuando se usa `zIndex`.
- */

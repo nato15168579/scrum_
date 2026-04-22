@@ -7,15 +7,12 @@
  * - Si la contrasena almacenada ya es bcrypt, compara con bcrypt.
  * - Si la contrasena almacenada esta en texto plano (legacy), valida por igualdad y
  *   migra a bcrypt en el primer login exitoso.
- *
- * Nota:
- * - `fixPasswords()` existe como helper de migracion, pero no debe exponerse sin proteccion.
  */
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuario } from '../entities/Usuario';
-import * as bcrypt from 'bcrypt';
+import { compareWithStoredPassword, hashPassword } from './PasswordSecurity';
 
 @Injectable()
 export class LoginService {
@@ -48,16 +45,11 @@ export class LoginService {
     });
 
     const passwordGuardada = usuario.usuContrasena || '';
-    let esValida = false;
+    const esValida = await compareWithStoredPassword(pass, passwordGuardada);
 
-    if (passwordGuardada.startsWith('$2')) {
-      esValida = await bcrypt.compare(pass, passwordGuardada);
-    } else {
-      esValida = pass === passwordGuardada;
-      if (esValida) {
-        usuario.usuContrasena = await bcrypt.hash(pass, 10);
-        await this.usuarioRepo.save(usuario);
-      }
+    if (esValida && !passwordGuardada.startsWith('$2')) {
+      usuario.usuContrasena = await hashPassword(pass);
+      await this.usuarioRepo.save(usuario);
     }
 
     if (!esValida) {
@@ -88,7 +80,7 @@ export class LoginService {
 
     for (const u of usuarios) {
       if (u.usuContrasena && !u.usuContrasena.startsWith('$2b$')) {
-        u.usuContrasena = await bcrypt.hash(u.usuContrasena, 10);
+        u.usuContrasena = await hashPassword(u.usuContrasena);
         await this.usuarioRepo.save(u);
         contador++;
       }

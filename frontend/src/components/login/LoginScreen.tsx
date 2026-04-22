@@ -9,7 +9,8 @@
  * - Redirige segun rol: admin (3), instructor (2), aprendiz (1).
  */
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import senaLogo from "../../assets/sena.png";
 import "./Login.css";
 import { API_LOGIN } from "../../config/Api";
@@ -17,6 +18,7 @@ import { API_LOGIN } from "../../config/Api";
 const LoginScreen = () => {
   const [credentials, setCredentials] = useState({ cedula: "", password: "" });
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,7 +35,7 @@ const LoginScreen = () => {
     }
 
     try {
-      console.log("Iniciando login con cédula:", credentials.cedula);
+      console.log("Iniciando login con cedula:", credentials.cedula);
 
       const response = await fetch(`${API_LOGIN}`, {
         method: "POST",
@@ -49,16 +51,15 @@ const LoginScreen = () => {
       if (!response.ok) {
         const errorData = await response.text();
         console.error("Error response:", errorData);
-        throw new Error("Cédula o contraseña incorrectas");
+        throw new Error("Cedula o contrasena incorrectas");
       }
 
       const data = await response.json();
-      console.log("✅ Datos recibidos del servidor:", data);
+      console.log("Datos recibidos del servidor:", data);
 
-      // Validar que tenemos los datos necesarios
       if (!data.usuCedula) {
-        console.error("❌ El servidor no envió usuCedula");
-        setError("Error: El servidor no devolvió los datos del usuario");
+        console.error("El servidor no envio usuCedula");
+        setError("Error: El servidor no devolvio los datos del usuario");
         return;
       }
 
@@ -76,43 +77,30 @@ const LoginScreen = () => {
       const fullNombre =
         `${data.usuNombres || ""} ${data.usuApellidos || ""}`.trim();
 
-      console.log("📋 Datos parseados:", { cedulaStr, roleIdStr, fullNombre });
+      console.log("Datos parseados:", { cedulaStr, roleIdStr, fullNombre });
 
-      // Guardar en LocalStorage
       localStorage.setItem("userCedula", cedulaStr);
       localStorage.setItem("userRoleId", roleIdStr);
       localStorage.setItem("userName", fullNombre);
 
-      console.log("✅ Datos guardados en localStorage");
+      console.log("Datos guardados en localStorage");
 
-      // REDIRECCIÓN según rolSisIdFk
       const roleNum = parseInt(roleIdStr) || 0;
-      console.log("🔍 ID de rol numérico:", roleNum);
+      console.log("ID de rol numerico:", roleNum);
 
-      // 3 = coordinador/administrador, 2 = Instructor, 1 = Aprendiz
       if (roleNum === 3) {
-        console.log(
-          "🎯 Rol es Administrador (3) - Redirigiendo a /dashboard-administrador",
-        );
         navigate("/dashboard-administrador");
       } else if (roleNum === 2) {
-        console.log(
-          "🎯 Rol es Instructor (2) - Redirigiendo a /dashboard-instructor",
-        );
         navigate("/dashboard-instructor");
       } else if (roleNum === 1) {
-        console.log("🎯 Rol es Aprendiz - Redirigiendo a /dashboard-aprendiz");
         navigate("/dashboard-aprendiz");
       } else {
-        console.log(
-          "🎯 Rol no identificado, redirigiendo a /dashboard para resolver por contexto",
-        );
         navigate("/dashboard");
       }
     } catch (err: unknown) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      console.error("❌ Error en Login:", error);
-      setError(error.message || "Error al conectar con el servidor");
+      const nextError = err instanceof Error ? err : new Error(String(err));
+      console.error("Error en Login:", nextError);
+      setError(nextError.message || "Error al conectar con el servidor");
     }
   };
 
@@ -121,13 +109,13 @@ const LoginScreen = () => {
       <div className="login-card">
         <div className="login-header">
           <img src={senaLogo} alt="SENA Logo" className="sena-logo" />
-          <h2>Iniciar Sesión</h2>
-          <p className="login-subtitle">Gestión de proyectos formativos</p>
+          <h2>Iniciar sesion</h2>
+          <p className="login-subtitle">Gestion de proyectos formativos</p>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="cedula">Número de documento</label>
+            <label htmlFor="cedula">Numero de documento</label>
             <input
               type="number"
               id="cedula"
@@ -141,21 +129,35 @@ const LoginScreen = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Contraseña</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              className="form-control"
-              placeholder="••••••••"
-              value={credentials.password}
-              onChange={handleChange}
-              autoComplete="current-password"
-            />
+            <label htmlFor="password">Contrasena</label>
+            <div className="password-input-wrapper">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                className="form-control password-control"
+                placeholder="********"
+                value={credentials.password}
+                onChange={handleChange}
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                className="password-toggle-button"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={
+                  showPassword ? "Ocultar contrasena" : "Mostrar contrasena"
+                }
+                aria-pressed={showPassword}
+                title={showPassword ? "Ocultar contrasena" : "Mostrar contrasena"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <div className="forgot-password">
-            <Link to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
+            <Link to="/recuperar-contrasena">Olvidaste tu contrasena?</Link>
           </div>
 
           {error && <p className="error-message">{error}</p>}

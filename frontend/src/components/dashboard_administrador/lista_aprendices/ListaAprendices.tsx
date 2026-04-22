@@ -618,6 +618,9 @@ const ListaAprendicesAdmin = () => {
                   </div>
 
                   <div className="minimal-select-wrapper">
+                    <span className="minimal-select-label">
+                      {activeFilterOption.label}
+                    </span>
                     <select
                       className="minimal-filter-select"
                       value={activeFilter}
@@ -969,7 +972,7 @@ const ListaAprendicesAdmin = () => {
               <div className="modal-buttons">
                 <button
                   type="submit"
-                  className="btn-confirm-logout"
+                  className="btn-confirm-logout btn-save-aprendiz"
                   disabled={isSavingEdit}
                 >
                   {isSavingEdit ? "Guardando..." : "Guardar cambios"}

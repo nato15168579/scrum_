@@ -241,18 +241,8 @@ const CrearProyectoAdmin = () => {
 
       <main className="content">
         <nav className="nav-top">
-          <div className="admin-project-header">
-            <button
-              type="button"
-              className="admin-project-back-button"
-              onClick={handleGoBack}
-            >
-              <ArrowLeft size={18} />
-              Volver
-            </button>
-            <div className="title-section">
-              <h1>Crear Proyecto</h1>
-            </div>
+          <div className="title-section">
+            <h1>Crear Proyecto</h1>
           </div>
 
           <AdminProfileMenu
@@ -263,6 +253,17 @@ const CrearProyectoAdmin = () => {
             onLogout={() => setShowLogoutModal(true)}
           />
         </nav>
+
+        <div className="admin-project-actions">
+          <button
+            type="button"
+            className="admin-project-back-button"
+            onClick={handleGoBack}
+          >
+            <ArrowLeft size={18} />
+            Volver
+          </button>
+        </div>
 
         <section
           className="table-card"

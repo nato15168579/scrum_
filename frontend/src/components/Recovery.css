@@ -1,125 +1,339 @@
-/* src/components/Recovery.css */
 .recovery-container {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #fff; /* Fondo blanco limpio */
+    padding: 32px 16px;
+    background:
+        radial-gradient(circle at top left, rgba(57, 169, 0, 0.12), transparent 34%),
+        linear-gradient(180deg, #f8fff5 0%, #eef5ef 100%);
     font-family: 'Segoe UI', sans-serif;
 }
 
 .recovery-card {
-    background: white;
     width: 100%;
-    max-width: 500px; /* Un poco más ancho */
-    padding: 20px;
-    text-align: center;
+    max-width: 560px;
+    padding: 28px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 20px 55px rgba(15, 23, 42, 0.12);
 }
 
-/* Cabecera con flecha y logo */
 .header-nav {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
     margin-bottom: 20px;
+}
+
+.back-button {
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef2f7;
+    color: #0f172a;
+    cursor: pointer;
 }
 
 .sena-logo-small {
-    width: 50px;
+    width: 52px;
     height: auto;
 }
 
-/* Encabezado Amarillo */
+.step-progress {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.step-pill {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #64748b;
+    background: #e2e8f0;
+}
+
+.step-pill-active {
+    background: #39A900;
+    color: #ffffff;
+}
+
 .step-title {
-    background-color: #ffffcc; /* Amarillo pálido exacto */
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    font-weight: 500;
-    color: #000;
-    font-size: 1.2rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    margin: 0 0 14px;
+    font-size: 1.7rem;
+    line-height: 1.2;
+    color: #0f172a;
 }
 
-/* Barra Gris de Instrucciones */
 .instruction-bar {
-    background-color: #bfbfbf; /* Gris medio */
-    color: #333;
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 30px;
-    font-size: 0.95rem;
-    font-weight: 500;
+    margin-bottom: 22px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    font-weight: 600;
 }
 
-/* Contenedor de Inputs con Iconos */
+.recovery-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
 .input-with-icon {
     position: relative;
-    margin-bottom: 15px;
 }
 
 .input-icon {
     position: absolute;
-    left: 15px;
+    left: 16px;
     top: 50%;
     transform: translateY(-50%);
-    color: #555;
-    pointer-events: none; /* Para que el click pase al input */
+    color: #64748b;
+    pointer-events: none;
 }
 
-/* Estilos de Inputs */
-.form-control, .form-select {
-    width: 100%;
-    padding: 12px 15px 12px 45px; /* Padding izquierdo extra para el icono */
-    border: 1px solid #777;
-    border-radius: 15px; /* Bordes muy redondeados como en la imagen */
-    box-sizing: border-box;
-    font-size: 1rem;
-    outline: none;
-    background-color: white;
-}
-
-/* Select específico */
+.form-control,
 .form-select {
-    appearance: none; /* Quita estilo por defecto del navegador */
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 15px center;
-    background-size: 15px;
-}
-
-/* Input del Código (Centrado y grande) */
-.code-input {
-    padding: 12px !important;
-    text-align: center;
-    font-size: 1.5rem;
-    font-weight: bold;
-    letter-spacing: 10px;
-}
-
-/* Botón Verde SENA */
-.btn-sena {
-    background-color: #009e2e; /* Verde SENA */
-    color: white;
     width: 100%;
-    padding: 12px;
-    border: none;
-    border-radius: 15px; /* Bordes redondeados */
+    min-height: 52px;
+    padding: 14px 16px 14px 48px;
+    border-radius: 16px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #0f172a;
     font-size: 1rem;
-    cursor: pointer;
-    margin-top: 20px;
-    font-weight: 600;
-    transition: background 0.3s;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
 }
 
-.btn-sena:hover {
-    background-color: #007a22;
+.form-control:focus,
+.form-select:focus {
+    outline: none;
+    border-color: #39A900;
+    box-shadow: 0 0 0 4px rgba(57, 169, 0, 0.14);
+}
+
+.form-select {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, #64748b 50%),
+        linear-gradient(135deg, #64748b 50%, transparent 50%);
+    background-position: calc(100% - 22px) calc(50% - 3px),
+        calc(100% - 16px) calc(50% - 3px);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+}
+
+.password-control {
+    padding-right: 52px;
+}
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.helper-text {
+    margin: -4px 0 0;
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.code-card,
+.rules-card,
+.info-banner,
+.success-banner,
+.error-msg {
+    padding: 14px 16px;
+    border-radius: 16px;
+}
+
+.code-card {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+}
+
+.code-card p,
+.info-banner p,
+.success-state p {
+    margin: 0;
+}
+
+.info-banner {
+    margin-bottom: 18px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    display: grid;
+    gap: 6px;
+}
+
+.debug-code-box {
+    margin-top: 8px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px dashed rgba(29, 78, 216, 0.35);
+    display: grid;
+    gap: 6px;
+}
+
+.debug-code-label,
+.debug-code-note {
+    font-size: 0.92rem;
+}
+
+.debug-code-value {
+    font-size: 1.8rem;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: 0.35rem;
+    color: #1e3a8a;
+}
+
+.success-banner {
+    margin-bottom: 18px;
+    background: #ecfdf5;
+    border: 1px solid #bbf7d0;
+    color: #166534;
 }
 
 .error-msg {
-    color: #d9534f;
-    font-size: 0.9rem;
-    margin-bottom: 10px;
-    text-align: left;
-    padding-left: 10px;
+    margin-bottom: 18px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+}
+
+.code-input {
+    padding-left: 16px;
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 0.5rem;
+}
+
+.inline-actions {
+    display: grid;
+    gap: 12px;
+}
+
+.btn-sena,
+.btn-secondary {
+    width: 100%;
+    min-height: 50px;
+    border: none;
+    border-radius: 16px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.btn-sena {
+    background: linear-gradient(135deg, #39A900 0%, #2f8c00 100%);
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(57, 169, 0, 0.22);
+}
+
+.btn-secondary {
+    background: #f8fafc;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+}
+
+.btn-sena:hover,
+.btn-secondary:hover {
+    transform: translateY(-1px);
+}
+
+.btn-sena:disabled,
+.btn-secondary:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.rules-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+}
+
+.password-rules {
+    margin: 12px 0 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 8px;
+}
+
+.rule-valid {
+    color: #166534;
+    font-weight: 600;
+}
+
+.rule-pending {
+    color: #64748b;
+}
+
+.success-state {
+    display: grid;
+    gap: 16px;
+    text-align: center;
+}
+
+.success-icon {
+    justify-self: center;
+    color: #39A900;
+}
+
+.success-title {
+    margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+    .recovery-container {
+        padding: 20px 12px;
+    }
+
+    .recovery-card {
+        padding: 22px 18px;
+        border-radius: 20px;
+    }
+
+    .step-title {
+        font-size: 1.45rem;
+    }
+
+    .code-input {
+        font-size: 1.5rem;
+        letter-spacing: 0.35rem;
+    }
 }

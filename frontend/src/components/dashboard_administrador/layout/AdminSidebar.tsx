@@ -28,7 +28,7 @@ const AdminSidebar = ({
     <aside className="side-card">
       <div className="brand-block">
         <img src={senaLogo} alt="Logo SENA" className="logo-lg" />
-        <h2>Gestion de proyectos</h2>
+        <h2>Gestion de proyectos Scrum</h2>
       </div>
 
       <nav className="menu">
